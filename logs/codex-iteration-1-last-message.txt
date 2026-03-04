@@ -1,0 +1,29 @@
+Implemented one story: `US-001` (highest-priority `passes: false`) on branch `ralph/class-management-mvp`.
+
+### Completed
+- Initialized Next.js App Router + Tailwind project scaffold.
+- Added Convex baseline setup:
+  - `convex/schema.ts`
+  - `convex/tsconfig.json`
+  - installed `convex` dependency
+- Added required base folders:
+  - `components/`
+  - `lib/`
+- Added environment config file:
+  - `.env.local` with `CONVEX_DEPLOYMENT=dev:your-deployment-name`
+- Added `typecheck` script to `package.json`.
+- Updated `prd.json`: set `US-001.passes` to `true`.
+- Created and appended `progress.txt` with:
+  - `## Codebase Patterns` section
+  - iteration log entry in required format.
+
+### Quality checks run
+- `npm run typecheck` ✅
+- `npm run lint` ✅
+
+### Commit
+- `7fe2977`
+- Message: `feat: US-001 - Setup Next.js + Convex project structure`
+
+No repository `AGENTS.md` files were found to update.  
+There are still remaining stories with `passes: false` (14 remaining), so this iteration stops here.

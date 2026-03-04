@@ -1,6 +1,7 @@
 ## Codebase Patterns
 - In this repository, run both `npm run typecheck` and `npm run lint` before committing feature work.
 - If Next.js needs to be initialized in a non-empty repo root, scaffold in a temporary directory and copy files into place.
+- Convex schema in this codebase uses snake_case field names and numeric `*_at` timestamps, with explicit `by_*` index naming.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -16,4 +17,18 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - `create-next-app` refuses non-empty directories, so use temp-dir bootstrap when PRD/log files already exist.
   - Useful context (e.g., "the evaluation panel is in component X")
   - Convex is initialized minimally here; subsequent stories should expand schema/functions inside `convex/`.
+---
+## [2026-03-04 06:08:49 UTC] - US-002
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented full Convex data schema in `convex/schema.ts` for all required tables: purchases, participants, classes, sessions, terms_versions, admins, audit_logs, csv_files, and attendance_records.
+- Added required indexed fields (including `purchases.order_id`, `participants.participant_id`, and `attendance_records` participant/session indexes) plus supporting indexes for key lookup paths.
+- Verified schema compiles cleanly by running project quality checks.
+- Files changed: convex/schema.ts, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Convex schema definitions here favor explicit status unions and table-level `by_*` index names for query readability.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - Keep custom business IDs (`*_id` strings) separate from Convex document `_id`; both are used across relationships.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - Cross-table references currently mix Convex IDs and business IDs, so future mutations should stay consistent with each field type.
 ---
