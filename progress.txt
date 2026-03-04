@@ -220,3 +220,23 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Useful context (e.g., "the evaluation panel is in component X")
   - The scanner-enabled participant table now lives in `app/admin/sessions/[session_id]/participants/session-participants-panel.tsx`.
 ---
+## [2026-03-04] - US-014
+- Implemented admin class list backend in `convex/adminClasses.ts`:
+  - `getClassListPageData` query returns all classes with total_sessions count (computed by iterating all sessions).
+  - `createClass` mutation inserts a new class with `active` status and writes an audit log entry.
+- Created `app/admin/classes/page.tsx` (server component):
+  - Auth guard redirects unauthenticated users to login.
+  - Fetches class list via Convex HTTP client.
+  - Displays table with class_id, name, total_sessions, status columns.
+  - 'Add Class' button shown only when `session.user.role === 'super_admin'`.
+  - Server action calls `adminClasses:createClass` and redirects with `status=class_created` or `error=...` query params.
+- Created `app/admin/classes/add-class-modal.tsx` (client component):
+  - Modal with name (required) and description (optional) fields.
+  - Reads `success` prop to show success toast after class creation.
+  - Reads `errorMessage` prop to surface server action errors inline.
+- Files changed: convex/adminClasses.ts, app/admin/classes/page.tsx, app/admin/classes/add-class-modal.tsx, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Total session count per class can be computed client-side from a flat sessions list without adding a new index; this avoids schema changes.
+  - Role-gated buttons should check `session.user.role` from the NextAuth session on the server side to prevent UI-only bypasses.
+  - The admin class list is now at `app/admin/classes/page.tsx`; class creation goes through `adminClasses:createClass`.
+---
