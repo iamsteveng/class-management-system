@@ -3,6 +3,7 @@
 - If Next.js needs to be initialized in a non-empty repo root, scaffold in a temporary directory and copy files into place.
 - Convex schema in this codebase uses snake_case field names and numeric `*_at` timestamps, with explicit `by_*` index naming.
 - Without Convex codegen checked in, define functions with `mutationGeneric/queryGeneric` from `convex/server` to keep TypeScript passing.
+- Without `convex/_generated/api`, cron jobs can still target functions using `makeFunctionReference` with `"module:function"` names.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -46,4 +47,20 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - This repo currently lacks `convex/_generated`, so use generic server builders until codegen is introduced.
   - Useful context (e.g., "the evaluation panel is in component X")
   - Seeded admin passwords are intentionally hashed (`bcryptjs`) to be immediately compatible with auth implementation work.
+---
+## [2026-03-04 06:15:03 UTC] - US-004
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented automated CSV import pipeline in `convex/csvImport.ts` with a scheduled action that runs through pending CSV files in storage.
+- Added robust CSV parsing and validation for required columns (`order_id`, `customer_mobile`, `purchase_datetime`, `participant_count`), with row-level validation for required fields and positive participant counts.
+- Added duplicate handling using `purchases.by_order_id`; duplicates are skipped and logged to `audit_logs`, while valid rows insert purchases with `status='pending_terms'` and UUID tokens.
+- Added file lifecycle updates for `csv_files`: mark as `processed` on success and `failed` with `error_message` on parse/storage failures.
+- Added minute-based Convex cron registration in `convex/crons.ts` to execute the CSV processor every 1 minute.
+- Files changed: convex/csvImport.ts, convex/crons.ts, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - In this repo, background ingestion should be split into an action for storage reads and mutations for DB writes/status updates.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - `ctx.storage.get` is action-only in Convex; mutations cannot read file blobs directly.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - Duplicate CSV orders are now traceable through `audit_logs` action `csv_import_duplicate_order`.
 ---

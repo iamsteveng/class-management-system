@@ -1,0 +1,5 @@
+Iteration: 3/6
+Story: US-003 - [Create seed data for classes and sessions]
+Result: completed
+Commit: 1ca518c
+Summary: Implemented one story this iteration: `US-003` (highest-priority pending story). ### What I changed - Added Convex seed mutation in [convex/seed.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/seed.
