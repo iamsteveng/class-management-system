@@ -1,4 +1,4 @@
-import { queryGeneric } from "convex/server";
+import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
 export const getSessionParticipantsPageData = queryGeneric({
@@ -117,5 +117,138 @@ export const getSessionParticipantsPageData = queryGeneric({
       session_time: session.time,
       participants: participantRows,
     };
+  },
+});
+
+export const markAttendanceFromScan = mutationGeneric({
+  args: {
+    session_id: v.string(),
+    participant_id: v.string(),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    status: v.union(
+      v.literal("success"),
+      v.literal("invalid_session"),
+      v.literal("already_attended"),
+      v.literal("participant_not_found"),
+      v.literal("admin_not_found")
+    ),
+    participant_id: v.optional(v.string()),
+    participant_name: v.optional(v.string()),
+    marked_at: v.optional(v.number()),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const participantId = args.participant_id.trim();
+    const adminUsername = args.admin_username.trim();
+
+    const admin = await ctx.db
+      .query("admins")
+      .withIndex("by_username", (q) => q.eq("username", adminUsername))
+      .first();
+
+    if (!admin) {
+      return { status: "admin_not_found" } as const;
+    }
+
+    const participant = await ctx.db
+      .query("participants")
+      .withIndex("by_participant_id", (q) => q.eq("participant_id", participantId))
+      .first();
+
+    if (!participant) {
+      await ctx.db.insert("audit_logs", {
+        admin_id: admin._id,
+        action: "attendance_scan_participant_not_found",
+        entity_type: "attendance_records",
+        entity_id: participantId,
+        metadata: {
+          participant_id: participantId,
+          session_id: args.session_id,
+        },
+        created_at: now,
+      });
+      return { status: "participant_not_found" } as const;
+    }
+
+    if (participant.session_id !== args.session_id) {
+      await ctx.db.insert("audit_logs", {
+        admin_id: admin._id,
+        action: "attendance_scan_invalid_session",
+        entity_type: "participants",
+        entity_id: participant.participant_id,
+        metadata: {
+          participant_id: participant.participant_id,
+          participant_session_id: participant.session_id,
+          attempted_session_id: args.session_id,
+        },
+        created_at: now,
+      });
+      return {
+        status: "invalid_session",
+        participant_id: participant.participant_id,
+        participant_name: participant.name?.trim() || "Unnamed participant",
+      } as const;
+    }
+
+    const attendanceRecords = await ctx.db
+      .query("attendance_records")
+      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+      .collect();
+
+    const latestAttendance = attendanceRecords
+      .filter((record) => record.participant_id === participant.participant_id)
+      .sort((left, right) => right.marked_at - left.marked_at)[0];
+
+    if (latestAttendance) {
+      await ctx.db.insert("audit_logs", {
+        admin_id: admin._id,
+        action: "attendance_scan_already_marked",
+        entity_type: "attendance_records",
+        entity_id: latestAttendance.attendance_id,
+        metadata: {
+          participant_id: participant.participant_id,
+          session_id: args.session_id,
+          marked_at: latestAttendance.marked_at,
+        },
+        created_at: now,
+      });
+      return {
+        status: "already_attended",
+        participant_id: participant.participant_id,
+        participant_name: participant.name?.trim() || "Unnamed participant",
+        marked_at: latestAttendance.marked_at,
+      } as const;
+    }
+
+    const attendanceId = crypto.randomUUID();
+    await ctx.db.insert("attendance_records", {
+      attendance_id: attendanceId,
+      participant_id: participant.participant_id,
+      session_id: args.session_id,
+      marked_by_admin: admin._id,
+      marked_at: now,
+      created_at: now,
+    });
+
+    await ctx.db.insert("audit_logs", {
+      admin_id: admin._id,
+      action: "attendance_marked",
+      entity_type: "attendance_records",
+      entity_id: attendanceId,
+      metadata: {
+        participant_id: participant.participant_id,
+        session_id: args.session_id,
+      },
+      created_at: now,
+    });
+
+    return {
+      status: "success",
+      participant_id: participant.participant_id,
+      participant_name: participant.name?.trim() || "Unnamed participant",
+      marked_at: now,
+    } as const;
   },
 });

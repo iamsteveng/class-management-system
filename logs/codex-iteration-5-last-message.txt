@@ -1,18 +1,25 @@
-Implemented `US-006` and committed it.
+Implemented US-012 and committed it on `ralph/class-management-mvp`.
 
-- Commit: `f9e6aee`
-- Message: `feat: US-006 - Send purchase confirmation WhatsApp`
+Commit:
+- `4bd5c75` with message `feat: [US-012] - [Build session participants list page]`
 
-What changed:
-- Added purchase confirmation action module: [purchaseConfirmation.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/purchaseConfirmation.ts)
-- Wired CSV import to trigger confirmation action after each purchase insert: [csvImport.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/csvImport.ts)
-- Marked story as passing: [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json)
-- Appended progress entry and updated Codebase Patterns: [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt)
+What I changed:
+- Added Convex query for session participant list data, terms version lookup, and attendance status derivation (latest attendance per participant): [adminSessions.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/adminSessions.ts)
+- Added authenticated admin page for `/admin/sessions/[session_id]/participants` with:
+  - required columns (`participant_id`, `name`, `mobile`, `terms_accepted`, `attendance_status`)
+  - terms version column
+  - default name sorting
+  - top `Scan QR Code` button  
+  File: [page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/sessions/[session_id]/participants/page.tsx)
+- Updated story pass flag in PRD: [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json)
+- Appended progress log + updated Codebase Patterns: [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt)
 
-Quality checks run and passing:
-- `npm run typecheck`
-- `npm run lint`
+Quality checks run:
+- `npm run typecheck` passed
+- `npm run lint` passed
 
-Notes:
-- No local `AGENTS.md` files were found in this repo to update.
-- Remaining stories still have `passes: false`, so this iteration is not complete.
+Runtime/frontend verification:
+- Ran `npm run dev` and validated `/admin/sessions/test-session/participants` returns expected `307` redirect to `/admin/login?...` when unauthenticated.
+- `dev-browser` skill is not available in this workspace’s skill list, so browser-skill verification could not be executed this iteration.
+
+There are still stories with `passes: false` (US-013 onward), so this iteration is complete normally.

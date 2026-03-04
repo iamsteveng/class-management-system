@@ -2,6 +2,7 @@ import { makeFunctionReference } from "convex/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SessionParticipantsPanel } from "./session-participants-panel";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
@@ -47,6 +48,22 @@ export default async function SessionParticipantsPage({
       </main>
     );
   }
+  const adminUsername = session.user.username;
+  const sessionId = pageData.session_id;
+
+  async function markAttendanceFromScan(participantId: string) {
+    "use server";
+
+    const client = createConvexHttpClient();
+    return client.mutation(
+      makeFunctionReference<"mutation">("adminSessions:markAttendanceFromScan"),
+      {
+        session_id: sessionId,
+        participant_id: participantId,
+        admin_username: adminUsername,
+      }
+    );
+  }
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl space-y-6 px-4 py-8">
@@ -59,57 +76,11 @@ export default async function SessionParticipantsPage({
           </p>
           <p className="text-xs text-zinc-600">Session ID: {pageData.session_id}</p>
         </div>
-
-        <button
-          type="button"
-          className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
-        >
-          Scan QR Code
-        </button>
       </section>
-
-      <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-left text-sm">
-            <thead className="bg-zinc-50 text-zinc-700">
-              <tr>
-                <th className="px-4 py-3 font-medium">Participant ID</th>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Mobile</th>
-                <th className="px-4 py-3 font-medium">Terms Accepted</th>
-                <th className="px-4 py-3 font-medium">Terms Version</th>
-                <th className="px-4 py-3 font-medium">Attendance Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageData.participants.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-zinc-600">
-                    No participants found for this session.
-                  </td>
-                </tr>
-              ) : (
-                pageData.participants.map((participant) => (
-                  <tr key={participant.participant_id} className="border-t border-zinc-200">
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-700">
-                      {participant.participant_id}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-900">{participant.name}</td>
-                    <td className="px-4 py-3 text-zinc-700">{participant.mobile}</td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {participant.terms_accepted ? "Yes" : "No"}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {participant.terms_version ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">{participant.attendance_status}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <SessionParticipantsPanel
+        participants={pageData.participants}
+        onMarkAttendance={markAttendanceFromScan}
+      />
 
       <Link
         href="/admin/dashboard"

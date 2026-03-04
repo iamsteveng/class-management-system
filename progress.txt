@@ -11,6 +11,7 @@
 - For modal form flows backed by Next.js server actions, return UX status through URL query params (`status`/`error`) after `redirect(...)` so refreshes stay deterministic.
 - For admin auth in this codebase, keep credential verification in a Convex action and consume it from NextAuth Credentials provider (`lib/auth.ts`) so role/username live in JWT session callbacks.
 - For admin session participant lists, query attendance via `attendance_records.by_session_id` and compute the latest record per participant before rendering status text.
+- For scanner-driven attendance, return explicit status unions from Convex mutations (`success`, `already_attended`, `invalid_session`, etc.) so UI toast messaging and row updates stay deterministic.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -202,5 +203,20 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Gotchas encountered (e.g., "don't forget to update Z when changing W")
   - With NextAuth-protected server pages, unauthenticated route checks should happen before Convex fetches to avoid unnecessary backend calls.
   - Useful context (e.g., "the evaluation panel is in component X")
-  - Session participant list data now comes from `adminSessions:getSessionParticipantsPageData`.
+- Session participant list data now comes from `adminSessions:getSessionParticipantsPageData`.
+---
+## [2026-03-04 09:07:35 UTC] - US-013
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented attendance scan backend mutation `adminSessions:markAttendanceFromScan` to validate scanned participants against the active session, detect duplicate attendance, create attendance records, and log scan outcomes to `audit_logs`.
+- Replaced the static participants table view with a new client panel component that includes a QR scanner modal (`qr-scanner`), fallback manual participant ID entry, status toasts (success/error/warning), and live row updates to show attendance checkmark + timestamp.
+- Wired server action bridge from `/admin/sessions/[session_id]/participants` to call the new Convex mutation using authenticated admin username from NextAuth session.
+- Installed and attempted browser automation skill usage (`playwright`) for frontend verification; runtime browser automation is blocked on this environment because Playwright cannot install Chrome on Amazon Linux (`npx playwright install chrome` unsupported on `amzn`), so verification was limited to live dev-server route checks and runtime compilation (`/admin/login` 200).
+- Files changed: `convex/adminSessions.ts`, `app/admin/sessions/[session_id]/participants/page.tsx`, `app/admin/sessions/[session_id]/participants/session-participants-panel.tsx`, `package.json`, `package-lock.json`, `prd.json`, `progress.txt`.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - For scanner flows, keep validation + attendance write logic in Convex and return compact status codes for UI mapping.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - Playwright CLI in this environment defaults to Chrome channel and cannot auto-install Chrome on Amazon Linux, so browser automation may need an alternate runtime/image.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - The scanner-enabled participant table now lives in `app/admin/sessions/[session_id]/participants/session-participants-panel.tsx`.
 ---
