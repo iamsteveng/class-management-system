@@ -1,0 +1,25 @@
+Implemented `US-011` and committed it.
+
+- Commit: `9203527`
+- Message: `feat: [US-011] - [Build admin login page]`
+- PRD updated: `US-011` now has `"passes": true`
+- Progress appended to `progress.txt` (including learnings and codebase pattern update)
+
+Key changes:
+- Added Convex admin auth module: [convex/adminAuth.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/adminAuth.ts)
+- Added shared NextAuth config/session helper: [lib/auth.ts](/home/ec2-user/.openclaw/workspace/class-management-system/lib/auth.ts)
+- Added NextAuth API route: [app/api/auth/[...nextauth]/route.ts](/home/ec2-user/.openclaw/workspace/class-management-system/app/api/auth/[...nextauth]/route.ts)
+- Added admin login UI: [app/admin/login/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/login/page.tsx), [app/admin/login/login-form.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/login/login-form.tsx)
+- Added protected dashboard target: [app/admin/dashboard/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/dashboard/page.tsx)
+- Added NextAuth typings: [types/next-auth.d.ts](/home/ec2-user/.openclaw/workspace/class-management-system/types/next-auth.d.ts)
+- Added dependency: `next-auth`
+
+Validation run:
+- `npm run typecheck` passed
+- `npm run lint` passed
+- Runtime check passed via local dev server HTTP verification:
+  - `/admin/login` responds `200` with login form
+  - `/admin/dashboard` redirects unauthenticated users to login (`307`)
+
+Note:
+- The required `dev-browser` skill is not available in the current skill list, so frontend verification was done through local runtime HTTP checks as fallback.

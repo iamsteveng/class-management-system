@@ -1,0 +1,5 @@
+Iteration: 6/6
+Story: US-007 - unknown
+Result: completed
+Commit: 5584f7c
+Summary: Implemented one story: **US-007 (Build terms acceptance form page)**. ### What I changed - Added Convex terms workflow APIs: - Query for terms page data by token in [convex/terms.ts](/home/ec2-user/.openclaw/workspace/cl

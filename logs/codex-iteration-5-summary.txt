@@ -1,0 +1,5 @@
+Iteration: 5/6
+Story: US-012 - [Build session participants list page]
+Result: completed
+Commit: 4bd5c75
+Summary: Implemented US-012 and committed it on `ralph/class-management-mvp`. Commit: - `4bd5c75` with message `feat: [US-012] - [Build session participants list page]` What I changed: - Added Convex query for session participant

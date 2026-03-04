@@ -1,0 +1,5 @@
+Iteration: 3/6
+Story: US-008 - Generate participants and send QR links
+Result: completed
+Commit: ff7b5c3
+Summary: Implemented `US-010` on branch `ralph/class-management-mvp` and committed it. Commit: - `ff7b5c3` with message `feat: US-010 - Add session rescheduling modal` What was implemented: - Added participant rescheduling backen

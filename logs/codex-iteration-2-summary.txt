@@ -1,0 +1,5 @@
+Iteration: 2/6
+Story: US-009 - [Build participant details page with QR code]
+Result: completed
+Commit: 1358a13
+Summary: Implemented `US-009` on branch `ralph/class-management-mvp` and committed with: `1358a13` `feat: [US-009] - [Build participant details page with QR code]` ### What I changed - Added participant details query: [convex/par
