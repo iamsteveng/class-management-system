@@ -116,3 +116,18 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Useful context (e.g., "the evaluation panel is in component X")
   - Terms workflow APIs now live in `convex/terms.ts`; follow this module for future token/session acceptance changes.
 ---
+## [2026-03-04 08:43:46 UTC] - US-008
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented participant generation in `terms:acceptTermsByToken`: after a successful terms submission, the mutation now creates one participant record per `participant_count` using `crypto.randomUUID()` for each `participant_id`.
+- Linked each participant to the accepted purchase/session/terms version, stored acceptance timestamp metadata, and set QR payload data to the participant identifier for downstream QR flows.
+- Added a new Convex Node action (`participantLinks:sendParticipantLinks`) to send participant URL links over WhatsApp right after terms acceptance.
+- The participant-link message is sent as a single WhatsApp message containing all links; this covers the `participant_count=2` requirement with both links in one message.
+- Files changed: convex/terms.ts, convex/participantLinks.ts, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Terms acceptance side effects in this repo should keep DB writes in mutations and push outbound messaging into scheduled Node actions.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - Use `purchase.status === "terms_accepted"` as the idempotency guard to avoid duplicate participant creation from repeated token form submissions.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - Participant link delivery logic now lives in `convex/participantLinks.ts` and is triggered from `convex/terms.ts`.
+---

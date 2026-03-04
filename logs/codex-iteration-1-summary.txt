@@ -1,5 +1,5 @@
 Iteration: 1/6
-Story: US-001 - Generate test plan from PRD file
-Result: completed
-Commit: 7fe2977
+Story: US-008 - Generate participants and send QR links
+Result: no-op
+Commit: none
 Summary: Implemented one story: `US-001` (highest-priority `passes: false`) on branch `ralph/class-management-mvp`. ### Completed - Initialized Next.js App Router + Tailwind project scaffold. - Added Convex baseline setup: - `con

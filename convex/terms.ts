@@ -1,4 +1,8 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import {
+  makeFunctionReference,
+  mutationGeneric,
+  queryGeneric,
+} from "convex/server";
 import { v } from "convex/values";
 
 export const getTermsPageData = queryGeneric({
@@ -194,6 +198,8 @@ export const acceptTermsByToken = mutationGeneric({
       };
     }
 
+    const acceptedAt = Date.now();
+
     await ctx.db.patch(purchase._id, {
       class_id: session.class_id,
       session_id: session.session_id,
@@ -204,6 +210,32 @@ export const acceptTermsByToken = mutationGeneric({
       quota_used: session.quota_used + slotsRequired,
     });
 
+    const participantIds: string[] = [];
+    for (let i = 0; i < slotsRequired; i += 1) {
+      const participantId = crypto.randomUUID();
+      participantIds.push(participantId);
+
+      await ctx.db.insert("participants", {
+        participant_id: participantId,
+        purchase_id: purchase._id,
+        session_id: session.session_id,
+        mobile: purchase.customer_mobile,
+        qr_code_data: participantId,
+        terms_accepted_at: acceptedAt,
+        terms_version_id: currentTerms._id,
+        created_at: acceptedAt,
+      });
+    }
+
+    await ctx.scheduler.runAfter(
+      0,
+      makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
+      {
+        customer_mobile: purchase.customer_mobile,
+        participant_ids: participantIds,
+      }
+    );
+
     await ctx.db.insert("audit_logs", {
       action: "terms_accepted",
       entity_type: "purchase",
@@ -212,10 +244,11 @@ export const acceptTermsByToken = mutationGeneric({
         token: purchase.token,
         session_id: session.session_id,
         class_id: session.class_id,
-        accepted_at: Date.now(),
+        accepted_at: acceptedAt,
         terms_version: currentTerms.version,
+        participant_ids: participantIds,
       },
-      created_at: Date.now(),
+      created_at: acceptedAt,
     });
 
     return { success: true };
