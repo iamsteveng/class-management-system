@@ -220,6 +220,27 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Useful context (e.g., "the evaluation panel is in component X")
   - The scanner-enabled participant table now lives in `app/admin/sessions/[session_id]/participants/session-participants-panel.tsx`.
 ---
+## [2026-03-04] - US-015
+- Implemented session management backend in `convex/adminSessions.ts`:
+  - `getSessionManagementPageData` query returns class info and all sessions with computed `quota_available = quota_defined - quota_used`.
+  - `createSession` mutation inserts a new session with `status='scheduled'`, `quota_used=0`, and writes an audit log entry.
+- Created `app/admin/classes/[class_id]/sessions/page.tsx` (server component):
+  - Auth guard redirects unauthenticated users to login.
+  - Fetches session list via Convex HTTP client.
+  - Displays table with columns: location, date, time, quota (defined/used/available), status.
+  - Quota displayed as `defined / used / available`; when available=0 shows red "Full" text.
+  - 'Add Session' button shown only when `session.user.role === 'super_admin'`.
+  - Server action calls `adminSessions:createSession` and redirects with `status=session_created` or `error=...` query params.
+- Created `app/admin/classes/[class_id]/sessions/add-session-modal.tsx` (client component):
+  - Modal with location, date, time, quota_defined fields (all required).
+  - Success toast on session creation; inline error display on failure.
+- Updated `app/admin/classes/page.tsx` to make class names link to their sessions page.
+- Verified quality checks: `npm run typecheck` and `npm run lint` both pass.
+- Files changed: convex/adminSessions.ts, app/admin/classes/page.tsx, app/admin/classes/[class_id]/sessions/page.tsx, app/admin/classes/[class_id]/sessions/add-session-modal.tsx, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Quota availability can be computed in the Convex query (`quota_defined - quota_used`) rather than derived in UI, keeping display logic simple.
+  - The sessions management page follows the same auth+server-action+modal pattern as the classes page.
+---
 ## [2026-03-04] - US-014
 - Implemented admin class list backend in `convex/adminClasses.ts`:
   - `getClassListPageData` query returns all classes with total_sessions count (computed by iterating all sessions).
