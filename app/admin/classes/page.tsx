@@ -104,7 +104,12 @@ export default async function AdminClassesPage({
                     {cls.class_id}
                   </td>
                   <td className="px-4 py-3 font-medium text-zinc-900">
-                    {cls.class_name}
+                    <Link
+                      href={`/admin/classes/${cls.class_id}/sessions`}
+                      className="hover:underline"
+                    >
+                      {cls.class_name}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-zinc-700">
                     {cls.total_sessions}

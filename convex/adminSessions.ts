@@ -1,6 +1,119 @@
 import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
+export const getSessionManagementPageData = queryGeneric({
+  args: {
+    class_id: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      class_id: v.string(),
+      class_name: v.string(),
+      sessions: v.array(
+        v.object({
+          session_id: v.string(),
+          location: v.string(),
+          date: v.string(),
+          time: v.string(),
+          quota_defined: v.number(),
+          quota_used: v.number(),
+          quota_available: v.number(),
+          status: v.union(
+            v.literal("scheduled"),
+            v.literal("completed"),
+            v.literal("cancelled")
+          ),
+        })
+      ),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const classRecord = await ctx.db
+      .query("classes")
+      .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
+      .first();
+
+    if (!classRecord) {
+      return null;
+    }
+
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
+      .collect();
+
+    const sessionRows = sessions.map((s) => ({
+      session_id: s.session_id,
+      location: s.location,
+      date: s.date,
+      time: s.time,
+      quota_defined: s.quota_defined,
+      quota_used: s.quota_used,
+      quota_available: Math.max(0, s.quota_defined - s.quota_used),
+      status: s.status,
+    }));
+
+    return {
+      class_id: classRecord.class_id,
+      class_name: classRecord.name,
+      sessions: sessionRows,
+    };
+  },
+});
+
+export const createSession = mutationGeneric({
+  args: {
+    class_id: v.string(),
+    location: v.string(),
+    date: v.string(),
+    time: v.string(),
+    quota_defined: v.number(),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    session_id: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const sessionId = crypto.randomUUID();
+
+    const admin = await ctx.db
+      .query("admins")
+      .withIndex("by_username", (q) => q.eq("username", args.admin_username))
+      .first();
+
+    await ctx.db.insert("sessions", {
+      session_id: sessionId,
+      class_id: args.class_id,
+      location: args.location.trim(),
+      date: args.date.trim(),
+      time: args.time.trim(),
+      quota_defined: args.quota_defined,
+      quota_used: 0,
+      status: "scheduled",
+      created_at: now,
+    });
+
+    await ctx.db.insert("audit_logs", {
+      admin_id: admin?._id,
+      action: "session_created",
+      entity_type: "sessions",
+      entity_id: sessionId,
+      metadata: {
+        class_id: args.class_id,
+        location: args.location.trim(),
+        date: args.date.trim(),
+        time: args.time.trim(),
+        quota_defined: args.quota_defined,
+      },
+      created_at: now,
+    });
+
+    return { session_id: sessionId };
+  },
+});
+
 export const getSessionParticipantsPageData = queryGeneric({
   args: {
     session_id: v.string(),
