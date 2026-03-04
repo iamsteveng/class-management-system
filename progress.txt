@@ -1,0 +1,19 @@
+## Codebase Patterns
+- In this repository, run both `npm run typecheck` and `npm run lint` before committing feature work.
+- If Next.js needs to be initialized in a non-empty repo root, scaffold in a temporary directory and copy files into place.
+
+## [2026-03-04 06:07:00 UTC] - US-001
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented initial Next.js App Router + Tailwind project scaffold for the class management system.
+- Added Convex baseline setup (`convex/schema.ts`, `convex/tsconfig.json`) and installed `convex` dependency.
+- Added required base directories (`components/`, `lib/`) and created `.env.local` with `CONVEX_DEPLOYMENT` placeholder.
+- Added `typecheck` script and verified both lint and typecheck pass.
+- Files changed: app/*, public/*, package.json, package-lock.json, tsconfig.json, eslint/postcss/next config files, convex/*, prd.json, progress.txt, and supporting scaffold files.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Base quality gate for this codebase is lint + TypeScript no-emit checks.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - `create-next-app` refuses non-empty directories, so use temp-dir bootstrap when PRD/log files already exist.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - Convex is initialized minimally here; subsequent stories should expand schema/functions inside `convex/`.
+---
