@@ -10,6 +10,7 @@
 - For time-based UI permissions (e.g., reschedule windows), compute a backend boolean from `session.date` + `session.time` in Convex queries and let UI render from that flag.
 - For modal form flows backed by Next.js server actions, return UX status through URL query params (`status`/`error`) after `redirect(...)` so refreshes stay deterministic.
 - For admin auth in this codebase, keep credential verification in a Convex action and consume it from NextAuth Credentials provider (`lib/auth.ts`) so role/username live in JWT session callbacks.
+- For admin session participant lists, query attendance via `attendance_records.by_session_id` and compute the latest record per participant before rendering status text.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -186,4 +187,20 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - `next-auth` currently installs v4; importing v5-style `auth/signIn/signOut` server helpers will compile but fail at runtime.
   - Useful context (e.g., "the evaluation panel is in component X")
   - Protected admin server pages should use `getServerSession(authOptions)` via `getServerAuthSession()` to enforce login checks consistently.
+---
+## [2026-03-04 09:00:15 UTC] - US-012
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented session participants backend query in `convex/adminSessions.ts` (`adminSessions:getSessionParticipantsPageData`) to load session metadata, participant rows, accepted terms version, and attendance status per participant.
+- Added participant sorting by name (with participant ID tie-breaker) and attendance status derivation from the latest `attendance_records` entry in the session.
+- Built authenticated admin route `app/admin/sessions/[session_id]/participants/page.tsx` with required table columns (`participant_id`, `name`, `mobile`, `terms_accepted`, `attendance_status`), terms version display, and a `Scan QR Code` button at the top.
+- Verified quality checks pass: `npm run typecheck` and `npm run lint`.
+- Performed runtime verification with `npm run dev` + HTTP request to `/admin/sessions/test-session/participants` and confirmed expected unauthenticated redirect to `/admin/login?...`. `dev-browser` skill is not available in the current skill list, so browser-skill verification could not be executed.
+- Files changed: convex/adminSessions.ts, app/admin/sessions/[session_id]/participants/page.tsx, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Admin participant list pages should compute attendance status from the latest `attendance_records` row per participant within the target session.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - With NextAuth-protected server pages, unauthenticated route checks should happen before Convex fetches to avoid unnecessary backend calls.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - Session participant list data now comes from `adminSessions:getSessionParticipantsPageData`.
 ---
