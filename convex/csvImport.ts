@@ -80,7 +80,7 @@ export const applyParsedCsvFile = mutationGeneric({
         continue;
       }
 
-      await ctx.db.insert("purchases", {
+      const purchaseId = await ctx.db.insert("purchases", {
         order_id: row.order_id,
         customer_mobile: row.customer_mobile,
         purchase_datetime: row.purchase_datetime,
@@ -89,6 +89,16 @@ export const applyParsedCsvFile = mutationGeneric({
         token: crypto.randomUUID(),
         created_at: now,
       });
+
+      await ctx.scheduler.runAfter(
+        0,
+        makeFunctionReference<"action">(
+          "purchaseConfirmation:sendPurchaseConfirmation"
+        ),
+        {
+          purchase_id: purchaseId,
+        }
+      );
       insertedCount += 1;
     }
 

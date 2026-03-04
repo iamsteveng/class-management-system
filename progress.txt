@@ -5,6 +5,7 @@
 - Without Convex codegen checked in, define functions with `mutationGeneric/queryGeneric` from `convex/server` to keep TypeScript passing.
 - Without `convex/_generated/api`, cron jobs can still target functions using `makeFunctionReference` with `"module:function"` names.
 - For third-party integrations, keep reusable helpers in `lib/` and expose credential readers for both `process.env` and Convex `ctx.env.get(...)`.
+- When a mutation needs async side effects (e.g., outbound messages), schedule an action via `ctx.scheduler.runAfter` and target it with `makeFunctionReference`.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -75,8 +76,22 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - **Learnings for future iterations:**
   - Patterns discovered (e.g., "this codebase uses X for Y")
   - External-service helpers should return success booleans and avoid throwing for expected operational failures (missing creds, network/API errors).
+- Gotchas encountered (e.g., "don't forget to update Z when changing W")
+- Twilio WhatsApp sender/recipient identifiers may need `whatsapp:` prefix; helper now normalizes both forms.
+- Useful context (e.g., "the evaluation panel is in component X")
+- Convex actions can pass credentials from `ctx.env.get(...)` directly into `lib/twilio.ts` without duplicating Twilio client setup logic.
+---
+## [2026-03-04 06:20:25 UTC] - US-006
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented purchase confirmation workflow in `convex/purchaseConfirmation.ts` with an action that builds a terms link (`/terms?token=...`), sends WhatsApp via Twilio helper, and updates purchase status to `confirmation_sent` on success.
+- Updated CSV import mutation to trigger confirmation delivery by scheduling the new action immediately after each inserted purchase.
+- Verified quality gates by running `npm run typecheck` and `npm run lint` successfully.
+- Files changed: convex/purchaseConfirmation.ts, convex/csvImport.ts, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - For Convex workflows without generated API bindings, `makeFunctionReference("module:function")` keeps cross-module query/mutation/action calls type-safe enough for incremental builds.
   - Gotchas encountered (e.g., "don't forget to update Z when changing W")
-  - Twilio WhatsApp sender/recipient identifiers may need `whatsapp:` prefix; helper now normalizes both forms.
+  - `GenericActionCtx` in this setup does not expose `ctx.env`, so environment-dependent Node actions should read from `process.env` (or wrap env access explicitly).
   - Useful context (e.g., "the evaluation panel is in component X")
-  - Convex actions can pass credentials from `ctx.env.get(...)` directly into `lib/twilio.ts` without duplicating Twilio client setup logic.
+  - Purchase confirmation delivery now lives in `convex/purchaseConfirmation.ts`, and CSV ingestion only schedules it to keep import logic focused.
 ---

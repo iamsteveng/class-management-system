@@ -1,27 +1,21 @@
-Implemented one story: `US-004` (highest-priority pending), committed, and updated tracking.
+Implemented `US-005` (`Build Twilio WhatsApp helper`) and committed it.
 
-1. Implemented CSV cron import pipeline
-- Added [convex/csvImport.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/csvImport.ts)
-- Added [convex/crons.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/crons.ts)
-- Behavior implemented:
-  - Cron runs every minute.
-  - Finds `csv_files` with `status="pending"`.
-  - Reads CSV from Convex file storage.
-  - Parses/validates required columns: `order_id`, `customer_mobile`, `purchase_datetime`, `participant_count`.
-  - Skips duplicate `order_id` purchases and logs duplicate events to `audit_logs`.
-  - Inserts new purchases with `status="pending_terms"` and UUID `token`.
-  - Marks CSV files `processed` on success, `failed` with `error_message` on errors.
+What I changed:
+- Added Twilio SDK dependency in [package.json](/home/ec2-user/.openclaw/workspace/class-management-system/package.json).
+- Created [lib/twilio.ts](/home/ec2-user/.openclaw/workspace/class-management-system/lib/twilio.ts) with:
+  - `sendWhatsApp({ to, message, credentials? }): Promise<boolean>`
+  - `getTwilioCredentialsFromProcessEnv(...)`
+  - `getTwilioCredentialsFromConvexEnv(...)`
+  - graceful error handling and WhatsApp number normalization (`whatsapp:` prefix)
+- Marked `US-005` as passing in [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json).
+- Appended progress and updated Codebase Patterns in [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt).
 
-2. Quality checks
-- `npm run typecheck` passed.
-- `npm run lint` passed.
+Quality checks run:
+- `npm run typecheck` passed
+- `npm run lint` passed
 
-3. Tracking updates
-- Set `US-004` to `passes: true` in [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json).
-- Appended iteration log and added reusable pattern in [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt).
+Commit:
+- `10c6d2e`
+- Message: `feat: [US-005] - [Build Twilio WhatsApp helper]`
 
-4. Commit
-- Commit: `c242311`
-- Message: `feat: [US-004] - [Build CSV import cron job]`
-
-Not all stories are complete yet, so this iteration ends normally.
+There are still stories with `passes: false` (US-006 onward), so this iteration ends normally.
