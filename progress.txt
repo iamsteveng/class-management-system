@@ -7,6 +7,7 @@
 - For third-party integrations, keep reusable helpers in `lib/` and expose credential readers for both `process.env` and Convex `ctx.env.get(...)`.
 - When a mutation needs async side effects (e.g., outbound messages), schedule an action via `ctx.scheduler.runAfter` and target it with `makeFunctionReference`.
 - For Next.js server-rendered pages without Convex codegen, use `ConvexHttpClient` + `makeFunctionReference` to call queries/mutations from server components and server actions.
+- For time-based UI permissions (e.g., reschedule windows), compute a backend boolean from `session.date` + `session.time` in Convex queries and let UI render from that flag.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -129,5 +130,22 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Gotchas encountered (e.g., "don't forget to update Z when changing W")
   - Use `purchase.status === "terms_accepted"` as the idempotency guard to avoid duplicate participant creation from repeated token form submissions.
   - Useful context (e.g., "the evaluation panel is in component X")
-  - Participant link delivery logic now lives in `convex/participantLinks.ts` and is triggered from `convex/terms.ts`.
+- Participant link delivery logic now lives in `convex/participantLinks.ts` and is triggered from `convex/terms.ts`.
+---
+## [2026-03-04 08:46:51 UTC] - US-009
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented participant detail retrieval in `convex/participants.ts` with `participants:getParticipantPageData`, joining participant + session + class and returning a precomputed `can_change_session` flag based on the 2-day cutoff rule.
+- Added `app/participant/[participant_id]/page.tsx` to render participant name, class, session location/date/time, and a large QR code generated from participant data using the `qrcode` package.
+- Added conditional rendering for a `Change Session` button that appears only when `session_date - current_date > 2 days` via the backend boolean.
+- Added dependencies `qrcode` and `@types/qrcode`.
+- Verified quality checks pass: `npm run typecheck` and `npm run lint`.
+- Performed runtime verification with `npm run dev` and an HTTP request to `/participant/test-participant-id` (route renders successfully with the participant-not-found state when no Convex URL/data is configured). `dev-browser` skill was not available in this environment, so direct browser-skill verification could not be executed.
+- Files changed: convex/participants.ts, app/participant/[participant_id]/page.tsx, package.json, package-lock.json, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Participant-facing server pages should use Convex queries to return presentation-ready fields and permission booleans (e.g., `can_change_session`) to keep UI logic minimal.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - `Date.parse(\`${date}T${time}:00\`)` depends on consistent session date/time formatting; keep `sessions.date` as `YYYY-MM-DD` and `sessions.time` as `HH:mm`.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - The participant profile route now lives at `app/participant/[participant_id]/page.tsx` and relies on `participants:getParticipantPageData`.
 ---

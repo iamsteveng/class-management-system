@@ -1,5 +1,5 @@
 Iteration: 1/6
-Story: US-008 - Generate participants and send QR links
-Result: no-op
-Commit: none
-Summary: Implemented one story: `US-001` (highest-priority `passes: false`) on branch `ralph/class-management-mvp`. ### Completed - Initialized Next.js App Router + Tailwind project scaffold. - Added Convex baseline setup: - `con
+Story: US-008 - [Generate participants and send QR links]
+Result: completed
+Commit: 61dd6ca
+Summary: Implemented `US-008` on `ralph/class-management-mvp` and committed with: `61dd6ca feat: [US-008] - [Generate participants and send QR links]` ### What I changed - Added participant generation to terms acceptance in [conv

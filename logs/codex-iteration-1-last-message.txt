@@ -1,29 +1,21 @@
-Implemented one story: `US-001` (highest-priority `passes: false`) on branch `ralph/class-management-mvp`.
+Implemented `US-008` on `ralph/class-management-mvp` and committed with:
 
-### Completed
-- Initialized Next.js App Router + Tailwind project scaffold.
-- Added Convex baseline setup:
-  - `convex/schema.ts`
-  - `convex/tsconfig.json`
-  - installed `convex` dependency
-- Added required base folders:
-  - `components/`
-  - `lib/`
-- Added environment config file:
-  - `.env.local` with `CONVEX_DEPLOYMENT=dev:your-deployment-name`
-- Added `typecheck` script to `package.json`.
-- Updated `prd.json`: set `US-001.passes` to `true`.
-- Created and appended `progress.txt` with:
-  - `## Codebase Patterns` section
-  - iteration log entry in required format.
+`61dd6ca feat: [US-008] - [Generate participants and send QR links]`
 
-### Quality checks run
-- `npm run typecheck` ✅
-- `npm run lint` ✅
+### What I changed
+- Added participant generation to terms acceptance in [convex/terms.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/terms.ts):
+  - On successful terms submission, it now creates `participant_count` participant records.
+  - Each participant gets a unique `participant_id` via `crypto.randomUUID()`.
+  - Each participant is linked to purchase, selected session, terms version, and acceptance timestamp.
+  - Schedules WhatsApp link delivery after creation.
+- Added new Node action in [convex/participantLinks.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/participantLinks.ts):
+  - Sends participant page links via Twilio WhatsApp.
+  - Sends all participant links in a single message (so count `2` includes both links in one message).
+- Updated `US-008` to passing in [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json).
+- Appended iteration log entry in [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt).
 
-### Commit
-- `7fe2977`
-- Message: `feat: US-001 - Setup Next.js + Convex project structure`
+### Quality checks
+- Ran `npm run typecheck` and `npm run lint` successfully.
 
-No repository `AGENTS.md` files were found to update.  
-There are still remaining stories with `passes: false` (14 remaining), so this iteration stops here.
+### AGENTS updates
+- Checked for reusable module-level learnings; no AGENTS.md update was necessary for this story.
