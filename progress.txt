@@ -4,6 +4,7 @@
 - Convex schema in this codebase uses snake_case field names and numeric `*_at` timestamps, with explicit `by_*` index naming.
 - Without Convex codegen checked in, define functions with `mutationGeneric/queryGeneric` from `convex/server` to keep TypeScript passing.
 - Without `convex/_generated/api`, cron jobs can still target functions using `makeFunctionReference` with `"module:function"` names.
+- For third-party integrations, keep reusable helpers in `lib/` and expose credential readers for both `process.env` and Convex `ctx.env.get(...)`.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -63,4 +64,19 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - `ctx.storage.get` is action-only in Convex; mutations cannot read file blobs directly.
   - Useful context (e.g., "the evaluation panel is in component X")
   - Duplicate CSV orders are now traceable through `audit_logs` action `csv_import_duplicate_order`.
+---
+## [2026-03-04 06:17:10 UTC] - US-005
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented reusable Twilio WhatsApp helper in `lib/twilio.ts` with `sendWhatsApp({ to, message, credentials? })`.
+- Added explicit credential readers for both Node runtime env and Convex env (`getTwilioCredentialsFromProcessEnv`, `getTwilioCredentialsFromConvexEnv`) to support Convex-managed secrets.
+- Added Twilio SDK dependency to support message delivery.
+- Verified quality gates by running `npm run typecheck` and `npm run lint` successfully.
+- Files changed: lib/twilio.ts, package.json, package-lock.json, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - External-service helpers should return success booleans and avoid throwing for expected operational failures (missing creds, network/API errors).
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - Twilio WhatsApp sender/recipient identifiers may need `whatsapp:` prefix; helper now normalizes both forms.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - Convex actions can pass credentials from `ctx.env.get(...)` directly into `lib/twilio.ts` without duplicating Twilio client setup logic.
 ---

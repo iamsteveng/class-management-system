@@ -1,0 +1,27 @@
+Implemented one story: `US-004` (highest-priority pending), committed, and updated tracking.
+
+1. Implemented CSV cron import pipeline
+- Added [convex/csvImport.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/csvImport.ts)
+- Added [convex/crons.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/crons.ts)
+- Behavior implemented:
+  - Cron runs every minute.
+  - Finds `csv_files` with `status="pending"`.
+  - Reads CSV from Convex file storage.
+  - Parses/validates required columns: `order_id`, `customer_mobile`, `purchase_datetime`, `participant_count`.
+  - Skips duplicate `order_id` purchases and logs duplicate events to `audit_logs`.
+  - Inserts new purchases with `status="pending_terms"` and UUID `token`.
+  - Marks CSV files `processed` on success, `failed` with `error_message` on errors.
+
+2. Quality checks
+- `npm run typecheck` passed.
+- `npm run lint` passed.
+
+3. Tracking updates
+- Set `US-004` to `passes: true` in [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json).
+- Appended iteration log and added reusable pattern in [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt).
+
+4. Commit
+- Commit: `c242311`
+- Message: `feat: [US-004] - [Build CSV import cron job]`
+
+Not all stories are complete yet, so this iteration ends normally.
