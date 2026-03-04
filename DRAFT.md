@@ -33,3 +33,4 @@
 - For each participant, admin can see his session, see whether he has accepted terms, see the terms content that is accepted. Admin can change the session to another session under the same class.
 - If the session of a participant is updated, system will send a WhatsApp message to notify the customer.
 - Update and create a new version of the terms, such that new version will be applied to new participants.
+- **For each session, regular admin can open device camera to scan the QR code shown on participant's phone and mark the participant as attended.** The attendance record should include timestamp and admin username for audit trail.

@@ -199,6 +199,25 @@ A full-stack class management system that automates customer onboarding, session
 - [ ] Admin dashboard flags purchases with status='confirmation_sent' (not yet accepted) in red
 - [ ] Typecheck passes
 
+### US-015: QR Code Scanning and Attendance Marking
+**Description:** As a regular admin, I want to scan participant QR codes using my device camera and mark attendance so I can track who attended the session.
+
+**Acceptance Criteria:**
+- [ ] "Scan QR Code" button on participant list page at `/admin/sessions/[session_id]/participants`
+- [ ] Button opens device camera (use browser WebRTC API or qr-scanner library)
+- [ ] Scan QR code from participant's phone screen
+- [ ] Decode QR to extract participant_id
+- [ ] Validate participant_id belongs to current session
+- [ ] If valid: mark as attended, show success toast with participant name
+- [ ] If invalid session: show error "This participant is not registered for this session"
+- [ ] If already marked attended: show warning "Already marked attended at [timestamp]"
+- [ ] Create attendance record with: participant_id, session_id, marked_by_admin, marked_at (timestamp)
+- [ ] Update participant list UI to show attendance status (checkmark icon + timestamp)
+- [ ] Regular admins can mark attendance (not restricted to Super Admin)
+- [ ] All attendance actions logged to audit_logs
+- [ ] Typecheck passes
+- [ ] Verify in browser using dev-browser skill (test camera permissions)
+
 ## Functional Requirements
 
 **CSV Import & Processing:**
@@ -230,16 +249,25 @@ A full-stack class management system that automates customer onboarding, session
 
 **Admin Portal:**
 - FR-20: Admin login with username/password (stored in admins table)
-- FR-21: Two roles: 'super_admin' (full access) and 'regular_admin' (view-only for classes, sessions, terms)
+- FR-21: Two roles: 'super_admin' (full access) and 'regular_admin' (view-only for classes/sessions/terms + can mark attendance)
 - FR-22: All admin actions must log to audit_logs table with: admin_username, timestamp, action_type, before/after state
 - FR-23: Super Admins can create/edit/cancel classes
 - FR-24: Super Admins can create/edit/cancel sessions
-- FR-25: Regular Admins have read-only access to classes and sessions
+- FR-25: Regular Admins have read-only access to classes and sessions (cannot create/edit/cancel)
 - FR-26: All admins can view participant lists and participant details
 - FR-27: Super Admins can change participant sessions (triggers WhatsApp notification)
 - FR-28: Super Admins can create new terms versions; new version applies to all future participants
 - FR-29: Session capacity must display as: defined quota / used / available
 - FR-30: Sessions at full capacity must show visual indicator and block new bookings
+
+**Attendance Tracking:**
+- FR-31: Regular Admins can scan QR codes and mark participant attendance (not restricted to Super Admin)
+- FR-32: QR scanner must use device camera (WebRTC API or qr-scanner library)
+- FR-33: System must validate scanned participant_id matches current session before marking attendance
+- FR-34: Attendance records must capture: participant_id, session_id, marked_by_admin, marked_at timestamp
+- FR-35: Duplicate attendance marking must show warning with original timestamp (prevent double-scan)
+- FR-36: Participant list UI must display attendance status (checkmark + timestamp) after marking
+- FR-37: All attendance marking actions must log to audit_logs
 
 ## Non-Goals (Out of Scope)
 
@@ -265,9 +293,11 @@ A full-stack class management system that automates customer onboarding, session
 **Components to Build:**
 - SessionSelector dropdown with quota display
 - QRCodeDisplay component (use qrcode library)
+- QRScanner component (use qr-scanner or html5-qrcode library with WebRTC camera access)
 - AuditLog table with filtering
 - AdminRoleGuard wrapper for Super Admin-only actions
 - WhatsAppButton component for send/preview flows
+- AttendanceStatusBadge component (checkmark + timestamp display)
 
 ## Technical Considerations
 
@@ -288,6 +318,8 @@ admins: { admin_id, username, password_hash, role (super_admin/regular_admin), c
 audit_logs: { log_id, admin_username, timestamp, action_type, entity_type, entity_id, changes_json }
 
 csv_files: { file_id, filename, processed (boolean), processed_at, error_message }
+
+attendance_records: { attendance_id, participant_id, session_id, marked_by_admin (username), marked_at (timestamp), created_at }
 ```
 
 **Convex Cron Jobs:**
@@ -303,6 +335,8 @@ csv_files: { file_id, filename, processed (boolean), processed_at, error_message
 - Index on purchases.order_id for duplicate detection
 - Index on participants.participant_id for QR lookup
 - Index on sessions.date for filtering upcoming sessions
+- Index on attendance_records.participant_id for attendance status queries
+- Index on attendance_records.session_id for session-level attendance reports
 - Paginate admin tables (50 records per page)
 
 **Security:**
@@ -317,9 +351,11 @@ csv_files: { file_id, filename, processed (boolean), processed_at, error_message
 - 95%+ of customers complete terms acceptance within 24 hours of purchase
 - Zero manual WhatsApp sends required (full automation)
 - Admin can view session roster in under 3 clicks
+- Admin can mark participant attendance via QR scan in under 5 seconds per participant
 - Session rescheduling rate <10% (indicates good initial session selection)
 - Zero duplicate order_id imports processed (error detection works)
 - All admin actions auditable within 2 clicks from any entity
+- Attendance tracking accuracy >99% (no duplicate scans, no missed valid QR codes)
 
 ## Open Questions
 
@@ -328,3 +364,6 @@ csv_files: { file_id, filename, processed (boolean), processed_at, error_message
 - Should session cancellation by admin offer automatic rebooking to another session?
 - How long should we retain audit logs? (30 days? 1 year? indefinitely?)
 - Should QR codes expire after session date, or remain accessible for record-keeping?
+- Should we build an attendance summary report (e.g., "15/20 attended") for each session?
+- What happens if camera permissions are denied? Should we have a manual participant_id input fallback?
+- Should admins be able to manually mark attendance without scanning (for edge cases like damaged phones)?
