@@ -1,5 +1,5 @@
 Iteration: 2/6
-Story: US-008 - Generate participants and send QR links
-Result: no-op
-Commit: none
-Summary: Implemented one story: `US-002` (highest-priority failing story) on branch `ralph/class-management-mvp`. ### What I changed - Implemented full Convex schema with all required tables, fields, and indexes in [convex/schema
+Story: US-009 - [Build participant details page with QR code]
+Result: completed
+Commit: 1358a13
+Summary: Implemented `US-009` on branch `ralph/class-management-mvp` and committed with: `1358a13` `feat: [US-009] - [Build participant details page with QR code]` ### What I changed - Added participant details query: [convex/par

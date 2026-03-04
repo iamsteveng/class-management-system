@@ -8,6 +8,7 @@
 - When a mutation needs async side effects (e.g., outbound messages), schedule an action via `ctx.scheduler.runAfter` and target it with `makeFunctionReference`.
 - For Next.js server-rendered pages without Convex codegen, use `ConvexHttpClient` + `makeFunctionReference` to call queries/mutations from server components and server actions.
 - For time-based UI permissions (e.g., reschedule windows), compute a backend boolean from `session.date` + `session.time` in Convex queries and let UI render from that flag.
+- For modal form flows backed by Next.js server actions, return UX status through URL query params (`status`/`error`) after `redirect(...)` so refreshes stay deterministic.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -146,6 +147,25 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Participant-facing server pages should use Convex queries to return presentation-ready fields and permission booleans (e.g., `can_change_session`) to keep UI logic minimal.
   - Gotchas encountered (e.g., "don't forget to update Z when changing W")
   - `Date.parse(\`${date}T${time}:00\`)` depends on consistent session date/time formatting; keep `sessions.date` as `YYYY-MM-DD` and `sessions.time` as `HH:mm`.
-  - Useful context (e.g., "the evaluation panel is in component X")
+- Useful context (e.g., "the evaluation panel is in component X")
   - The participant profile route now lives at `app/participant/[participant_id]/page.tsx` and relies on `participants:getParticipantPageData`.
+---
+## [2026-03-04 08:50:53 UTC] - US-010
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented participant session rescheduling backend in `convex/participants.ts`:
+- Extended `getParticipantPageData` to return alternate `session_options` (same class, scheduled, available quota > 0) and reused backend 2-day cutoff evaluation.
+- Added `changeParticipantSession` mutation with validation and atomic updates: participant `session_id` patch, old session `quota_used - 1`, new session `quota_used + 1`, plus audit log entry (`participant_session_changed`).
+- Implemented `SessionChangeModal` UI in `app/participant/[participant_id]/session-change-modal.tsx`:
+- Added modal dropdown of eligible sessions, submit/cancel controls, and success toast message on completion.
+- Wired `app/participant/[participant_id]/page.tsx` with a server action calling `participants:changeParticipantSession`, then redirecting with `status`/`error` query params for user feedback.
+- Verified checks pass: `npm run typecheck` and `npm run lint`.
+- Performed runtime verification via `npm run dev` and HTTP checks on `/participant/test-participant-id?status=session_changed` and `/participant/test-participant-id?error=...` (both returned HTTP 200). `dev-browser` skill was not available in the current skill list, so direct browser-skill verification could not be executed.
+- Files changed: convex/participants.ts, app/participant/[participant_id]/page.tsx, app/participant/[participant_id]/session-change-modal.tsx, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Keep participant reschedule permissions and eligible-session filtering in Convex queries to avoid duplicating business rules in UI components.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - Session quota changes must be updated in both source and destination sessions whenever a participant moves; otherwise availability drifts quickly.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - The participant reschedule entry point is now `participants:changeParticipantSession` and the modal UI lives in `app/participant/[participant_id]/session-change-modal.tsx`.
 ---
