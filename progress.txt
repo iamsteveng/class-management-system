@@ -9,6 +9,7 @@
 - For Next.js server-rendered pages without Convex codegen, use `ConvexHttpClient` + `makeFunctionReference` to call queries/mutations from server components and server actions.
 - For time-based UI permissions (e.g., reschedule windows), compute a backend boolean from `session.date` + `session.time` in Convex queries and let UI render from that flag.
 - For modal form flows backed by Next.js server actions, return UX status through URL query params (`status`/`error`) after `redirect(...)` so refreshes stay deterministic.
+- For admin auth in this codebase, keep credential verification in a Convex action and consume it from NextAuth Credentials provider (`lib/auth.ts`) so role/username live in JWT session callbacks.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -168,4 +169,21 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Session quota changes must be updated in both source and destination sessions whenever a participant moves; otherwise availability drifts quickly.
   - Useful context (e.g., "the evaluation panel is in component X")
   - The participant reschedule entry point is now `participants:changeParticipantSession` and the modal UI lives in `app/participant/[participant_id]/session-change-modal.tsx`.
+---
+## [2026-03-04 08:57:01 UTC] - US-011
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented admin authentication flow with NextAuth Credentials provider backed by a new Convex auth action for bcrypt password verification.
+- Added `convex/adminAuth.ts` with `getAdminByUsername` query and `validateAdminCredentials` action, then wired NextAuth config in `lib/auth.ts` + API route `app/api/auth/[...nextauth]/route.ts`.
+- Built admin login UI at `app/admin/login/page.tsx` with client-side credential submit component (`app/admin/login/login-form.tsx`) and added protected target route `app/admin/dashboard/page.tsx` that redirects unauthenticated users back to login.
+- Added NextAuth TypeScript session/JWT augmentation in `types/next-auth.d.ts` and installed `next-auth` dependency.
+- Verified quality checks pass (`npm run typecheck`, `npm run lint`) and performed runtime HTTP verification: `/admin/login` returns 200 with login form and `/admin/dashboard` redirects to login when unauthenticated.
+- `dev-browser` skill was required by story criteria but is not available in the current installed skill list; browser verification was completed via local dev server HTTP response checks as fallback.
+- Files changed: convex/adminAuth.ts, lib/auth.ts, app/api/auth/[...nextauth]/route.ts, app/admin/login/page.tsx, app/admin/login/login-form.tsx, app/admin/dashboard/page.tsx, types/next-auth.d.ts, package.json, package-lock.json, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - NextAuth v4 in this repo should be configured through `app/api/auth/[...nextauth]/route.ts` + shared `authOptions` helper (`lib/auth.ts`) rather than v5 `auth.ts` helpers.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - `next-auth` currently installs v4; importing v5-style `auth/signIn/signOut` server helpers will compile but fail at runtime.
+  - Useful context (e.g., "the evaluation panel is in component X")
+  - Protected admin server pages should use `getServerSession(authOptions)` via `getServerAuthSession()` to enforce login checks consistently.
 ---

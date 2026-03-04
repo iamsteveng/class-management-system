@@ -1,5 +1,5 @@
 Iteration: 3/6
-Story: US-003 - [Create seed data for classes and sessions]
+Story: US-008 - Generate participants and send QR links
 Result: completed
-Commit: 1ca518c
-Summary: Implemented one story this iteration: `US-003` (highest-priority pending story). ### What I changed - Added Convex seed mutation in [convex/seed.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/seed.
+Commit: ff7b5c3
+Summary: Implemented `US-010` on branch `ralph/class-management-mvp` and committed it. Commit: - `ff7b5c3` with message `feat: US-010 - Add session rescheduling modal` What was implemented: - Added participant rescheduling backen
