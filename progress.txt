@@ -6,6 +6,7 @@
 - Without `convex/_generated/api`, cron jobs can still target functions using `makeFunctionReference` with `"module:function"` names.
 - For third-party integrations, keep reusable helpers in `lib/` and expose credential readers for both `process.env` and Convex `ctx.env.get(...)`.
 - When a mutation needs async side effects (e.g., outbound messages), schedule an action via `ctx.scheduler.runAfter` and target it with `makeFunctionReference`.
+- For Next.js server-rendered pages without Convex codegen, use `ConvexHttpClient` + `makeFunctionReference` to call queries/mutations from server components and server actions.
 
 ## [2026-03-04 06:07:00 UTC] - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -92,6 +93,26 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - For Convex workflows without generated API bindings, `makeFunctionReference("module:function")` keeps cross-module query/mutation/action calls type-safe enough for incremental builds.
   - Gotchas encountered (e.g., "don't forget to update Z when changing W")
   - `GenericActionCtx` in this setup does not expose `ctx.env`, so environment-dependent Node actions should read from `process.env` (or wrap env access explicitly).
+- Useful context (e.g., "the evaluation panel is in component X")
+- Purchase confirmation delivery now lives in `convex/purchaseConfirmation.ts`, and CSV ingestion only schedules it to keep import logic focused.
+---
+## [2026-03-04 06:27:16 UTC] - US-007
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented terms acceptance backend in `convex/terms.ts`:
+- Added `getTermsPageData` query to fetch purchase details by token, current terms content/version, and session options with available quota.
+- Added `acceptTermsByToken` mutation to validate token/session/consent, persist selected session + `terms_accepted` status, adjust session quota usage, and write an audit log with terms acceptance timestamp/version metadata.
+- Implemented terms UI in `app/terms/page.tsx` and `app/terms/terms-form.tsx`:
+- Added `/terms?token=...` page with purchase details, current terms content, session dropdown, consent checkbox, and submit button disabled until both session selection and checkbox consent are provided.
+- Wired form submission through a Next.js server action that calls Convex mutation and redirects with success/error status for user feedback.
+- Added `lib/convexHttp.ts` shared helper for Convex HTTP client creation from environment variables.
+- Verified quality checks pass: `npm run typecheck` and `npm run lint`.
+- Performed local runtime verification via `npm run dev` + HTTP checks for `/terms` and `/terms?token=test-token` (route renders expected token/error states). `dev-browser` skill was not available in this environment, so direct browser-skill verification could not be executed.
+- Files changed: convex/terms.ts, lib/convexHttp.ts, app/terms/page.tsx, app/terms/terms-form.tsx, prd.json, progress.txt.
+- **Learnings for future iterations:**
+  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Next.js server actions can call Convex directly with `ConvexHttpClient` when generated Convex API bindings are intentionally absent.
+  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
+  - Token-based forms should handle submission outcomes via URL query params (`status` / `error`) after server-action redirects to keep state serializable and refresh-safe.
   - Useful context (e.g., "the evaluation panel is in component X")
-  - Purchase confirmation delivery now lives in `convex/purchaseConfirmation.ts`, and CSV ingestion only schedules it to keep import logic focused.
+  - Terms workflow APIs now live in `convex/terms.ts`; follow this module for future token/session acceptance changes.
 ---
