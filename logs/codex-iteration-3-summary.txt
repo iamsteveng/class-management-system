@@ -1,5 +1,5 @@
-Iteration: 3/6
-Story: US-008 - Generate participants and send QR links
+Iteration: 3/10
+Story: US-001 - Fix terms link hostname in WhatsApp messages
 Result: completed
-Commit: ff7b5c3
-Summary: Implemented `US-010` on branch `ralph/class-management-mvp` and committed it. Commit: - `ff7b5c3` with message `feat: US-010 - Add session rescheduling modal` What was implemented: - Added participant rescheduling backen
+Commit: 02c8181
+Summary: Implemented `US-002` on branch `ralph/bug-admin-nav-actions-hostname` and committed as: `feat: US-002 - Add persistent admin navigation component` (`02c8181`) Key changes: - Added persistent admin nav component with sema

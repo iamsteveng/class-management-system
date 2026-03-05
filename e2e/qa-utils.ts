@@ -44,6 +44,13 @@ export function convexMutation<T>(
   return convexCall<T>("mutation", path, args);
 }
 
+export function convexQuery<T>(
+  path: string,
+  args: Record<string, unknown>
+): Promise<T> {
+  return convexCall<T>("query", path, args);
+}
+
 export async function seedInitialData() {
   await convexMutation("seed:seedInitialData", {});
 }

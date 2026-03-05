@@ -3,12 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AddClassModal } from "./add-class-modal";
+import { EditClassModal } from "./edit-class-modal";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
 type ClassRow = {
   class_id: string;
   class_name: string;
+  description?: string;
   total_sessions: number;
   status: "active" | "inactive";
 };
@@ -27,7 +29,8 @@ export default async function AdminClassesPage({
 
   const params = await searchParams;
   const errorMessage = params.error ?? undefined;
-  const success = params.status === "class_created";
+  const classCreated = params.status === "class_created";
+  const classUpdated = params.status === "class_updated";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
 
@@ -61,6 +64,40 @@ export default async function AdminClassesPage({
     redirect("/admin/classes?status=class_created");
   }
 
+  async function editClassAction(formData: FormData) {
+    "use server";
+
+    const classId = (formData.get("class_id") as string | null)?.trim() ?? "";
+    const name = (formData.get("name") as string | null)?.trim() ?? "";
+    const description =
+      (formData.get("description") as string | null)?.trim() ?? "";
+
+    if (!classId || !name) {
+      redirect(
+        `/admin/classes?error=${encodeURIComponent("Class ID and name are required.")}`
+      );
+    }
+
+    try {
+      const client = createConvexHttpClient();
+      await client.mutation(
+        makeFunctionReference<"mutation">("adminClasses:updateClass"),
+        {
+          class_id: classId,
+          name,
+          description,
+          admin_username: adminUsername,
+        }
+      );
+    } catch {
+      redirect(
+        `/admin/classes?error=${encodeURIComponent("Failed to update class. Please try again.")}`
+      );
+    }
+
+    redirect("/admin/classes?status=class_updated");
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl space-y-6 px-4 py-8">
       <section className="flex flex-wrap items-center justify-between gap-4">
@@ -77,10 +114,20 @@ export default async function AdminClassesPage({
           <AddClassModal
             submitAction={addClassAction}
             errorMessage={errorMessage}
-            success={success}
+            success={classCreated}
           />
         ) : null}
       </section>
+
+      {!isSuperAdmin && errorMessage ? (
+        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>
+      ) : null}
+
+      {classUpdated ? (
+        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          Class updated successfully.
+        </p>
+      ) : null}
 
       {classes.length === 0 ? (
         <p className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
@@ -95,6 +142,7 @@ export default async function AdminClassesPage({
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Total Sessions</th>
                 <th className="px-4 py-3">Status</th>
+                {isSuperAdmin ? <th className="px-4 py-3">Actions</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 bg-white">
@@ -125,6 +173,16 @@ export default async function AdminClassesPage({
                       {cls.status}
                     </span>
                   </td>
+                  {isSuperAdmin ? (
+                    <td className="px-4 py-3">
+                      <EditClassModal
+                        classId={cls.class_id}
+                        initialName={cls.class_name}
+                        initialDescription={cls.description}
+                        submitAction={editClassAction}
+                      />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

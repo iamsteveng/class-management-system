@@ -1,24 +1,29 @@
-Implemented `US-010` on branch `ralph/class-management-mvp` and committed it.
+Implemented `US-002` on branch `ralph/bug-admin-nav-actions-hostname` and committed as:
 
-Commit:
-- `ff7b5c3` with message `feat: US-010 - Add session rescheduling modal`
+`feat: US-002 - Add persistent admin navigation component` (`02c8181`)
 
-What was implemented:
-- Added participant rescheduling backend query/mutation logic in [convex/participants.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/participants.ts)
-- Added modal UI with eligible-session dropdown + success toast in [session-change-modal.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/participant/[participant_id]/session-change-modal.tsx)
-- Wired participant page server action + status/error redirect handling in [page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/participant/[participant_id]/page.tsx)
-- Marked `US-010` as passing in [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json)
-- Appended progress entry and updated Codebase Patterns in [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt)
+Key changes:
+- Added persistent admin nav component with semantic `<nav>`, proper hrefs, and active-route highlighting:
+  - [app/admin/admin-nav.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/admin-nav.tsx)
+- Added shared admin layout so nav appears across admin pages:
+  - [app/admin/layout.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/layout.tsx)
+- Added missing admin routes for nav targets:
+  - [app/admin/sessions/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/sessions/page.tsx)
+  - [app/admin/participants/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/participants/page.tsx)
+  - [app/admin/terms/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/terms/page.tsx)
+- Added focused browser verification test:
+  - [e2e/tc002-admin-nav.spec.ts](/home/ec2-user/.openclaw/workspace/class-management-system/e2e/tc002-admin-nav.spec.ts)
+- Added shared e2e helper used by existing tests:
+  - [e2e/qa-utils.ts](/home/ec2-user/.openclaw/workspace/class-management-system/e2e/qa-utils.ts)
+- Added minimal placeholder routes required by generated type validator:
+  - [app/admin/classes/[class_id]/edit/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/classes/[class_id]/edit/page.tsx)
+  - [app/admin/sessions/[session_id]/edit/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/sessions/[session_id]/edit/page.tsx)
+- Updated story tracking:
+  - [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json)
+  - [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt)
 
-Quality checks run:
-- `npm run typecheck` passed
-- `npm run lint` passed
-
-Runtime verification:
-- Started `next dev` and verified participant route responses:
-  - `/participant/test-participant-id?status=session_changed` -> `200`
-  - `/participant/test-participant-id?error=...` -> `200`
-- `dev-browser` skill is not available in the current skill list, so browser-skill verification could not be executed this iteration.
-
-Note:
-- There are still remaining stories with `passes: false` (`US-011+`), so this iteration ends normally.
+Verification run:
+- `npm run typecheck` passed.
+- `npm run lint` passed (existing warnings only in generated files/unrelated test file).
+- Browser verification passed:
+  - `BASE_URL=http://127.0.0.1:3001 npx playwright test e2e/tc002-admin-nav.spec.ts` (1 passed).
