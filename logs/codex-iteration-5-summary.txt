@@ -1,5 +1,5 @@
-Iteration: 5/6
-Story: US-012 - [Build session participants list page]
+Iteration: 5/10
+Story: US-004 - [Add cancel button for classes with future session guard]
 Result: completed
-Commit: 4bd5c75
-Summary: Implemented US-012 and committed it on `ralph/class-management-mvp`. Commit: - `4bd5c75` with message `feat: [US-012] - [Build session participants list page]` What I changed: - Added Convex query for session participant
+Commit: 5c6f473
+Summary: Implemented `US-004` on branch `ralph/bug-admin-nav-actions-hostname` and committed as: `5c6f473` `feat: [US-004] - [Add cancel button for classes with future session guard]` Changed files: - [app/admin/classes/page.tsx]

@@ -11,6 +11,7 @@
 - For local Playwright auth flows with NextAuth JWT sessions, start dev server with a fixed `NEXTAUTH_SECRET` to avoid `JWT_SESSION_ERROR` decryption failures.
 - When Convex function signatures change, run `npx convex dev --once` before local browser checks so Next.js and direct test calls both use the updated backend contract.
 - In class lifecycle flows, treat cancelled classes as `classes.status = "inactive"` (schema-level enum), and use UI labels/badges to present that state as "cancelled".
+- Session management actions belong in `app/admin/classes/[class_id]/sessions/page.tsx`; implement row-level edits as colocated client modals plus server actions that call `adminSessions:*` mutations.
 
 ## 2026-03-05 15:49:09 UTC - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -56,4 +57,15 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Patterns discovered: use row-scoped client form components for destructive actions in server-rendered tables so confirmation UI stays local while action execution remains server-side.
   - Gotchas encountered: default Playwright config targets production unless `BASE_URL` is overridden, so browser verification for in-progress features must run against local dev (`BASE_URL=http://127.0.0.1:<port>`).
   - Useful context: class cancellation persistence currently maps to `classes.status = "inactive"` in Convex, with guard logic implemented in `adminClasses:cancelClass`.
+---
+## 2026-03-05 16:12:51 UTC - US-005
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented super-admin session editing on the class session list page with row-level `Edit` actions that open a modal prefilled with current location, date, time, and quota.
+- Added `adminSessions:updateSession` mutation with server-side super-admin authorization, input validation, and audit logging; wired a server action in the page to persist updates and return status/error feedback.
+- Added browser verification coverage via `e2e/tc005-session-edit.spec.ts`, including UI prefill checks, save flow, immediate UI refresh assertions, and backend data verification.
+- Files changed: `app/admin/classes/[class_id]/sessions/page.tsx`, `app/admin/classes/[class_id]/sessions/edit-session-modal.tsx`, `convex/adminSessions.ts`, `e2e/tc005-session-edit.spec.ts`, `prd.json`, `progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: for session-row mutations, match the existing class flow by combining a row-scoped client modal with a server action that redirects using `status` query params for success banners.
+  - Gotchas encountered: assertions tied to old row text become stale after edits; locate updated rows using post-save values to keep Playwright checks stable.
+  - Useful context: the actionable session list for admin work is under `/admin/classes/[class_id]/sessions` (not the `/admin/sessions` landing page).
 ---

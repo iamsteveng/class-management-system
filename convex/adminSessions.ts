@@ -114,6 +114,76 @@ export const createSession = mutationGeneric({
   },
 });
 
+export const updateSession = mutationGeneric({
+  args: {
+    session_id: v.string(),
+    location: v.string(),
+    date: v.string(),
+    time: v.string(),
+    quota_defined: v.number(),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    session_id: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const sessionRecord = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+      .first();
+
+    if (!sessionRecord) {
+      throw new Error("Session not found.");
+    }
+
+    const admin = await ctx.db
+      .query("admins")
+      .withIndex("by_username", (q) => q.eq("username", args.admin_username))
+      .first();
+
+    if (!admin || admin.role !== "super_admin") {
+      throw new Error("Only super admins can edit sessions.");
+    }
+
+    const nextLocation = args.location.trim();
+    const nextDate = args.date.trim();
+    const nextTime = args.time.trim();
+    const nextQuotaDefined = args.quota_defined;
+
+    if (!nextLocation || !nextDate || !nextTime || nextQuotaDefined < 1) {
+      throw new Error("Invalid session details.");
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(sessionRecord._id, {
+      location: nextLocation,
+      date: nextDate,
+      time: nextTime,
+      quota_defined: nextQuotaDefined,
+    });
+
+    await ctx.db.insert("audit_logs", {
+      admin_id: admin._id,
+      action: "session_updated",
+      entity_type: "sessions",
+      entity_id: sessionRecord.session_id,
+      metadata: {
+        previous_location: sessionRecord.location,
+        next_location: nextLocation,
+        previous_date: sessionRecord.date,
+        next_date: nextDate,
+        previous_time: sessionRecord.time,
+        next_time: nextTime,
+        previous_quota_defined: sessionRecord.quota_defined,
+        next_quota_defined: nextQuotaDefined,
+      },
+      created_at: now,
+    });
+
+    return { session_id: sessionRecord.session_id };
+  },
+});
+
 export const getSessionParticipantsPageData = queryGeneric({
   args: {
     session_id: v.string(),

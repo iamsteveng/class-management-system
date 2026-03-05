@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AddSessionModal } from "./add-session-modal";
+import { EditSessionModal } from "./edit-session-modal";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
@@ -40,7 +41,8 @@ export default async function AdminClassSessionsPage({
   const { class_id: classId } = await params;
   const sp = await searchParams;
   const errorMessage = sp.error ?? undefined;
-  const success = sp.status === "session_created";
+  const sessionCreated = sp.status === "session_created";
+  const sessionUpdated = sp.status === "session_updated";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
 
@@ -103,6 +105,55 @@ export default async function AdminClassSessionsPage({
     redirect(`/admin/classes/${classId}/sessions?status=session_created`);
   }
 
+  async function editSessionAction(formData: FormData) {
+    "use server";
+
+    const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
+    const location = (formData.get("location") as string | null)?.trim() ?? "";
+    const date = (formData.get("date") as string | null)?.trim() ?? "";
+    const time = (formData.get("time") as string | null)?.trim() ?? "";
+    const quotaRaw = formData.get("quota_defined") as string | null;
+    const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
+
+    if (
+      !sessionId ||
+      !location ||
+      !date ||
+      !time ||
+      isNaN(quotaDefined) ||
+      quotaDefined < 1
+    ) {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          "Session ID, location, date, time, and valid quota are required."
+        )}`
+      );
+    }
+
+    try {
+      const client = createConvexHttpClient();
+      await client.mutation(
+        makeFunctionReference<"mutation">("adminSessions:updateSession"),
+        {
+          session_id: sessionId,
+          location,
+          date,
+          time,
+          quota_defined: quotaDefined,
+          admin_username: adminUsername,
+        }
+      );
+    } catch {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          "Failed to update session. Please try again."
+        )}`
+      );
+    }
+
+    redirect(`/admin/classes/${classId}/sessions?status=session_updated`);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl space-y-6 px-4 py-8">
       <section className="flex flex-wrap items-center justify-between gap-4">
@@ -121,10 +172,20 @@ export default async function AdminClassSessionsPage({
           <AddSessionModal
             submitAction={addSessionAction}
             errorMessage={errorMessage}
-            success={success}
+            success={sessionCreated}
           />
         ) : null}
       </section>
+
+      {!isSuperAdmin && errorMessage ? (
+        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>
+      ) : null}
+
+      {sessionUpdated ? (
+        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          Session updated successfully.
+        </p>
+      ) : null}
 
       {pageData.sessions.length === 0 ? (
         <p className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
@@ -140,6 +201,7 @@ export default async function AdminClassSessionsPage({
                 <th className="px-4 py-3">Time</th>
                 <th className="px-4 py-3">Quota (Defined / Used / Available)</th>
                 <th className="px-4 py-3">Status</th>
+                {isSuperAdmin ? <th className="px-4 py-3">Actions</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 bg-white">
@@ -175,6 +237,18 @@ export default async function AdminClassSessionsPage({
                       {s.status}
                     </span>
                   </td>
+                  {isSuperAdmin ? (
+                    <td className="px-4 py-3">
+                      <EditSessionModal
+                        sessionId={s.session_id}
+                        initialLocation={s.location}
+                        initialDate={s.date}
+                        initialTime={s.time}
+                        initialQuotaDefined={s.quota_defined}
+                        submitAction={editSessionAction}
+                      />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
