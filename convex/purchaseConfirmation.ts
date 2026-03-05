@@ -7,8 +7,7 @@ import {
   getTwilioCredentialsFromConvexEnv,
   sendWhatsApp,
 } from "../lib/twilio";
-
-const DEFAULT_BASE_URL = "https://example.com";
+import { buildTermsUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
 
 export const sendPurchaseConfirmation = actionGeneric({
   args: {
@@ -35,8 +34,8 @@ export const sendPurchaseConfirmation = actionGeneric({
       return { success: true };
     }
 
-    const baseUrl = resolveBaseUrl(process.env.APP_BASE_URL);
-    const termsLink = `${baseUrl}/terms?token=${encodeURIComponent(purchase.token)}`;
+    const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
+    const termsLink = buildTermsUrl(baseUrl, purchase.token);
     const message = `Your purchase is confirmed! Please accept terms: ${termsLink}`;
 
     const sent = await sendWhatsApp({
@@ -61,16 +60,3 @@ export const sendPurchaseConfirmation = actionGeneric({
     return { success: sent };
   },
 });
-
-function resolveBaseUrl(baseUrlFromEnv: string | undefined): string {
-  const raw = baseUrlFromEnv?.trim();
-  if (!raw) {
-    return DEFAULT_BASE_URL;
-  }
-
-  if (raw.startsWith("http://") || raw.startsWith("https://")) {
-    return raw.replace(/\/+$/, "");
-  }
-
-  return `https://${raw.replace(/\/+$/, "")}`;
-}

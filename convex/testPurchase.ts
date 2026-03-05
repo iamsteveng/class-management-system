@@ -1,5 +1,6 @@
 import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { buildTermsUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
 
 export const createTestPurchase = mutationGeneric({
   args: {
@@ -163,5 +164,67 @@ export const listPurchasesByOrderIds = queryGeneric({
       }
     }
     return results;
+  },
+});
+
+export const previewPurchaseConfirmationMessage = queryGeneric({
+  args: {
+    token: v.string(),
+    app_base_url: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      base_url: v.string(),
+      terms_link: v.string(),
+      message: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+    if (!purchase) return null;
+
+    const baseUrl = resolveAppBaseUrl(args.app_base_url ?? process.env.APP_BASE_URL);
+    const termsLink = buildTermsUrl(baseUrl, purchase.token);
+    return {
+      base_url: baseUrl,
+      terms_link: termsLink,
+      message: `Your purchase is confirmed! Please accept terms: ${termsLink}`,
+    };
+  },
+});
+
+export const getLatestAuditLogForEntity = queryGeneric({
+  args: {
+    entity_type: v.string(),
+    entity_id: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      action: v.string(),
+      entity_type: v.string(),
+      entity_id: v.string(),
+      created_at: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db.query("audit_logs").collect();
+    const filtered = rows.filter(
+      (row) => row.entity_type === args.entity_type && row.entity_id === args.entity_id
+    );
+    if (filtered.length === 0) {
+      return null;
+    }
+    const latest = filtered.sort((a, b) => b.created_at - a.created_at)[0];
+    return {
+      action: latest.action,
+      entity_type: latest.entity_type,
+      entity_id: latest.entity_id,
+      created_at: latest.created_at,
+    };
   },
 });
