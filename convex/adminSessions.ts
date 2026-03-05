@@ -184,6 +184,58 @@ export const updateSession = mutationGeneric({
   },
 });
 
+export const cancelSession = mutationGeneric({
+  args: {
+    session_id: v.string(),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    session_id: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const sessionRecord = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+      .first();
+
+    if (!sessionRecord) {
+      throw new Error("Session not found.");
+    }
+
+    const admin = await ctx.db
+      .query("admins")
+      .withIndex("by_username", (q) => q.eq("username", args.admin_username))
+      .first();
+
+    if (!admin || admin.role !== "super_admin") {
+      throw new Error("Only super admins can cancel sessions.");
+    }
+
+    if (sessionRecord.status === "cancelled") {
+      return { session_id: sessionRecord.session_id };
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(sessionRecord._id, {
+      status: "cancelled",
+    });
+
+    await ctx.db.insert("audit_logs", {
+      admin_id: admin._id,
+      action: "session_cancelled",
+      entity_type: "sessions",
+      entity_id: sessionRecord.session_id,
+      metadata: {
+        previous_status: sessionRecord.status,
+        next_status: "cancelled",
+      },
+      created_at: now,
+    });
+
+    return { session_id: sessionRecord.session_id };
+  },
+});
+
 export const getSessionParticipantsPageData = queryGeneric({
   args: {
     session_id: v.string(),

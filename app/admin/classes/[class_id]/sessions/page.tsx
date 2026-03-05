@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AddSessionModal } from "./add-session-modal";
+import { CancelSessionButton } from "./cancel-session-button";
 import { EditSessionModal } from "./edit-session-modal";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
@@ -43,6 +44,7 @@ export default async function AdminClassSessionsPage({
   const errorMessage = sp.error ?? undefined;
   const sessionCreated = sp.status === "session_created";
   const sessionUpdated = sp.status === "session_updated";
+  const sessionCancelled = sp.status === "session_cancelled";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
 
@@ -154,6 +156,38 @@ export default async function AdminClassSessionsPage({
     redirect(`/admin/classes/${classId}/sessions?status=session_updated`);
   }
 
+  async function cancelSessionAction(formData: FormData) {
+    "use server";
+
+    const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
+    if (!sessionId) {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          "Session ID is required."
+        )}`
+      );
+    }
+
+    try {
+      const client = createConvexHttpClient();
+      await client.mutation(
+        makeFunctionReference<"mutation">("adminSessions:cancelSession"),
+        {
+          session_id: sessionId,
+          admin_username: adminUsername,
+        }
+      );
+    } catch {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          "Failed to cancel session. Please try again."
+        )}`
+      );
+    }
+
+    redirect(`/admin/classes/${classId}/sessions?status=session_cancelled`);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl space-y-6 px-4 py-8">
       <section className="flex flex-wrap items-center justify-between gap-4">
@@ -186,6 +220,11 @@ export default async function AdminClassSessionsPage({
           Session updated successfully.
         </p>
       ) : null}
+      {sessionCancelled ? (
+        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          Session cancelled successfully.
+        </p>
+      ) : null}
 
       {pageData.sessions.length === 0 ? (
         <p className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
@@ -206,7 +245,10 @@ export default async function AdminClassSessionsPage({
             </thead>
             <tbody className="divide-y divide-zinc-100 bg-white">
               {pageData.sessions.map((s) => (
-                <tr key={s.session_id} className="hover:bg-zinc-50">
+                <tr
+                  key={s.session_id}
+                  className={s.status === "cancelled" ? "bg-zinc-50 text-zinc-500" : "hover:bg-zinc-50"}
+                >
                   <td className="px-4 py-3 text-zinc-900">{s.location}</td>
                   <td className="px-4 py-3 text-zinc-700">{s.date}</td>
                   <td className="px-4 py-3 text-zinc-700">{s.time}</td>
@@ -239,14 +281,21 @@ export default async function AdminClassSessionsPage({
                   </td>
                   {isSuperAdmin ? (
                     <td className="px-4 py-3">
-                      <EditSessionModal
-                        sessionId={s.session_id}
-                        initialLocation={s.location}
-                        initialDate={s.date}
-                        initialTime={s.time}
-                        initialQuotaDefined={s.quota_defined}
-                        submitAction={editSessionAction}
-                      />
+                      <div className="flex items-center gap-2">
+                        <EditSessionModal
+                          sessionId={s.session_id}
+                          initialLocation={s.location}
+                          initialDate={s.date}
+                          initialTime={s.time}
+                          initialQuotaDefined={s.quota_defined}
+                          submitAction={editSessionAction}
+                        />
+                        <CancelSessionButton
+                          sessionId={s.session_id}
+                          disabled={s.status === "cancelled"}
+                          submitAction={cancelSessionAction}
+                        />
+                      </div>
                     </td>
                   ) : null}
                 </tr>

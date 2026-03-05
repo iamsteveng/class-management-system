@@ -12,6 +12,7 @@
 - When Convex function signatures change, run `npx convex dev --once` before local browser checks so Next.js and direct test calls both use the updated backend contract.
 - In class lifecycle flows, treat cancelled classes as `classes.status = "inactive"` (schema-level enum), and use UI labels/badges to present that state as "cancelled".
 - Session management actions belong in `app/admin/classes/[class_id]/sessions/page.tsx`; implement row-level edits as colocated client modals plus server actions that call `adminSessions:*` mutations.
+- For Convex-backed Playwright checks against shared dev data, generate unique test row text (for example with `Date.now()`) to avoid false matches from previously seeded records.
 
 ## 2026-03-05 15:49:09 UTC - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -67,5 +68,17 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - **Learnings for future iterations:**
   - Patterns discovered: for session-row mutations, match the existing class flow by combining a row-scoped client modal with a server action that redirects using `status` query params for success banners.
   - Gotchas encountered: assertions tied to old row text become stale after edits; locate updated rows using post-save values to keep Playwright checks stable.
-  - Useful context: the actionable session list for admin work is under `/admin/classes/[class_id]/sessions` (not the `/admin/sessions` landing page).
+- Useful context: the actionable session list for admin work is under `/admin/classes/[class_id]/sessions` (not the `/admin/sessions` landing page).
+---
+## 2026-03-05 16:18:30 UTC - US-006
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented super-admin session cancellation on `/admin/classes/[class_id]/sessions` with a row-level `Cancel` button, confirmation dialog, and post-action success/error handling via query status messages.
+- Added `adminSessions:cancelSession` mutation with server-side super-admin authorization and audit logging, then wired the new server action from the sessions page.
+- Updated session rows to show cancelled visual treatment and disabled re-cancel actions once a session is marked cancelled.
+- Added browser verification coverage in `e2e/tc006-session-cancel.spec.ts`, validating UI cancel flow, backend status update, and exclusion from terms session selector.
+- Files changed: `app/admin/classes/[class_id]/sessions/page.tsx`, `app/admin/classes/[class_id]/sessions/cancel-session-button.tsx`, `convex/adminSessions.ts`, `e2e/tc006-session-cancel.spec.ts`, `prd.json`, `progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: session destructive actions follow the same row-scoped client-form + server-action wiring used for class/session edits, with status query params for confirmation banners.
+  - Gotchas encountered: `testPurchase:createTestPurchase` does not accept `class_id`; create purchases with supported args and assert by `session_id` when validating terms-session filtering.
+  - Useful context: terms selector exclusion is enforced through `terms:getTermsPageData` filtering (`session.status === "scheduled"`), so session cancellation impact can be verified via both Convex query and `/terms` UI.
 ---
