@@ -54,7 +54,7 @@ This is a minimal patch focused on passing acceptance tests and unblocking users
 - [ ] Button only visible when logged in as `super_admin` role
 - [ ] Button hidden for `regular_admin` role
 - [ ] Clicking Cancel opens a confirmation dialog: "Are you sure you want to cancel this class?"
-- [ ] After confirmation, the system checks if the class has any future sessions (`session.date >= today`)
+- [ ] After confirmation, the system checks if the class has any active future sessions (`session.status !== 'cancelled' AND session.date >= today`)
 - [ ] If future sessions exist, show error: "Cannot cancel class with future sessions. Cancel or complete all sessions first."
 - [ ] If no future sessions, update `class.status` to `cancelled`
 - [ ] Cancelled classes show visual indicator (e.g., strikethrough, badge, grayed-out row)
@@ -206,7 +206,7 @@ This is a minimal patch focused on passing acceptance tests and unblocking users
 
 **Future Session Check (Class Cancel):**
 - Query: `await ctx.db.query("sessions").withIndex("by_class_id", q => q.eq("class_id", classId)).collect()`
-- Filter: `sessions.filter(s => new Date(s.date) >= new Date())`
+- Filter: `sessions.filter(s => s.status !== 'cancelled' && new Date(s.date) >= new Date())`
 - If length > 0, reject cancellation
 
 **Hostname Fix:**
