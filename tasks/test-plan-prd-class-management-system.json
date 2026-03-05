@@ -27,7 +27,7 @@
         "Query purchases table"
       ],
       "commands": [
-        "npm test -- TC-001"
+        "npx playwright test --grep=TC-001"
       ],
       "passFail": [
         "Purchases table has 2 new records with status='pending_terms'"
@@ -61,7 +61,7 @@
         "Check logs"
       ],
       "commands": [
-        "npm test -- TC-002"
+        "npx playwright test --grep=TC-002"
       ],
       "passFail": [
         "Second import flagged as duplicate; admin notified"
@@ -92,7 +92,7 @@
         "Parse CSV with missing participant_count column"
       ],
       "commands": [
-        "npm test -- --testNamePattern='CSV parser handles malformed row'"
+        "npx playwright test --grep=TC-003"
       ],
       "passFail": [
         "Parser raises validation error; row skipped"
@@ -125,7 +125,7 @@
         "Check purchase status"
       ],
       "commands": [
-        "npm test -- TC-004"
+        "npx playwright test --grep=TC-004"
       ],
       "passFail": [
         "Purchase status='confirmation_sent'; Twilio API called with correct mobile number"
@@ -157,7 +157,7 @@
         "Extract token from message body"
       ],
       "commands": [
-        "npm test -- TC-005"
+        "npx playwright test --grep=TC-005"
       ],
       "passFail": [
         "Message contains `https://[domain]/terms?token=[uuid]` with valid UUID"
@@ -323,7 +323,7 @@
         "Query participants table"
       ],
       "commands": [
-        "npm test -- TC-010"
+        "npx playwright test --grep=TC-010"
       ],
       "passFail": [
         "3 participant records created with unique participant_ids"
@@ -355,7 +355,7 @@
         "Check WhatsApp message"
       ],
       "commands": [
-        "npm test -- TC-011"
+        "npx playwright test --grep=TC-011"
       ],
       "passFail": [
         "Message contains 2 links: `https://[domain]/participant/[uuid1]` and `[uuid2]`"
@@ -584,7 +584,7 @@
         "Check Twilio call log"
       ],
       "commands": [
-        "npm test -- TC-018"
+        "npx playwright test --grep=TC-018"
       ],
       "passFail": [
         "No Twilio API call made"
@@ -715,7 +715,7 @@
         "Query audit_logs"
       ],
       "commands": [
-        "npm test -- TC-022"
+        "npx playwright test --grep=TC-022"
       ],
       "passFail": [
         "New log entry with action_type='create_class', admin_username, timestamp, changes_json"
@@ -747,7 +747,7 @@
         "Check audit log"
       ],
       "commands": [
-        "npm test -- TC-023"
+        "npx playwright test --grep=TC-023"
       ],
       "passFail": [
         "changes_json contains before: {quota:20}, after: {quota:25}"
@@ -1175,7 +1175,7 @@
         "Check Twilio log"
       ],
       "commands": [
-        "npm test -- TC-036"
+        "npx playwright test --grep=TC-036"
       ],
       "passFail": [
         "WhatsApp sent with new session details"
@@ -1309,7 +1309,7 @@
         "Query participants table"
       ],
       "commands": [
-        "npm test -- TC-040"
+        "npx playwright test --grep=TC-040"
       ],
       "passFail": [
         "Zero participant records for P1"
@@ -1441,7 +1441,7 @@
         "Query attendance_records"
       ],
       "commands": [
-        "npm test -- TC-044"
+        "npx playwright test --grep=TC-044"
       ],
       "passFail": [
         "New record with participant_id, session_id, marked_by_admin, marked_at"
@@ -1570,7 +1570,7 @@
         "Query audit_logs"
       ],
       "commands": [
-        "npm test -- TC-048"
+        "npx playwright test --grep=TC-048"
       ],
       "passFail": [
         "Log entry with action_type='mark_attendance', participant_id, admin_username"
@@ -1637,7 +1637,7 @@
         "Query both sessions"
       ],
       "commands": [
-        "npm test -- TC-050"
+        "npx playwright test --grep=TC-050"
       ],
       "passFail": [
         "Session A quota=20/14/6; Session B quota=20/11/9"

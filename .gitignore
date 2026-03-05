@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/test-results
+/logs/
+/e2e/*-screenshot.png
 
 # next.js
 /.next/
@@ -39,3 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# convex generated
+/convex/_generated/
+/convex/README.md
