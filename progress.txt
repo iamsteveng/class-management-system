@@ -7,6 +7,8 @@
 - For role-based button visibility, check `session.user.role === 'super_admin'` from NextAuth session on server-side before rendering edit/cancel buttons.
 - Cancelled sessions must be excluded from the terms acceptance session selector dropdown by filtering `status !== 'cancelled'`.
 - Class cancellation requires validation: check for active future sessions (`status !== 'cancelled' AND date >= today`) before allowing cancellation.
+- Keep persistent admin navigation in `app/admin/layout.tsx` and keep route highlighting logic in a client-side `app/admin/admin-nav.tsx` component.
+- For local Playwright auth flows with NextAuth JWT sessions, start dev server with a fixed `NEXTAUTH_SECRET` to avoid `JWT_SESSION_ERROR` decryption failures.
 
 ## 2026-03-05 15:49:09 UTC - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -16,5 +18,18 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - **Learnings for future iterations:**
   - Patterns discovered: link-building helpers should strip path segments from configured base URLs and use origin-only output to avoid accidental `/frontend/.../terms` URLs.
   - Gotchas encountered: running the full Playwright suite currently surfaces unrelated admin-nav/action failures, so scope-targeted tests are needed to validate this hostname story.
-  - Useful context: `resolveAppBaseUrl` is consumed by purchase confirmation and participant link actions, so APP_BASE_URL validation affects both flows.
+- Useful context: `resolveAppBaseUrl` is consumed by purchase confirmation and participant link actions, so APP_BASE_URL validation affects both flows.
+---
+## 2026-03-05 15:57:23 UTC - US-002
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented persistent admin navigation by adding `AdminNav` and wiring it through `app/admin/layout.tsx` so navigation remains visible across admin routes.
+- Added top-level admin routes for `Sessions`, `Participants`, and `Terms` to ensure all nav links resolve and can be used for cross-page navigation.
+- Added active-route highlighting with `aria-current="page"` and semantic `<nav>` + anchor links for accessibility.
+- Added focused browser verification test `e2e/tc002-admin-nav.spec.ts` and executed it successfully against local dev server.
+- Added shared e2e helper `e2e/qa-utils.ts` and minimal placeholder edit routes expected by generated type validators.
+- Files changed: `app/admin/layout.tsx`, `app/admin/admin-nav.tsx`, `app/admin/sessions/page.tsx`, `app/admin/participants/page.tsx`, `app/admin/terms/page.tsx`, `app/admin/classes/[class_id]/edit/page.tsx`, `app/admin/sessions/[session_id]/edit/page.tsx`, `e2e/tc002-admin-nav.spec.ts`, `e2e/qa-utils.ts`, `prd.json`, `progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: for admin-wide UI chrome, prefer placing shared components in `app/admin/layout.tsx` so nested routes inherit behavior consistently.
+  - Gotchas encountered: NextAuth JWT session decoding in local dev is unstable without fixed `NEXTAUTH_SECRET`; Playwright login checks should launch dev with explicit auth env vars.
+  - Useful context: current nav route coverage includes `/admin/dashboard`, `/admin/classes`, `/admin/sessions`, `/admin/participants`, and `/admin/terms`, with active state computed from pathname.
 ---
