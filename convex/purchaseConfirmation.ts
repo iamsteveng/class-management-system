@@ -1,6 +1,6 @@
 "use node";
 
-import { actionGeneric, mutationGeneric, queryGeneric, makeFunctionReference } from "convex/server";
+import { actionGeneric, makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 
 import {
@@ -9,58 +9,6 @@ import {
 } from "../lib/twilio";
 
 const DEFAULT_BASE_URL = "https://example.com";
-
-export const getPurchaseForConfirmation = queryGeneric({
-  args: {
-    purchase_id: v.id("purchases"),
-  },
-  returns: v.union(
-    v.null(),
-    v.object({
-      _id: v.id("purchases"),
-      customer_mobile: v.string(),
-      token: v.string(),
-      status: v.union(
-        v.literal("pending_terms"),
-        v.literal("confirmation_sent"),
-        v.literal("terms_accepted"),
-        v.literal("cancelled")
-      ),
-    })
-  ),
-  handler: async (ctx, args) => {
-    const purchase = await ctx.db.get(args.purchase_id);
-    if (!purchase) {
-      return null;
-    }
-
-    return {
-      _id: purchase._id,
-      customer_mobile: purchase.customer_mobile,
-      token: purchase.token,
-      status: purchase.status,
-    };
-  },
-});
-
-export const updatePurchaseStatus = mutationGeneric({
-  args: {
-    purchase_id: v.id("purchases"),
-    status: v.union(
-      v.literal("pending_terms"),
-      v.literal("confirmation_sent"),
-      v.literal("terms_accepted"),
-      v.literal("cancelled")
-    ),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.purchase_id, {
-      status: args.status,
-    });
-    return null;
-  },
-});
 
 export const sendPurchaseConfirmation = actionGeneric({
   args: {
@@ -72,7 +20,7 @@ export const sendPurchaseConfirmation = actionGeneric({
   handler: async (ctx, args) => {
     const purchase = await ctx.runQuery(
       makeFunctionReference<"query">(
-        "purchaseConfirmation:getPurchaseForConfirmation"
+        "purchaseQueries:getPurchaseForConfirmation"
       ),
       {
         purchase_id: args.purchase_id,
@@ -102,7 +50,7 @@ export const sendPurchaseConfirmation = actionGeneric({
 
     if (sent) {
       await ctx.runMutation(
-        makeFunctionReference<"mutation">("purchaseConfirmation:updatePurchaseStatus"),
+        makeFunctionReference<"mutation">("purchaseQueries:updatePurchaseStatus"),
         {
           purchase_id: purchase._id,
           status: "confirmation_sent",
