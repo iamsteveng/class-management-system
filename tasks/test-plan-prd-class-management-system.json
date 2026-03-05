@@ -1,0 +1,1662 @@
+{
+  "qaPlanSchemaVersion": "1.0.0",
+  "planId": "test-plan-class-management-system",
+  "source": {
+    "path": "tasks/test-plan-prd-class-management-system.md",
+    "generatedAt": "2026-03-05T04:40:04.875867Z"
+  },
+  "execution": {
+    "defaultRetryRule": {
+      "maxRetries": 0,
+      "retryOn": [
+        "flake",
+        "timeout"
+      ]
+    }
+  },
+  "tests": [
+    {
+      "id": "TC-001",
+      "source": "US-001",
+      "level": "integration",
+      "priority": "P0",
+      "title": "CSV import creates purchase records",
+      "steps": [
+        "Upload CSV with 2 valid rows",
+        "Wait for cron job (max 60s)",
+        "Query purchases table"
+      ],
+      "commands": [
+        "npm test -- TC-001"
+      ],
+      "passFail": [
+        "Purchases table has 2 new records with status='pending_terms'"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Database query result"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-002",
+      "source": "US-001",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Duplicate order_id rejected",
+      "steps": [
+        "Upload CSV with order_id=ORD123",
+        "Wait for import",
+        "Upload same CSV again",
+        "Check logs"
+      ],
+      "commands": [
+        "npm test -- TC-002"
+      ],
+      "passFail": [
+        "Second import flagged as duplicate; admin notified"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Audit log entry + admin notification"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-003",
+      "source": "US-001",
+      "level": "unit",
+      "priority": "P1",
+      "title": "CSV parser handles malformed row",
+      "steps": [
+        "Parse CSV with missing participant_count column"
+      ],
+      "commands": [
+        "npm test -- --testNamePattern='CSV parser handles malformed row'"
+      ],
+      "passFail": [
+        "Parser raises validation error; row skipped"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Error log entry"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-004",
+      "source": "US-002",
+      "level": "integration",
+      "priority": "P0",
+      "title": "WhatsApp sent after purchase import",
+      "steps": [
+        "Insert purchase record via mutation",
+        "Trigger confirmation action",
+        "Check purchase status"
+      ],
+      "commands": [
+        "npm test -- TC-004"
+      ],
+      "passFail": [
+        "Purchase status='confirmation_sent'; Twilio API called with correct mobile number"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Mock Twilio response + status update"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-005",
+      "source": "US-002",
+      "level": "integration",
+      "priority": "P0",
+      "title": "WhatsApp contains valid terms link",
+      "steps": [
+        "Trigger confirmation for purchase_id=X",
+        "Extract token from message body"
+      ],
+      "commands": [
+        "npm test -- TC-005"
+      ],
+      "passFail": [
+        "Message contains `https://[domain]/terms?token=[uuid]` with valid UUID"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Regex match on message text"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-006",
+      "source": "US-003",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms page loads with valid token",
+      "steps": [
+        "Navigate to `/terms?token=[valid_uuid]`",
+        "Check page content"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-006"
+      ],
+      "passFail": [
+        "Page displays class name, customer info, session dropdown"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Browser screenshot"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-007",
+      "source": "US-003",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms page shows only available sessions",
+      "steps": [
+        "Set session A quota_used=quota_defined (full)",
+        "Load terms page",
+        "Check dropdown"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-007"
+      ],
+      "passFail": [
+        "Dropdown excludes session A; shows sessions with available>0"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "DOM inspection"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-008",
+      "source": "US-003",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Submit button disabled until terms checked",
+      "steps": [
+        "Load terms page",
+        "Select session",
+        "Do NOT check terms checkbox",
+        "Click submit"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-008"
+      ],
+      "passFail": [
+        "Button remains disabled; form not submitted"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Button state assertion"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-009",
+      "source": "US-003",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms acceptance saves session and timestamp",
+      "steps": [
+        "Load terms page",
+        "Select session S1",
+        "Check terms checkbox",
+        "Submit form",
+        "Query database"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-009"
+      ],
+      "passFail": [
+        "Purchase status='terms_accepted'; session_id=S1; timestamp recorded"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Database query"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-010",
+      "source": "US-004",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Participant records created after terms",
+      "steps": [
+        "Submit terms for purchase with participant_count=3",
+        "Query participants table"
+      ],
+      "commands": [
+        "npm test -- TC-010"
+      ],
+      "passFail": [
+        "3 participant records created with unique participant_ids"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Row count + UUID validation"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-011",
+      "source": "US-004",
+      "level": "integration",
+      "priority": "P0",
+      "title": "WhatsApp sent with participant links",
+      "steps": [
+        "Submit terms for participant_count=2",
+        "Check WhatsApp message"
+      ],
+      "commands": [
+        "npm test -- TC-011"
+      ],
+      "passFail": [
+        "Message contains 2 links: `https://[domain]/participant/[uuid1]` and `[uuid2]`"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Message body parsing"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-012",
+      "source": "US-005",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Participant page displays QR code",
+      "steps": [
+        "Navigate to `/participant/[valid_uuid]`",
+        "Check page content"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-012"
+      ],
+      "passFail": [
+        "Page displays participant details + QR code image"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Visual QR code presence"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-013",
+      "source": "US-005",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "QR code encodes participant_id",
+      "steps": [
+        "Load participant page",
+        "Scan QR with test scanner",
+        "Decode data"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-013"
+      ],
+      "passFail": [
+        "Decoded data equals participant_id UUID"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "QR decode result"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-014",
+      "source": "US-005",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Change Session button only shown when >2 days",
+      "steps": [
+        "Create session with date = today + 3 days",
+        "Load participant page"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-014"
+      ],
+      "passFail": [
+        "\"Change Session\" button visible"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Button presence check"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-015",
+      "source": "US-005",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Change Session button hidden when <2 days",
+      "steps": [
+        "Create session with date = today + 1 day",
+        "Load participant page"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-015"
+      ],
+      "passFail": [
+        "\"Change Session\" button NOT visible"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Button absence check"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-016",
+      "source": "US-006",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Participant can reschedule session",
+      "steps": [
+        "Load participant page (>2 days)",
+        "Click \"Change Session\"",
+        "Select new session from dropdown",
+        "Submit",
+        "Check database"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-016"
+      ],
+      "passFail": [
+        "participant.session_id updated to new session; old session quota+1; new session quota-1"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Database query"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-017",
+      "source": "US-006",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Unlimited rescheduling allowed within window",
+      "steps": [
+        "Reschedule participant to session A",
+        "Reschedule same participant to session B",
+        "Reschedule to session C"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-017"
+      ],
+      "passFail": [
+        "All reschedules succeed; final session_id=C"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Success messages + final state"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-018",
+      "source": "US-006",
+      "level": "integration",
+      "priority": "P1",
+      "title": "No WhatsApp sent on self-reschedule",
+      "steps": [
+        "Reschedule participant session",
+        "Check Twilio call log"
+      ],
+      "commands": [
+        "npm test -- TC-018"
+      ],
+      "passFail": [
+        "No Twilio API call made"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Mock call count = 0"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-019",
+      "source": "US-007",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin can log in with valid credentials",
+      "steps": [
+        "Navigate to `/admin/login`",
+        "Enter username=admin, password=admin123",
+        "Submit form"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-019"
+      ],
+      "passFail": [
+        "Redirected to `/admin/dashboard`; session cookie set"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "URL check + cookie presence"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-020",
+      "source": "US-007",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin login fails with invalid password",
+      "steps": [
+        "Navigate to `/admin/login`",
+        "Enter username=admin, password=wrong",
+        "Submit form"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-020"
+      ],
+      "passFail": [
+        "Error message displayed; no redirect"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Error message text"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-021",
+      "source": "US-007",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Admin role stored in session",
+      "steps": [
+        "Log in as super_admin",
+        "Check session data"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-021"
+      ],
+      "passFail": [
+        "Session contains role='super_admin'"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Session inspection"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-022",
+      "source": "US-008",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Admin action logged to audit_logs",
+      "steps": [
+        "Log in as admin",
+        "Create new class",
+        "Query audit_logs"
+      ],
+      "commands": [
+        "npm test -- TC-022"
+      ],
+      "passFail": [
+        "New log entry with action_type='create_class', admin_username, timestamp, changes_json"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Audit log query"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-023",
+      "source": "US-008",
+      "level": "integration",
+      "priority": "P1",
+      "title": "Audit log captures before/after state",
+      "steps": [
+        "Edit session quota from 20 to 25",
+        "Check audit log"
+      ],
+      "commands": [
+        "npm test -- TC-023"
+      ],
+      "passFail": [
+        "changes_json contains before: {quota:20}, after: {quota:25}"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "JSON parsing"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-024",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Super Admin can create class",
+      "steps": [
+        "Log in as super_admin",
+        "Navigate to `/admin/classes`",
+        "Click \"Add Class\"",
+        "Enter name, description",
+        "Submit"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-024"
+      ],
+      "passFail": [
+        "New class appears in table; audit log entry created"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Table row + audit log"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-025",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Regular Admin cannot create class",
+      "steps": [
+        "Log in as regular_admin",
+        "Navigate to `/admin/classes`",
+        "Check UI"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-025"
+      ],
+      "passFail": [
+        "\"Add Class\" button NOT visible"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Button absence"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-026",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Super Admin can cancel class",
+      "steps": [
+        "Log in as super_admin",
+        "Click \"Cancel\" on class",
+        "Confirm dialog",
+        "Check database"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-026"
+      ],
+      "passFail": [
+        "Class status='cancelled'"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Status query"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-027",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Super Admin can create session",
+      "steps": [
+        "Navigate to `/admin/classes/[class_id]/sessions`",
+        "Click \"Add Session\"",
+        "Enter location, date, time, quota",
+        "Submit"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-027"
+      ],
+      "passFail": [
+        "New session appears in table"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Table row"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-028",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Session quota displays as defined/used/available",
+      "steps": [
+        "Create session with quota=20",
+        "Add 15 participants",
+        "View session list"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-028"
+      ],
+      "passFail": [
+        "Quota column shows \"20 / 15 / 5\""
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Text content"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-029",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Full session marked with red indicator",
+      "steps": [
+        "Create session with quota=10",
+        "Add 10 participants (full)",
+        "View session list"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-029"
+      ],
+      "passFail": [
+        "Session row has red \"Full\" badge"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Visual indicator"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-030",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Session cancellation sends WhatsApp to participants",
+      "steps": [
+        "Cancel session with 5 participants",
+        "Check Twilio logs"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-030"
+      ],
+      "passFail": [
+        "5 WhatsApp messages sent with cancellation notice"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Twilio call count"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-031",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin can view participant list",
+      "steps": [
+        "Navigate to `/admin/sessions/[session_id]/participants`",
+        "Check table content"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-031"
+      ],
+      "passFail": [
+        "Table displays participant_id, name, mobile, terms_accepted status"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Table inspection"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-032",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "View Terms modal displays accepted terms",
+      "steps": [
+        "Click \"View Terms\" on participant row",
+        "Check modal content"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-032"
+      ],
+      "passFail": [
+        "Modal shows full terms text from participant's accepted version"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Modal text"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-033",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P2",
+      "title": "Super Admin can export participant CSV",
+      "steps": [
+        "Click \"Export\" button on participant list",
+        "Check download"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-033"
+      ],
+      "passFail": [
+        "CSV file downloaded with participant data"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout",
+            "infra"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "File download + content"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-034",
+      "source": "US-012",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Super Admin can change participant session",
+      "steps": [
+        "Click \"Change Session\" on participant row",
+        "Select new session",
+        "Submit"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-034"
+      ],
+      "passFail": [
+        "Participant session_id updated; WhatsApp sent"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Database + Twilio log"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-035",
+      "source": "US-012",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Regular Admin cannot change participant session",
+      "steps": [
+        "Log in as regular_admin",
+        "View participant list"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-035"
+      ],
+      "passFail": [
+        "\"Change Session\" button NOT visible"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Button absence"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-036",
+      "source": "US-012",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Admin session change sends WhatsApp",
+      "steps": [
+        "Change participant from session A to B via admin",
+        "Check Twilio log"
+      ],
+      "commands": [
+        "npm test -- TC-036"
+      ],
+      "passFail": [
+        "WhatsApp sent with new session details"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Message body"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-037",
+      "source": "US-013",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Super Admin can create new terms version",
+      "steps": [
+        "Navigate to `/admin/terms`",
+        "Click \"Create New Version\"",
+        "Enter terms text",
+        "Save"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-037"
+      ],
+      "passFail": [
+        "New version created with is_current=true; old version is_current=false"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Database query"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-038",
+      "source": "US-013",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "New terms version applies to future participants",
+      "steps": [
+        "Create terms version V2",
+        "Create new purchase",
+        "Accept terms",
+        "Check participant record"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-038"
+      ],
+      "passFail": [
+        "Participant terms_version_id = V2"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Foreign key check"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-039",
+      "source": "US-013",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Old participants retain original terms version",
+      "steps": [
+        "Participant P1 accepted terms V1",
+        "Create terms V2",
+        "Check P1 record"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-039"
+      ],
+      "passFail": [
+        "P1 terms_version_id still = V1 (immutable)"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Version reference"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-040",
+      "source": "US-014",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Purchase without terms acceptance has no participants",
+      "steps": [
+        "Create purchase P1",
+        "Do NOT submit terms",
+        "Query participants table"
+      ],
+      "commands": [
+        "npm test -- TC-040"
+      ],
+      "passFail": [
+        "Zero participant records for P1"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Row count = 0"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-041",
+      "source": "US-014",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Terms page shows blocking message",
+      "steps": [
+        "Load terms page without submitting",
+        "Check message"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-041"
+      ],
+      "passFail": [
+        "\"You must accept terms to receive your participant QR code\" displayed"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Text content"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-042",
+      "source": "US-014",
+      "level": "e2e",
+      "priority": "P2",
+      "title": "Admin dashboard flags unaccepted purchases",
+      "steps": [
+        "Create purchase with status='confirmation_sent'",
+        "View admin dashboard"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-042"
+      ],
+      "passFail": [
+        "Purchase row highlighted in red"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout",
+            "infra"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Visual indicator"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-043",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin can scan QR and mark attendance",
+      "steps": [
+        "Navigate to `/admin/sessions/[session_id]/participants`",
+        "Click \"Scan QR Code\"",
+        "Grant camera permission",
+        "Scan participant QR",
+        "Check UI"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-043"
+      ],
+      "passFail": [
+        "Success toast with participant name; attendance checkmark appears"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Toast message + UI update"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-044",
+      "source": "US-015",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Valid QR creates attendance record",
+      "steps": [
+        "Scan participant QR",
+        "Query attendance_records"
+      ],
+      "commands": [
+        "npm test -- TC-044"
+      ],
+      "passFail": [
+        "New record with participant_id, session_id, marked_by_admin, marked_at"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Database query"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-045",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Invalid session QR shows error",
+      "steps": [
+        "Scan QR for participant in session A",
+        "While viewing session B participant list"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-045"
+      ],
+      "passFail": [
+        "Error: \"This participant is not registered for this session\""
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Error message"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-046",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Duplicate scan shows warning",
+      "steps": [
+        "Scan participant QR",
+        "Scan same QR again"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-046"
+      ],
+      "passFail": [
+        "Warning: \"Already marked attended at [timestamp]\""
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Warning message + original timestamp"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-047",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Regular Admin can mark attendance",
+      "steps": [
+        "Log in as regular_admin",
+        "Navigate to participant list",
+        "Click \"Scan QR Code\""
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-047"
+      ],
+      "passFail": [
+        "Scanner opens; attendance marking allowed"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Camera UI"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-048",
+      "source": "US-015",
+      "level": "integration",
+      "priority": "P1",
+      "title": "Attendance action logged to audit_logs",
+      "steps": [
+        "Mark attendance for participant P1",
+        "Query audit_logs"
+      ],
+      "commands": [
+        "npm test -- TC-048"
+      ],
+      "passFail": [
+        "Log entry with action_type='mark_attendance', participant_id, admin_username"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Audit log"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-049",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P2",
+      "title": "Camera permission denied shows error",
+      "steps": [
+        "Click \"Scan QR Code\"",
+        "Deny camera permission",
+        "Check UI"
+      ],
+      "commands": [
+        "npx playwright test --grep=TC-049"
+      ],
+      "passFail": [
+        "Error message: \"Camera access denied. Please enable permissions.\""
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 1,
+          "retryOn": [
+            "flake",
+            "timeout",
+            "infra"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Error text"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-050",
+      "source": "FR-19",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Session change updates quotas atomically",
+      "steps": [
+        "Session A quota=20/15/5; Session B quota=20/10/10",
+        "Move participant from A to B",
+        "Query both sessions"
+      ],
+      "commands": [
+        "npm test -- TC-050"
+      ],
+      "passFail": [
+        "Session A quota=20/14/6; Session B quota=20/11/9"
+      ],
+      "retryRules": [
+        {
+          "maxRetries": 0,
+          "retryOn": [
+            "flake",
+            "timeout"
+          ]
+        }
+      ],
+      "evidence": {
+        "required": [
+          "Quota calculations"
+        ],
+        "artifacts": []
+      }
+    }
+  ]
+}
