@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AddClassModal } from "./add-class-modal";
+import { CancelClassButton } from "./cancel-class-button";
 import { EditClassModal } from "./edit-class-modal";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
@@ -31,6 +32,7 @@ export default async function AdminClassesPage({
   const errorMessage = params.error ?? undefined;
   const classCreated = params.status === "class_created";
   const classUpdated = params.status === "class_updated";
+  const classCancelled = params.status === "class_cancelled";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
 
@@ -98,6 +100,36 @@ export default async function AdminClassesPage({
     redirect("/admin/classes?status=class_updated");
   }
 
+  async function cancelClassAction(formData: FormData) {
+    "use server";
+
+    const classId = (formData.get("class_id") as string | null)?.trim() ?? "";
+    if (!classId) {
+      redirect(
+        `/admin/classes?error=${encodeURIComponent("Class ID is required for cancellation.")}`
+      );
+    }
+
+    try {
+      const client = createConvexHttpClient();
+      await client.mutation(
+        makeFunctionReference<"mutation">("adminClasses:cancelClass"),
+        {
+          class_id: classId,
+          admin_username: adminUsername,
+        }
+      );
+    } catch {
+      redirect(
+        `/admin/classes?error=${encodeURIComponent(
+          "Failed to cancel class. Ensure there are no active future sessions."
+        )}`
+      );
+    }
+
+    redirect(`/admin/classes?status=class_cancelled&class_id=${encodeURIComponent(classId)}`);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl space-y-6 px-4 py-8">
       <section className="flex flex-wrap items-center justify-between gap-4">
@@ -129,6 +161,12 @@ export default async function AdminClassesPage({
         </p>
       ) : null}
 
+      {classCancelled ? (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+          Class cancelled successfully.
+        </p>
+      ) : null}
+
       {classes.length === 0 ? (
         <p className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
           No classes found.
@@ -147,7 +185,10 @@ export default async function AdminClassesPage({
             </thead>
             <tbody className="divide-y divide-zinc-100 bg-white">
               {classes.map((cls) => (
-                <tr key={cls.class_id} className="hover:bg-zinc-50">
+                <tr
+                  key={cls.class_id}
+                  className={cls.status === "inactive" ? "bg-zinc-50 text-zinc-500" : "hover:bg-zinc-50"}
+                >
                   <td className="px-4 py-3 font-mono text-xs text-zinc-500">
                     {cls.class_id}
                   </td>
@@ -167,20 +208,28 @@ export default async function AdminClassesPage({
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                         cls.status === "active"
                           ? "bg-emerald-100 text-emerald-800"
-                          : "bg-zinc-100 text-zinc-600"
+                          : "bg-zinc-200 text-zinc-700"
                       }`}
                     >
-                      {cls.status}
+                      {cls.status === "inactive" ? "cancelled" : "active"}
                     </span>
                   </td>
                   {isSuperAdmin ? (
                     <td className="px-4 py-3">
-                      <EditClassModal
-                        classId={cls.class_id}
-                        initialName={cls.class_name}
-                        initialDescription={cls.description}
-                        submitAction={editClassAction}
-                      />
+                      <div className="flex items-center gap-2">
+                        <EditClassModal
+                          classId={cls.class_id}
+                          initialName={cls.class_name}
+                          initialDescription={cls.description}
+                          submitAction={editClassAction}
+                        />
+                        {cls.status === "active" ? (
+                          <CancelClassButton
+                            classId={cls.class_id}
+                            submitAction={cancelClassAction}
+                          />
+                        ) : null}
+                      </div>
                     </td>
                   ) : null}
                 </tr>

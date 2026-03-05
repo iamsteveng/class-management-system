@@ -10,6 +10,7 @@
 - Keep persistent admin navigation in `app/admin/layout.tsx` and keep route highlighting logic in a client-side `app/admin/admin-nav.tsx` component.
 - For local Playwright auth flows with NextAuth JWT sessions, start dev server with a fixed `NEXTAUTH_SECRET` to avoid `JWT_SESSION_ERROR` decryption failures.
 - When Convex function signatures change, run `npx convex dev --once` before local browser checks so Next.js and direct test calls both use the updated backend contract.
+- In class lifecycle flows, treat cancelled classes as `classes.status = "inactive"` (schema-level enum), and use UI labels/badges to present that state as "cancelled".
 
 ## 2026-03-05 15:49:09 UTC - US-001
 Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
@@ -43,5 +44,16 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
 - **Learnings for future iterations:**
   - Patterns discovered: class-row actions that mutate data should be implemented as client modal components receiving a server action, matching existing add-modal behavior.
   - Gotchas encountered: local browser tests against Convex-backed pages can fail silently on stale function contracts until `npx convex dev --once` publishes the new query/mutation signatures.
-  - Useful context: `adminClasses:getClassListPageData` now returns optional `description`, enabling prefilled edit forms without extra per-row fetches.
+- Useful context: `adminClasses:getClassListPageData` now returns optional `description`, enabling prefilled edit forms without extra per-row fetches.
+---
+## 2026-03-05 16:07:58 UTC - US-004
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Implemented class cancellation end-to-end: added super-admin-only `Cancel` action per class row, confirmation dialog before submit, success/error messaging, and cancelled visual treatment (grayed row + cancelled badge).
+- Added server-side `adminClasses:cancelClass` mutation with guard validation to block cancellation when the class has active future sessions (`session.status !== "cancelled"` and `session.date >= today`), plus audit logging.
+- Added browser verification spec that covers both guard failure and successful cancellation flows.
+- Files changed: `app/admin/classes/page.tsx`, `app/admin/classes/cancel-class-button.tsx`, `convex/adminClasses.ts`, `e2e/tc004-class-cancel.spec.ts`, `prd.json`, `progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: use row-scoped client form components for destructive actions in server-rendered tables so confirmation UI stays local while action execution remains server-side.
+  - Gotchas encountered: default Playwright config targets production unless `BASE_URL` is overridden, so browser verification for in-progress features must run against local dev (`BASE_URL=http://127.0.0.1:<port>`).
+  - Useful context: class cancellation persistence currently maps to `classes.status = "inactive"` in Convex, with guard logic implemented in `adminClasses:cancelClass`.
 ---
