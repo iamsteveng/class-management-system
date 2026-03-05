@@ -9,6 +9,7 @@
 - Class cancellation requires validation: check for active future sessions (`status !== 'cancelled' AND date >= today`) before allowing cancellation.
 - Keep persistent admin navigation in `app/admin/layout.tsx` and keep route highlighting logic in a client-side `app/admin/admin-nav.tsx` component.
 - For local Playwright auth flows with NextAuth JWT sessions, start dev server with a fixed `NEXTAUTH_SECRET` to avoid `JWT_SESSION_ERROR` decryption failures.
+- For browser verification of in-branch frontend changes, run Playwright with `BASE_URL=http://127.0.0.1:3000`; the deployed default base URL may lag behind current branch behavior.
 - When Convex function signatures change, run `npx convex dev --once` before local browser checks so Next.js and direct test calls both use the updated backend contract.
 - In class lifecycle flows, treat cancelled classes as `classes.status = "inactive"` (schema-level enum), and use UI labels/badges to present that state as "cancelled".
 - Session management actions belong in `app/admin/classes/[class_id]/sessions/page.tsx`; implement row-level edits as colocated client modals plus server actions that call `adminSessions:*` mutations.
@@ -81,4 +82,15 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Patterns discovered: session destructive actions follow the same row-scoped client-form + server-action wiring used for class/session edits, with status query params for confirmation banners.
   - Gotchas encountered: `testPurchase:createTestPurchase` does not accept `class_id`; create purchases with supported args and assert by `session_id` when validating terms-session filtering.
   - Useful context: terms selector exclusion is enforced through `terms:getTermsPageData` filtering (`session.status === "scheduled"`), so session cancellation impact can be verified via both Convex query and `/terms` UI.
+---
+## 2026-03-05 16:26:03 UTC - US-007
+Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
+- Replaced `e2e/tc007.spec.ts` with role-based verification coverage for admin action buttons: regular_admin sees no `Edit`/`Cancel` on class/session rows, while super_admin sees both.
+- Added server-side authorization assertions in `TC-007` to verify `adminClasses:updateClass` and `adminSessions:cancelSession` reject regular_admin attempts.
+- Verified UI behavior in browser with Playwright against local dev (`BASE_URL=http://127.0.0.1:3000`) and captured updated evidence screenshot.
+- Files changed: `e2e/tc007.spec.ts`, `prd.json`, `progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: role-visibility checks are most reliable when each test creates a unique class/session row and asserts buttons within that row.
+  - Gotchas encountered: switching users in one Playwright test requires clearing auth cookies before revisiting `/admin/login`.
+  - Useful context: current branch verifies server-side role enforcement by expecting Convex mutation calls with `admin_username: "staff"` to throw a super-admin authorization error.
 ---
