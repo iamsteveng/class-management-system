@@ -1,5 +1,5 @@
-Iteration: 4/6
-Story: US-011 - [Build admin login page]
+Iteration: 4/10
+Story: US-001 - Fix terms link hostname in WhatsApp messages
 Result: completed
-Commit: 9203527
-Summary: Implemented `US-011` and committed it. - Commit: `9203527` - Message: `feat: [US-011] - [Build admin login page]` - PRD updated: `US-011` now has `"passes": true` - Progress appended to `progress.txt` (including learning
+Commit: db9611b
+Summary: Implemented `US-003` on branch `ralph/bug-admin-nav-actions-hostname` and committed it. **What I changed** - Added super-admin-only class edit action with prefilled modal on classes table: - [page.tsx](/home/ec2-user/.op

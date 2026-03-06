@@ -1,18 +1,18 @@
 {
-  "project": "Class Management System",
-  "branchName": "ralph/class-management-mvp",
-  "description": "Full-stack class management system with automated CSV import, WhatsApp notifications, terms acceptance, QR code participation, and admin portal",
+  "project": "class-management-system",
+  "branchName": "ralph/bug-admin-nav-actions-hostname",
+  "description": "Bug Fixes - Admin Navigation, Class/Session Actions, Terms Link Hostname",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Setup Next.js + Convex project structure",
-      "description": "As a developer, I need to initialize the Next.js frontend and Convex backend so we have the foundation to build on.",
+      "title": "Fix terms link hostname in WhatsApp messages",
+      "description": "As a customer, I need the terms acceptance link in WhatsApp to use the correct hostname so I can access the terms page without encountering invalid-host errors.",
       "acceptanceCriteria": [
-        "Next.js 14+ app router project initialized",
-        "Convex backend initialized with convex/ directory",
-        "Tailwind CSS configured",
-        "Basic folder structure: app/, components/, lib/",
-        "Environment variables configured (.env.local with CONVEX_DEPLOYMENT)",
+        "WhatsApp message generation reads hostname from APP_BASE_URL environment variable",
+        "If APP_BASE_URL is not set, throw error at message-send time (fail-fast, do not use hardcoded fallback)",
+        "Terms link format: https://{APP_BASE_URL}/terms?token={uuid}",
+        "Link must be absolute URL (not relative path)",
+        "Link must include token query parameter with valid purchase token",
         "Typecheck passes"
       ],
       "priority": 1,
@@ -21,17 +21,15 @@
     },
     {
       "id": "US-002",
-      "title": "Define Convex schema for all tables",
-      "description": "As a developer, I need to define the complete database schema so all data structures are in place.",
+      "title": "Add persistent admin navigation component",
+      "description": "As an admin, I need visible navigation after login so I can switch between admin pages without using the browser back button or manually typing URLs.",
       "acceptanceCriteria": [
-        "Create convex/schema.ts with all tables: purchases, participants, classes, sessions, terms_versions, admins, audit_logs, csv_files, attendance_records",
-        "Each table has proper field types and indexes",
-        "purchases: order_id (indexed), customer_mobile, purchase_datetime, participant_count, status, token, class_id, session_id, created_at",
-        "participants: participant_id (indexed, UUID), purchase_id, session_id, name, mobile, qr_code_data, terms_accepted_at, terms_version_id, created_at",
-        "sessions: session_id, class_id, location, date, time, quota_defined, quota_used, status, created_at",
-        "attendance_records: attendance_id, participant_id (indexed), session_id (indexed), marked_by_admin, marked_at, created_at",
-        "Convex schema validation passes",
-        "Typecheck passes"
+        "Create AdminNav component with links to: Dashboard, Classes, Sessions, Participants, Terms",
+        "Add AdminNav to admin layout so it appears on all admin pages",
+        "Navigation uses semantic HTML (nav element, a tags with proper hrefs)",
+        "Active page has visual indicator (highlight current route)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 2,
       "passes": true,
@@ -39,15 +37,16 @@
     },
     {
       "id": "US-003",
-      "title": "Create seed data for classes and sessions",
-      "description": "As a developer, I need sample classes and sessions to test the flow without waiting for real data.",
+      "title": "Add edit button for classes (super admin only)",
+      "description": "As a super admin, I need an Edit button on each class row so I can update class name/description when needed.",
       "acceptanceCriteria": [
-        "Create convex mutation to seed 2 sample classes (eg cycling class, guided tour)",
-        "Create 4 sessions across the classes with different dates and quota",
-        "Include one terms version marked as is_current=true",
-        "Seed admin account: username 'admin', role 'super_admin', password hashed",
-        "Seed admin account: username 'staff', role 'regular_admin'",
-        "Typecheck passes"
+        "Edit button visible in each class row on /admin/classes page",
+        "Button only visible when logged in as super_admin role",
+        "Clicking Edit opens modal with current class data pre-filled (name, description)",
+        "Saving the form updates the class record in database",
+        "Updated values display immediately after save",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
       "passes": true,
@@ -55,16 +54,18 @@
     },
     {
       "id": "US-004",
-      "title": "Build CSV import cron job",
-      "description": "As the system, I need to automatically process CSV files every minute to import purchase records.",
+      "title": "Add cancel button for classes with future session guard",
+      "description": "As a super admin, I need a Cancel button for each class so I can mark a class as cancelled when it's no longer offered, with validation to prevent cancelling classes with active future sessions.",
       "acceptanceCriteria": [
-        "Create Convex cron job that runs every 1 minute",
-        "Job checks Convex file storage for unprocessed CSV files",
-        "Parse CSV with columns: order_id, customer_mobile, purchase_datetime, participant_count",
-        "Skip if order_id already exists (log duplicate error)",
-        "Insert new purchases with status='pending_terms' and generate unique token (UUID)",
-        "Mark CSV file as processed in csv_files table",
-        "Typecheck passes"
+        "Cancel button visible in each class row on /admin/classes page",
+        "Button only visible when logged in as super_admin role",
+        "Clicking Cancel opens confirmation dialog",
+        "System checks for active future sessions (status !== 'cancelled' AND date >= today)",
+        "If active future sessions exist, show error and prevent cancellation",
+        "If no active future sessions, update class.status to cancelled",
+        "Cancelled classes show visual indicator (grayed out or badge)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
       "passes": true,
@@ -72,14 +73,16 @@
     },
     {
       "id": "US-005",
-      "title": "Build Twilio WhatsApp helper",
-      "description": "As a developer, I need a reusable Twilio integration to send WhatsApp messages.",
+      "title": "Add edit button for sessions (super admin only)",
+      "description": "As a super admin, I need an Edit button on each session row so I can update session details when schedules change.",
       "acceptanceCriteria": [
-        "Create lib/twilio.ts with sendWhatsApp function",
-        "Function accepts: to (phone), message (text)",
-        "Store Twilio credentials in Convex environment variables (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER)",
-        "Handle errors gracefully and return success boolean",
-        "Typecheck passes"
+        "Edit button visible in each session row on session list page",
+        "Button only visible when logged in as super_admin role",
+        "Clicking Edit opens modal with current session data pre-filled (location, date, time, quota_defined)",
+        "Saving the form updates the session record in database",
+        "Updated values display immediately after save",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
       "passes": true,
@@ -87,14 +90,17 @@
     },
     {
       "id": "US-006",
-      "title": "Send purchase confirmation WhatsApp",
-      "description": "As a customer, I want to receive a WhatsApp message immediately after purchase import with a terms acceptance link.",
+      "title": "Add cancel button for sessions (super admin only)",
+      "description": "As a super admin, I need a Cancel button for each session so I can mark a session as cancelled when it won't occur.",
       "acceptanceCriteria": [
-        "Create Convex action triggered after purchase insert",
-        "Generate terms link: https://[domain]/terms?token=[uuid]",
-        "Send WhatsApp via Twilio: 'Your purchase is confirmed! Please accept terms: [link]'",
-        "Update purchase status to 'confirmation_sent'",
-        "Typecheck passes"
+        "Cancel button visible in each session row on session list page",
+        "Button only visible when logged in as super_admin role",
+        "Clicking Cancel opens confirmation dialog",
+        "After confirmation, update session.status to cancelled",
+        "Cancelled sessions excluded from terms acceptance session selector dropdown",
+        "Cancelled sessions show visual indicator in admin session list",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
       "passes": true,
@@ -102,166 +108,17 @@
     },
     {
       "id": "US-007",
-      "title": "Build terms acceptance form page",
-      "description": "As a customer, I want to view and accept terms via a simple form without logging in.",
+      "title": "Verify role-based action button visibility",
+      "description": "As a regular admin, I should NOT see edit/cancel buttons so I understand my view-only access level.",
       "acceptanceCriteria": [
-        "Create app/terms/page.tsx with URL param token",
-        "Fetch purchase details from Convex using token",
-        "Display class name, customer info",
-        "Session selector dropdown showing only sessions with available quota > 0",
-        "Display full terms content from latest is_current version",
-        "Checkbox: 'I have read and accept the terms'",
-        "Submit button disabled until session selected + checkbox checked",
-        "On submit: save session selection, terms version, timestamp, status='terms_accepted'",
+        "When logged in as regular_admin, no Edit or Cancel buttons visible on classes page",
+        "When logged in as regular_admin, no Edit or Cancel buttons visible on sessions page",
+        "When logged in as super_admin, all Edit and Cancel buttons are visible",
+        "Role checks enforced both client-side (visibility) and server-side (mutations)",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-008",
-      "title": "Generate participants and send QR links",
-      "description": "As a customer, I want to receive WhatsApp messages with unique QR code links for each participant after accepting terms.",
-      "acceptanceCriteria": [
-        "After terms submission, create participant records (loop participant_count times)",
-        "Each participant gets unique participant_id (use crypto.randomUUID())",
-        "Link each participant to: purchase, selected session, terms version",
-        "Send WhatsApp with links: https://[domain]/participant/[participant_id]",
-        "If participant_count=2, send one message with both links",
-        "Typecheck passes"
-      ],
-      "priority": 8,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-009",
-      "title": "Build participant details page with QR code",
-      "description": "As a participant, I want to view my class details and show a QR code for check-in.",
-      "acceptanceCriteria": [
-        "Create app/participant/[participant_id]/page.tsx",
-        "Fetch participant, session, class details from Convex",
-        "Display: participant name, class name, session location/date/time",
-        "Generate QR code encoding participant_id (use qrcode library)",
-        "Display QR code large enough to scan from 1-2 meters",
-        "Show 'Change Session' button only if session_date - current_date > 2 days",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 9,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-010",
-      "title": "Add session rescheduling modal",
-      "description": "As a participant, I want to change my session up to 2 days before the scheduled date.",
-      "acceptanceCriteria": [
-        "Create SessionChangeModal component with session dropdown",
-        "Show only sessions with same class_id and available quota > 0",
-        "On submit: update participant.session_id, decrement old session quota_used, increment new session quota_used",
-        "Show success confirmation toast",
-        "No WhatsApp notification sent (customer-initiated)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 10,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-011",
-      "title": "Build admin login page",
-      "description": "As an admin, I want to log in with username and password to access the management portal.",
-      "acceptanceCriteria": [
-        "Create app/admin/login/page.tsx with form (username, password fields)",
-        "Create Convex auth action to validate credentials against admins table",
-        "Use bcrypt to verify password hash",
-        "Store admin role and username in session (use next-auth or Convex auth)",
-        "Redirect to /admin/dashboard on success",
-        "Show error message on invalid credentials",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 11,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-012",
-      "title": "Build session participants list page",
-      "description": "As an admin, I want to see all participants in a session to prepare for class.",
-      "acceptanceCriteria": [
-        "Create app/admin/sessions/[session_id]/participants/page.tsx",
-        "Fetch all participants for the session from Convex",
-        "Display table with columns: participant_id, name, mobile, terms_accepted (yes/no), attendance_status",
-        "Show accepted terms version",
-        "Sort by participant name by default",
-        "Add 'Scan QR Code' button at top of page",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 12,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-013",
-      "title": "Build QR scanner for attendance marking",
-      "description": "As a regular admin, I want to scan participant QR codes using my device camera and mark attendance.",
-      "acceptanceCriteria": [
-        "Create QRScanner component using html5-qrcode or qr-scanner library",
-        "Click 'Scan QR Code' opens camera (request WebRTC permissions)",
-        "Decode QR to extract participant_id",
-        "Validate participant_id belongs to current session",
-        "If valid: create attendance_record with participant_id, session_id, marked_by_admin (from session), marked_at (timestamp)",
-        "Show success toast with participant name",
-        "If invalid session: show error toast 'Participant not registered for this session'",
-        "If already attended: show warning 'Already marked attended at [timestamp]'",
-        "Update participant row UI to show checkmark + timestamp",
-        "Log to audit_logs",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 13,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-014",
-      "title": "Build admin class list page",
-      "description": "As an admin, I want to view all classes and create new ones (Super Admin only).",
-      "acceptanceCriteria": [
-        "Create app/admin/classes/page.tsx",
-        "Display table: class_id, class_name, total_sessions, status",
-        "Add 'Add Class' button (show only if user role is super_admin)",
-        "Add Class modal with fields: name, description",
-        "Create Convex mutation to insert class with audit log",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 14,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-015",
-      "title": "Build admin session management page",
-      "description": "As an admin, I want to create and manage sessions for a class.",
-      "acceptanceCriteria": [
-        "Create app/admin/classes/[class_id]/sessions/page.tsx",
-        "Display table: location, date, time, quota (defined/used/available), status",
-        "Show quota as '20 / 15 / 5' (defined=20, used=15, available=5)",
-        "Add 'Add Session' button (Super Admin only)",
-        "Add Session modal: location, date, time, quota_defined fields",
-        "Create Convex mutation to insert session with audit log",
-        "If available=0, show 'Full' indicator in red",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 15,
       "passes": true,
       "notes": ""
     }

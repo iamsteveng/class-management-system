@@ -7,8 +7,7 @@ import {
   getTwilioCredentialsFromConvexEnv,
   sendWhatsApp,
 } from "../lib/twilio";
-
-const DEFAULT_BASE_URL = "https://example.com";
+import { resolveAppBaseUrl } from "../lib/appBaseUrl";
 
 export const sendParticipantLinks = actionGeneric({
   args: {
@@ -23,7 +22,7 @@ export const sendParticipantLinks = actionGeneric({
       return { success: false };
     }
 
-    const baseUrl = resolveBaseUrl(process.env.APP_BASE_URL);
+    const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
     const participantLinks = args.participant_ids.map(
       (participantId, index) =>
         `${index + 1}. ${baseUrl}/participant/${encodeURIComponent(participantId)}`
@@ -48,16 +47,3 @@ export const sendParticipantLinks = actionGeneric({
     return { success: sent };
   },
 });
-
-function resolveBaseUrl(baseUrlFromEnv: string | undefined): string {
-  const raw = baseUrlFromEnv?.trim();
-  if (!raw) {
-    return DEFAULT_BASE_URL;
-  }
-
-  if (raw.startsWith("http://") || raw.startsWith("https://")) {
-    return raw.replace(/\/+$/, "");
-  }
-
-  return `https://${raw.replace(/\/+$/, "")}`;
-}

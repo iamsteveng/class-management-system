@@ -1,5 +1,5 @@
-Iteration: 6/6
-Story: US-007 - unknown
+Iteration: 6/10
+Story: US-001 - Fix terms link hostname in WhatsApp messages
 Result: completed
-Commit: 5584f7c
-Summary: Implemented one story: **US-007 (Build terms acceptance form page)**. ### What I changed - Added Convex terms workflow APIs: - Query for terms page data by token in [convex/terms.ts](/home/ec2-user/.openclaw/workspace/cl
+Commit: b8239c5
+Summary: Implemented `US-005` on branch `ralph/bug-admin-nav-actions-hostname` and committed it. Commit: - `b8239c5` with message `feat: US-005 - Add edit button for sessions (super admin only)` Key changes: - Added super-admin-o

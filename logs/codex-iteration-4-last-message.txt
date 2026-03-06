@@ -1,25 +1,27 @@
-Implemented `US-011` and committed it.
+Implemented `US-003` on branch `ralph/bug-admin-nav-actions-hostname` and committed it.
 
-- Commit: `9203527`
-- Message: `feat: [US-011] - [Build admin login page]`
-- PRD updated: `US-011` now has `"passes": true`
-- Progress appended to `progress.txt` (including learnings and codebase pattern update)
+**What I changed**
+- Added super-admin-only class edit action with prefilled modal on classes table:
+  - [page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/classes/page.tsx)
+  - [edit-class-modal.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/classes/edit-class-modal.tsx)
+- Extended class list data to include description and added secure update mutation (`super_admin` enforced server-side + audit log):
+  - [adminClasses.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/adminClasses.ts)
+- Added browser verification test for edit flow and reused query helper:
+  - [tc003-class-edit.spec.ts](/home/ec2-user/.openclaw/workspace/class-management-system/e2e/tc003-class-edit.spec.ts)
+  - [qa-utils.ts](/home/ec2-user/.openclaw/workspace/class-management-system/e2e/qa-utils.ts)
+- Updated tracking docs:
+  - [prd.json](/home/ec2-user/.openclaw/workspace/class-management-system/prd.json) (`US-003.passes = true`)
+  - [progress.txt](/home/ec2-user/.openclaw/workspace/class-management-system/progress.txt) (appended entry + updated Codebase Patterns)
 
-Key changes:
-- Added Convex admin auth module: [convex/adminAuth.ts](/home/ec2-user/.openclaw/workspace/class-management-system/convex/adminAuth.ts)
-- Added shared NextAuth config/session helper: [lib/auth.ts](/home/ec2-user/.openclaw/workspace/class-management-system/lib/auth.ts)
-- Added NextAuth API route: [app/api/auth/[...nextauth]/route.ts](/home/ec2-user/.openclaw/workspace/class-management-system/app/api/auth/[...nextauth]/route.ts)
-- Added admin login UI: [app/admin/login/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/login/page.tsx), [app/admin/login/login-form.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/login/login-form.tsx)
-- Added protected dashboard target: [app/admin/dashboard/page.tsx](/home/ec2-user/.openclaw/workspace/class-management-system/app/admin/dashboard/page.tsx)
-- Added NextAuth typings: [types/next-auth.d.ts](/home/ec2-user/.openclaw/workspace/class-management-system/types/next-auth.d.ts)
-- Added dependency: `next-auth`
-
-Validation run:
+**Checks run**
 - `npm run typecheck` passed
-- `npm run lint` passed
-- Runtime check passed via local dev server HTTP verification:
-  - `/admin/login` responds `200` with login form
-  - `/admin/dashboard` redirects unauthenticated users to login (`307`)
+- `npm run lint` passed (existing warnings only, no errors)
+- Browser verification passed:
+  - `BASE_URL=http://127.0.0.1:3001 npx playwright test e2e/tc003-class-edit.spec.ts`
+  - Screenshot: `e2e/tc003-class-edit-screenshot.png`
+- Also ran `npx convex dev --once` to publish updated Convex function contracts before browser verification.
 
-Note:
-- The required `dev-browser` skill is not available in the current skill list, so frontend verification was done through local runtime HTTP checks as fallback.
+**Commit**
+- `db9611b`
+- Message: `feat: US-003 - Add edit button for classes (super admin only)`
+
