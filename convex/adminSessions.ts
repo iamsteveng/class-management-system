@@ -221,6 +221,17 @@ export const cancelSession = mutationGeneric({
       return { session_id: sessionRecord.session_id };
     }
 
+    const enrolledParticipants = await ctx.db
+      .query("participants")
+      .withIndex("by_session_id", (q) =>
+        q.eq("session_id", sessionRecord.session_id)
+      )
+      .first();
+
+    if (enrolledParticipants) {
+      throw new Error("Cannot cancel: session has enrolled participants");
+    }
+
     const now = Date.now();
     await ctx.db.patch(sessionRecord._id, {
       status: "cancelled",
