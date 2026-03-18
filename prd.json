@@ -1,125 +1,285 @@
 {
   "project": "class-management-system",
-  "branchName": "ralph/bug-admin-nav-actions-hostname",
-  "description": "Bug Fixes - Admin Navigation, Class/Session Actions, Terms Link Hostname",
+  "branchName": "feat/backlog-prd",
+  "description": "Feature requests and bug fixes for the class management system",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Fix terms link hostname in WhatsApp messages",
-      "description": "As a customer, I need the terms acceptance link in WhatsApp to use the correct hostname so I can access the terms page without encountering invalid-host errors.",
+      "title": "Add participant extra fields to database schema",
+      "description": "As a developer, I want to add height, age, emergencyContactName, and emergencyContactPhone fields to the participants table in Convex so that these fields persist in the database and are available to both the terms form and the admin portal.",
       "acceptanceCriteria": [
-        "WhatsApp message generation reads hostname from APP_BASE_URL environment variable",
-        "If APP_BASE_URL is not set, throw error at message-send time (fail-fast, do not use hardcoded fallback)",
-        "Terms link format: https://{APP_BASE_URL}/terms?token={uuid}",
-        "Link must be absolute URL (not relative path)",
-        "Link must include token query parameter with valid purchase token",
+        "Add `height` (string, optional), `age` (number, optional), `emergencyContactName` (string, optional), `emergencyContactPhone` (string, optional) fields to the participants table/schema in Convex",
+        "Existing participant records are unaffected (fields are nullable/optional)",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Add persistent admin navigation component",
-      "description": "As an admin, I need visible navigation after login so I can switch between admin pages without using the browser back button or manually typing URLs.",
+      "title": "Add Google Maps URL field to sessions schema",
+      "description": "As a developer, I want to store an optional Google Maps URL on each session so that it can be displayed on the participant QR code page.",
       "acceptanceCriteria": [
-        "Create AdminNav component with links to: Dashboard, Classes, Sessions, Participants, Terms",
-        "Add AdminNav to admin layout so it appears on all admin pages",
-        "Navigation uses semantic HTML (nav element, a tags with proper hrefs)",
-        "Active page has visual indicator (highlight current route)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Add `googleMapsUrl` (string, optional) field to the sessions table/schema in Convex",
+        "Existing session records are unaffected (field is nullable/optional)",
+        "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Add edit button for classes (super admin only)",
-      "description": "As a super admin, I need an Edit button on each class row so I can update class name/description when needed.",
+      "title": "Add FAQ table to database schema",
+      "description": "As a developer, I want a database table to store FAQ items (question + answer) so that the homepage and admin portal can read and manage them.",
       "acceptanceCriteria": [
-        "Edit button visible in each class row on /admin/classes page",
-        "Button only visible when logged in as super_admin role",
-        "Clicking Edit opens modal with current class data pre-filled (name, description)",
-        "Saving the form updates the class record in database",
-        "Updated values display immediately after save",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create a `faqs` table in Convex with fields: `question` (string), `answer` (string), `order` (number), `createdAt` (number), `updatedAt` (number)",
+        "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Add cancel button for classes with future session guard",
-      "description": "As a super admin, I need a Cancel button for each class so I can mark a class as cancelled when it's no longer offered, with validation to prevent cancelling classes with active future sessions.",
+      "title": "Backend — Convex mutations/queries for participant extra fields",
+      "description": "As a developer, I want backend mutations and queries to save and retrieve height, age, emergencyContactName, and emergencyContactPhone for participants so that both the terms form (write) and admin portal (read) can use them.",
       "acceptanceCriteria": [
-        "Cancel button visible in each class row on /admin/classes page",
-        "Button only visible when logged in as super_admin role",
-        "Clicking Cancel opens confirmation dialog",
-        "System checks for active future sessions (status !== 'cancelled' AND date >= today)",
-        "If active future sessions exist, show error and prevent cancellation",
-        "If no active future sessions, update class.status to cancelled",
-        "Cancelled classes show visual indicator (grayed out or badge)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "The existing participant creation/update mutation accepts and stores `height`, `age`, `emergencyContactName`, `emergencyContactPhone`",
+        "The participant query returns all four new fields",
+        "Typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Add edit button for sessions (super admin only)",
-      "description": "As a super admin, I need an Edit button on each session row so I can update session details when schedules change.",
+      "title": "Backend — Convex mutations/queries for session Google Maps URL",
+      "description": "As a developer, I want the session create/edit mutations to accept and store `googleMapsUrl`, and the session query to return it, so that the admin portal and participant pages can use it.",
       "acceptanceCriteria": [
-        "Edit button visible in each session row on session list page",
-        "Button only visible when logged in as super_admin role",
-        "Clicking Edit opens modal with current session data pre-filled (location, date, time, quota_defined)",
-        "Saving the form updates the session record in database",
-        "Updated values display immediately after save",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Session create mutation accepts optional `googleMapsUrl`",
+        "Session edit mutation accepts optional `googleMapsUrl`",
+        "Session query returns `googleMapsUrl`",
+        "Typecheck passes"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "Add cancel button for sessions (super admin only)",
-      "description": "As a super admin, I need a Cancel button for each session so I can mark a session as cancelled when it won't occur.",
+      "title": "Backend — Block session cancellation when participants are enrolled",
+      "description": "As a developer, I want a backend guard that prevents cancelling a session if it has one or more enrolled participants so that data integrity is maintained.",
       "acceptanceCriteria": [
-        "Cancel button visible in each session row on session list page",
-        "Button only visible when logged in as super_admin role",
-        "Clicking Cancel opens confirmation dialog",
-        "After confirmation, update session.status to cancelled",
-        "Cancelled sessions excluded from terms acceptance session selector dropdown",
-        "Cancelled sessions show visual indicator in admin session list",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "The cancel session mutation checks whether any participant is enrolled in the session",
+        "If enrolled participants exist, the mutation throws a user-visible error (e.g. 'Cannot cancel: session has enrolled participants')",
+        "If no enrolled participants exist, cancellation proceeds as before",
+        "Typecheck passes"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-007",
-      "title": "Verify role-based action button visibility",
-      "description": "As a regular admin, I should NOT see edit/cancel buttons so I understand my view-only access level.",
+      "title": "Backend — Convex mutations/queries for attendance records",
+      "description": "As a developer, I want a backend mutation to mark a participant as attended for a session, recording participantId, sessionId, adminUsername, and timestamp, so the QR code scanning feature can persist attendance data.",
       "acceptanceCriteria": [
-        "When logged in as regular_admin, no Edit or Cancel buttons visible on classes page",
-        "When logged in as regular_admin, no Edit or Cancel buttons visible on sessions page",
-        "When logged in as super_admin, all Edit and Cancel buttons are visible",
-        "Role checks enforced both client-side (visibility) and server-side (mutations)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create (or update) an attendance record mutation that accepts `participantId`, `sessionId`, `adminUsername`, `timestamp`",
+        "Mutation is idempotent (rescanning the same participant does not duplicate records)",
+        "A query exists to retrieve attendance records for a given session",
+        "Typecheck passes"
       ],
       "priority": 7,
-      "passes": true,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Backend — Convex mutations/queries for FAQ management",
+      "description": "As a developer, I want CRUD mutations and a list query for FAQ items so that the admin portal can manage them and the homepage can display them.",
+      "acceptanceCriteria": [
+        "`createFaq(question, answer, order)` mutation exists",
+        "`updateFaq(id, question, answer, order)` mutation exists",
+        "`listFaqs()` query returns all FAQ items sorted by `order` ascending",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Terms acceptance form — additional participant fields UI",
+      "description": "As a participant, I want to enter my height, age, and emergency contact details during the terms acceptance form so that the organiser has my safety information on record.",
+      "acceptanceCriteria": [
+        "The terms acceptance form includes input fields for: Height, Age (years), Emergency Contact Name, Emergency Contact Phone",
+        "All four fields are required before form submission is allowed",
+        "Submitted values are saved to the participant record via the backend mutation (US-004)",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Session create/edit form — Google Maps URL field",
+      "description": "As an admin, I want to optionally enter a Google Maps URL when creating or editing a session so that participants can find the venue easily.",
+      "acceptanceCriteria": [
+        "Session create form includes an optional 'Google Maps URL' text input",
+        "Session edit form includes an optional 'Google Maps URL' text input pre-filled with existing value",
+        "Saving persists the value via the backend mutation (US-005)",
+        "Field is optional — leaving it blank is valid",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Admin portal — Fix navigation from session list to participant list",
+      "description": "As an admin, I want each session row in the sessions list to have a link/button to the participant list for that session so that I can navigate quickly without having to find another route.",
+      "acceptanceCriteria": [
+        "Each row in the admin sessions list has a 'View Participants' button or link",
+        "Clicking the button navigates to the participant list page filtered/scoped to that session",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Admin portal — Fix navigation from participant list to participant detail",
+      "description": "As an admin, I want each participant row in the participant list to have a link/button to that participant's detail page so that I can view or edit their information.",
+      "acceptanceCriteria": [
+        "Each row in the participant list has a 'View' or 'Details' button or link",
+        "Clicking navigates to the participant detail page for that participant",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Admin portal — Display participant extra fields on detail view",
+      "description": "As an admin, I want to see the participant's height, age, emergency contact name, and emergency contact phone number on the participant detail page so that I have all safety information in one place.",
+      "acceptanceCriteria": [
+        "Participant detail page displays `height`, `age`, `emergencyContactName`, `emergencyContactPhone`",
+        "Fields are shown with clear labels",
+        "If a field is not set, display a placeholder (e.g. '—')",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Admin portal — Block cancel session UI with enrolled participants warning",
+      "description": "As an admin, I want to see a clear error message if I try to cancel a session that already has enrolled participants so that I don't accidentally break participant records.",
+      "acceptanceCriteria": [
+        "When the admin clicks 'Cancel Session' for a session with enrolled participants, a clear error/warning message is displayed (e.g. 'This session has enrolled participants and cannot be cancelled')",
+        "The session is NOT cancelled",
+        "If there are no enrolled participants, cancellation proceeds normally",
+        "Error message is visible inline or as a toast/modal — not a raw browser alert",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Admin portal — Create New Terms Version page",
+      "description": "As an admin, I want a dedicated page to create a new version of the terms content so that new participants are always shown the latest terms.",
+      "acceptanceCriteria": [
+        "A 'Terms' (or 'Create Terms') entry exists in the admin portal navigation menu bar",
+        "The page includes a rich text or plain textarea for the new terms content",
+        "Submitting saves a new terms version to the database (via existing or new mutation)",
+        "New participants see the latest terms version during acceptance",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "QR code participant page — Display Google Maps link",
+      "description": "As a participant, I want to see a Google Maps link on my QR code page if the session has a location link set so that I can easily navigate to the venue.",
+      "acceptanceCriteria": [
+        "If `googleMapsUrl` is set on the session, the QR code participant page shows a 'Get Directions' (or similar) link that opens the Google Maps URL",
+        "If `googleMapsUrl` is not set, no link is shown (no broken UI)",
+        "The link opens in a new tab",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Admin portal — QR code attendance scanning button",
+      "description": "As a regular admin, I want a 'Scan QR Code' button on the session participant list page so that I can open the device camera and scan participant QR codes to mark attendance.",
+      "acceptanceCriteria": [
+        "A 'Scan QR Code' button is visible on the session participant list page for regular admins",
+        "Clicking the button activates the device camera and opens a QR code scanner UI",
+        "Scanning a valid participant QR code calls the attendance mutation (US-007) with `participantId`, `sessionId`, `adminUsername`, and current timestamp",
+        "After a successful scan, a green tick (✓) appears in that participant's row immediately (optimistic UI update or reactive query update)",
+        "Scanning an invalid or unrecognised QR code shows an error message without crashing",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Homepage — FAQ section",
+      "description": "As a visitor, I want to see a FAQ section below the class listing on the homepage so that I can find answers to common questions without contacting support.",
+      "acceptanceCriteria": [
+        "The homepage displays a 'Frequently Asked Questions' (or equivalent) section below the class listing",
+        "Each FAQ item shows the question and the answer",
+        "FAQ items are ordered by the `order` field from the database",
+        "If there are no FAQ items in the database, the section is not shown (no empty section)",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Admin portal — FAQ management page",
+      "description": "As a super admin, I want a FAQ management page in the admin portal so that I can add and edit FAQ items that appear on the homepage.",
+      "acceptanceCriteria": [
+        "A 'FAQ' entry exists in the admin portal navigation menu bar",
+        "The page lists all existing FAQ items with their question and answer",
+        "Super admins see 'Add FAQ' and 'Edit' buttons; regular admins can view but cannot add or edit",
+        "The 'Add FAQ' form includes fields for: Question, Answer, Order (numeric)",
+        "Submitting the add form calls `createFaq` mutation (US-008) and the list updates immediately",
+        "The 'Edit' form pre-fills existing values and calls `updateFaq` mutation (US-008) on submit",
+        "Verify in browser using dev-browser skill",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
       "notes": ""
     }
   ]
