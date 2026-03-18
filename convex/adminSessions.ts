@@ -372,6 +372,46 @@ export const getSessionParticipantsPageData = queryGeneric({
   },
 });
 
+export const getSessionAttendance = queryGeneric({
+  args: {
+    session_id: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      attendance_id: v.string(),
+      participant_id: v.string(),
+      session_id: v.string(),
+      admin_username: v.string(),
+      marked_at: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const records = await ctx.db
+      .query("attendance_records")
+      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+      .collect();
+
+    const adminById = new Map<string, string>();
+    for (const record of records) {
+      const adminId = record.marked_by_admin;
+      if (!adminById.has(adminId)) {
+        const admin = await ctx.db.get(adminId);
+        if (admin) {
+          adminById.set(adminId, admin.username);
+        }
+      }
+    }
+
+    return records.map((r) => ({
+      attendance_id: r.attendance_id,
+      participant_id: r.participant_id,
+      session_id: r.session_id,
+      admin_username: adminById.get(r.marked_by_admin) ?? "unknown",
+      marked_at: r.marked_at,
+    }));
+  },
+});
+
 export const markAttendanceFromScan = mutationGeneric({
   args: {
     session_id: v.string(),
