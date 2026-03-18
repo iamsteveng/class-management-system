@@ -245,6 +245,7 @@ export default async function AdminClassSessionsPage({
                 <th className="px-4 py-3">Time</th>
                 <th className="px-4 py-3">Quota (Defined / Used / Available)</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Participants</th>
                 {isSuperAdmin ? <th className="px-4 py-3">Actions</th> : null}
               </tr>
             </thead>
@@ -283,6 +284,14 @@ export default async function AdminClassSessionsPage({
                     >
                       {s.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/sessions/${s.session_id}/participants`}
+                      className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-100"
+                    >
+                      View Participants
+                    </Link>
                   </td>
                   {isSuperAdmin ? (
                     <td className="px-4 py-3">
