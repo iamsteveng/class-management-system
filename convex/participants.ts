@@ -17,6 +17,10 @@ export const getParticipantPageData = queryGeneric({
       class_name: v.string(),
       qr_code_data: v.string(),
       can_change_session: v.boolean(),
+      height: v.optional(v.string()),
+      age: v.optional(v.number()),
+      emergency_contact_name: v.optional(v.string()),
+      emergency_contact_phone: v.optional(v.string()),
       session_options: v.array(
         v.object({
           session_id: v.string(),
@@ -99,6 +103,10 @@ export const getParticipantPageData = queryGeneric({
       class_name: classRecord.name,
       qr_code_data: participant.qr_code_data ?? participant.participant_id,
       can_change_session: canChangeSession,
+      height: participant.height,
+      age: participant.age,
+      emergency_contact_name: participant.emergency_contact_name,
+      emergency_contact_phone: participant.emergency_contact_phone,
       session_options: availableOptions,
     };
   },

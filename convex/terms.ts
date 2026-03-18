@@ -129,6 +129,10 @@ export const acceptTermsByToken = mutationGeneric({
     token: v.string(),
     session_id: v.string(),
     accepted: v.boolean(),
+    height: v.optional(v.string()),
+    age: v.optional(v.number()),
+    emergency_contact_name: v.optional(v.string()),
+    emergency_contact_phone: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
@@ -223,6 +227,10 @@ export const acceptTermsByToken = mutationGeneric({
         qr_code_data: participantId,
         terms_accepted_at: acceptedAt,
         terms_version_id: currentTerms._id,
+        height: args.height,
+        age: args.age,
+        emergency_contact_name: args.emergency_contact_name,
+        emergency_contact_phone: args.emergency_contact_phone,
         created_at: acceptedAt,
       });
     }
