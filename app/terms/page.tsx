@@ -64,12 +64,18 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
 
     const selectedSessionId = formData.get("session_id");
     const accepted = formData.get("accepted") === "on";
+    const height = formData.get("height");
+    const ageRaw = formData.get("age");
+    const emergencyContactName = formData.get("emergency_contact_name");
+    const emergencyContactPhone = formData.get("emergency_contact_phone");
 
     if (typeof selectedSessionId !== "string" || selectedSessionId.length === 0) {
       redirect(
         `/terms?token=${encodeURIComponent(tokenValue)}&error=${encodeURIComponent("Please select a session.")}`
       );
     }
+
+    const ageNumber = ageRaw ? Number(ageRaw) : undefined;
 
     const client = createConvexHttpClient();
     const result = await client.mutation(
@@ -78,6 +84,16 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
         token: tokenValue,
         session_id: selectedSessionId,
         accepted,
+        height: typeof height === "string" && height.trim() ? height.trim() : undefined,
+        age: ageNumber && !isNaN(ageNumber) ? ageNumber : undefined,
+        emergency_contact_name:
+          typeof emergencyContactName === "string" && emergencyContactName.trim()
+            ? emergencyContactName.trim()
+            : undefined,
+        emergency_contact_phone:
+          typeof emergencyContactPhone === "string" && emergencyContactPhone.trim()
+            ? emergencyContactPhone.trim()
+            : undefined,
       }
     );
 
