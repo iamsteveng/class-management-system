@@ -17,6 +17,7 @@ type SessionRow = {
   quota_used: number;
   quota_available: number;
   status: "scheduled" | "completed" | "cancelled";
+  google_maps_url?: string;
 };
 
 type PageData = {
@@ -74,6 +75,7 @@ export default async function AdminClassSessionsPage({
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
     const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
+    const googleMapsUrl = (formData.get("google_maps_url") as string | null)?.trim() || undefined;
 
     if (!location || !date || !time || isNaN(quotaDefined) || quotaDefined < 1) {
       redirect(
@@ -94,6 +96,7 @@ export default async function AdminClassSessionsPage({
           time,
           quota_defined: quotaDefined,
           admin_username: adminUsername,
+          google_maps_url: googleMapsUrl,
         }
       );
     } catch {
@@ -116,6 +119,7 @@ export default async function AdminClassSessionsPage({
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
     const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
+    const googleMapsUrl = (formData.get("google_maps_url") as string | null)?.trim() || undefined;
 
     if (
       !sessionId ||
@@ -143,6 +147,7 @@ export default async function AdminClassSessionsPage({
           time,
           quota_defined: quotaDefined,
           admin_username: adminUsername,
+          google_maps_url: googleMapsUrl,
         }
       );
     } catch {
@@ -288,6 +293,7 @@ export default async function AdminClassSessionsPage({
                           initialDate={s.date}
                           initialTime={s.time}
                           initialQuotaDefined={s.quota_defined}
+                          initialGoogleMapsUrl={s.google_maps_url}
                           submitAction={editSessionAction}
                         />
                         <CancelSessionButton
