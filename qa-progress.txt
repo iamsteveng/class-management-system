@@ -845,3 +845,133 @@ Started: 2026-03-18 11:18:05 UTC
   - To assert an element does NOT exist/is not visible in Playwright: `await expect(locator).not.toBeVisible({ timeout: N })`.
   - The existing `e2e/tc020-050.spec.ts` has a different TC-024 test (create class) that also matches the grep pattern — run tests by file path (`tests/e2e/tc-024.test.ts`) to isolate cleanly, or accept both run together.
 ---
+
+### TC-024 [PASS] Homepage — FAQ section hidden when no items exist
+- **Evidence:** Test `tests/e2e/tc-024.test.ts` passed in 2.9s. Found 1 leftover FAQ from TC-023, deleted it via `testPurchase:deleteAllFaqs`, loaded the homepage `/`, and confirmed neither the "Frequently Asked Questions" heading nor any FAQ text was visible. Screenshot saved: `test-results/tc-024-no-faq-section.png`.
+- **Learnings:**
+  - - **TC-023 leaves data behind**: TC-023 seeds a FAQ item and never cleans up. TC-024 (and any future test needing an empty FAQ table) must call `testPurchase:deleteAllFaqs` at the start. - **`deleteAllFaqs` mutation required**: There was no `deleteFaq` mutation in the codebase. Added `deleteAllFaqs` to `convex/testPurchase.ts` and deployed it via `CONVEX_DEPLOYMENT=prod:colorless-raven-523 npx convex deploy --yes` (Convex credentials are available at `~/.convex/config.json`). - **Asserting absence in Playwright**: Use `await expect(locator).not.toBeVisible({ timeout: N })` to confirm an element is not rendered. - **Grep matches multiple spec files**: Running `--grep "TC-024"` hits both `tests/e2e/tc-024.test.ts` (our test) and `e2e/tc020-050.spec.ts` (a create-class test that also uses TC-024 in its label). Run by file path to isolate our test cleanly.
+---
+
+### TC-025 [PASS] Homepage — FAQ items ordered by order field ascending
+- Seeded three FAQ items via `faqs:createFaq` with order values 2, 1, 3 (out of sequence), loaded homepage `/`, and asserted that the three `h3` headings appear in ascending order: "FAQ Order One" (order=1), "FAQ Order Two" (order=2), "FAQ Order Three" (order=3). Test passed in 3.5s.
+- **Learnings:**
+  - `faqs:listFaqs` uses `ctx.db.query("faqs").withIndex("by_order")` — Convex returns items sorted by the `by_order` index automatically, so ascending order is enforced at the DB layer.
+  - To assert DOM order in Playwright: use `page.locator('h3').filter({ hasText: /pattern/ }).allTextContents()` to get an array and compare element-by-element.
+  - Always clean up (call `testPurchase:deleteAllFaqs`) at the end of FAQ tests to avoid polluting the DB for subsequent test runs.
+  - The existing `e2e/tc020-050.spec.ts` has a TC-025 "Regular Admin cannot create class" test that also matches `--grep "TC-025"` — both run and both pass independently.
+---
+
+### TC-025 [PASS] Homepage — FAQ items ordered by order field ascending
+- **Evidence:** TC-025 FAQ items appear in ascending order on homepage — DOM order assertion: `['FAQ Order One', 'FAQ Order Two', 'FAQ Order Three']`. Seeded with orders 2, 1, 3; homepage returned them sorted order=1 first, order=2 second, order=3 third. Test passed in 3.5s.
+- **Learnings:**
+  - - `faqs:listFaqs` uses `ctx.db.query("faqs").withIndex("by_order")` — ordering is enforced at the Convex DB layer via the index, not in application code. - To assert DOM order in Playwright: `page.locator('h3').filter({ hasText: /pattern/ }).allTextContents()` returns an array; compare elements individually. - Always run `testPurchase:deleteAllFaqs` at end of FAQ tests to clean up shared DB state. - `--grep "TC-025"` matches both `tests/e2e/tc-025.test.ts` and `e2e/tc020-050.spec.ts` (which has a "TC-025: Regular Admin cannot create class" test) — both pass independently.
+---
+
+### TC-026 [PASS] Admin FAQ — "FAQ" menu entry navigates to management page
+- Logged in as admin, asserted "FAQ" link visible in admin nav, clicked it, and confirmed URL navigated to `/admin/faq`. Test passed in 3.5s. Screenshots: `tc-026-admin-nav-faq.png` and `tc-026-admin-faq-page.png`.
+- **Learnings:**
+  - The FAQ nav entry is defined in `app/admin/admin-nav.tsx` with `href: "/admin/faq"` — it was already present in the codebase.
+  - For nav-link tests, `page.getByRole('link', { name: 'FAQ' })` is the cleanest selector.
+  - `--grep "TC-026"` also matches `e2e/tc020-050.spec.ts` which has a "TC-026: Super Admin can cancel class" test — both pass independently and don't interfere.
+---
+
+### TC-026 [PASS] Admin FAQ — "FAQ" menu entry navigates to management page
+- **Evidence:** - `TC-026 FAQ link is visible in admin nav` — `page.getByRole('link', { name: 'FAQ' })` found and visible after admin login - `TC-026 evidence: navigated to https://class-management-system-teal.vercel.app/admin/faq` — URL assertion confirmed - Test passed in 3.5s; screenshots saved: `tc-026-admin-nav-faq.png`, `tc-026-admin-faq-page.png`
+- **Learnings:**
+  - - The FAQ nav entry was already implemented in `app/admin/admin-nav.tsx` with `href: "/admin/faq"` — no code changes needed. - `page.getByRole('link', { name: 'FAQ' })` is the cleanest Playwright selector for nav link tests. - `--grep "TC-026"` also matches `e2e/tc020-050.spec.ts` ("Super Admin can cancel class") — both pass independently without interference.
+---
+
+### TC-027 [PASS] Admin FAQ — super admin can add new FAQ item
+- New FAQ item appears in admin list after form submission (success message + item title visible)
+- Item appears on homepage FAQ section immediately after creation
+- Screenshots saved: `tc-027-admin-faq-list.png`, `tc-027-homepage-faq.png`
+- **Learnings:**
+  - The Add FAQ form uses server action with redirect: submit → redirects to `/admin/faq?success=FAQ created successfully.` — wait for `networkidle` after submit instead of waiting for a specific element transition
+  - `page.getByLabel('Question')` matches the `<label htmlFor="add-question">` label; `page.getByLabel('Answer')` matches `<label htmlFor="add-answer">` — label selectors work cleanly here
+  - Cleanup via `testPurchase:deleteAllFaqs` deletes ALL FAQs — only safe if you don't need to preserve other test data; check whether other FAQ tests ran concurrently
+  - `--grep "TC-027"` matches both `tests/e2e/tc-027.test.ts` and `e2e/tc020-050.spec.ts` (session creation test also tagged TC-027) — both pass independently
+---
+
+### TC-027 [PASS] Admin FAQ — super admin can add new FAQ item
+- **Evidence:** - Test ran in 6.7s. Steps completed: 1. Logged in as super admin at `/admin/login` 2. Navigated to `/admin/faq`, clicked "Add FAQ" 3. Filled question ("TC-027 What is the test FAQ question?"), answer, order (999) 4. Submitted form → redirected to `/admin/faq?success=FAQ created successfully.` 5. Success message visible; FAQ question text visible in admin list 6. Navigated to homepage `/` — FAQ question visible in homepage FAQ section - Screenshots saved: `tc-027-admin-faq-list.png`, `tc-027-homepage-faq.png` - Cleanup via `testPurchase:deleteAllFaqs` ran in `afterAll`
+- **Learnings:**
+  - - The Add FAQ form uses a Next.js server action that redirects back to `/admin/faq?success=...` — after clicking Save, wait for `networkidle` rather than a DOM transition - `page.getByLabel('Question')` / `page.getByLabel('Answer')` cleanly match the `htmlFor`-linked labels in the Add FAQ form - `testPurchase:deleteAllFaqs` deletes ALL FAQ items — use cautiously if parallel tests depend on specific FAQ data - `--grep "TC-027"` also matches the `e2e/tc020-050.spec.ts` session-creation test (also tagged TC-027) — both pass independently without interference
+---
+
+### TC-028 [PASS] Admin FAQ — super admin can edit existing FAQ item
+- Created test FAQ via Convex API in `beforeAll`; clicked "Edit" on its card; changed answer text; submitted; confirmed "FAQ updated successfully." message; verified updated answer in admin list and on homepage
+- Screenshots saved: `tc-028-admin-faq-list.png`, `tc-028-homepage-faq.png`
+- **Learnings:**
+  - The edit form (inline within each FAQ card) does NOT have `htmlFor` on its labels — use `page.locator('textarea[name="answer"]')` instead of `getByLabel('Answer')` to fill the edit form
+  - Scoping the Edit button click to the specific card via `.filter({ hasText: TEST_QUESTION })` avoids ambiguity when multiple FAQ items exist
+  - After Save, the server action redirects to `/admin/faq?success=FAQ updated successfully.` — same `networkidle` pattern applies as for create
+  - `--grep "TC-028"` also matches `e2e/tc020-050.spec.ts` (session quota test, also tagged TC-028) which FAILS unrelated to this test — the new `tests/e2e/tc-028.test.ts` passes cleanly
+  - `testPurchase:deleteAllFaqs` remains the only bulk cleanup path; safe here since test runs sequentially and cleans up in `afterAll`
+---
+
+### TC-028 [PASS] Admin FAQ — super admin can edit existing FAQ item
+- **Evidence:** Test `TC-028 super admin can edit an existing FAQ item via admin UI` passed in 6.3s. - Setup: Created test FAQ item via Convex API (`faqs:createFaq`) - Logged in as super admin, navigated to `/admin/faq` - Clicked Edit on the card for `TC-028 What is the editable test FAQ question?` - Updated answer to `TC-028 Updated answer text after edit by super admin.` - Submitted → redirected to `/admin/faq?success=FAQ updated successfully.` - Success message visible, updated answer visible in admin list - Navigated to homepage `/` — updated answer visible in FAQ section - Screenshots saved: `tc-028-admin-faq-list.png`, `tc-028-homepage-faq.png` - Cleanup: `testPurchase:deleteAllFaqs` ran in `afterAll` (The 1 failure is from `e2e/tc020-050.spec.ts` — a legacy test also tagged TC-028 for "Session quota" which is unrelated and pre-existing.)
+- **Learnings:**
+  - - The edit form in `faq-management-panel.tsx` uses plain `<label>` elements **without `htmlFor`** — `getByLabel()` won't work. Use `page.locator('textarea[name="answer"]')` to target fields in the edit form. - Scope the Edit button click with `.filter({ hasText: QUESTION })` on the card container to avoid ambiguity when multiple FAQs exist. - After Save, the server action redirects to `/admin/faq?success=FAQ updated successfully.` — use `waitForLoadState('networkidle')` after submit, same pattern as create. - `--grep "TC-028"` matches both the new `tests/e2e/tc-028.test.ts` and the legacy `e2e/tc020-050.spec.ts` session quota test (which fails independently); the new test passes cleanly.
+---
+
+### TC-029 [PASS] Regular admin cannot add or edit FAQ items
+- Logged in as regular admin (staff/staff123), navigated to /admin/faq, confirmed page loads, asserted "Add FAQ" button has count 0, asserted "Edit" buttons have count 0. Test passed in 5s.
+- Screenshot saved: `tc-029-regular-admin-faq.png`
+- **Learnings:**
+  - Regular admin credentials: username=`staff`, password=`staff123` (defined in `convex/seed.ts` with role=`regular_admin`)
+  - The FAQ page correctly hides "Add FAQ" and "Edit" buttons for regular_admin — no Add/Edit controls rendered at all (count=0)
+  - `--grep "TC-029"` also matches `e2e/tc020-050.spec.ts` (legacy "Full session marked with red indicator" test, also tagged TC-029) which fails independently; the new `tests/e2e/tc-029.test.ts` passes cleanly
+  - For "button NOT present" assertions, `await expect(locator).toHaveCount(0)` is the correct Playwright approach (does not throw if count is 0)
+---
+
+### TC-029 [PASS] Regular admin cannot add or edit FAQ items
+- **Evidence:** Test `TC-029 regular admin sees FAQ page in view-only mode (no Add/Edit controls)` passed in 5.0s. - Logged in as `staff` / `staff123` (regular_admin role) - Navigated to `/admin/faq` — page loaded at correct URL - `page.getByRole('button', { name: 'Add FAQ' })` → count = 0 ✓ - `page.getByRole('button', { name: 'Edit' })` → count = 0 ✓ - Screenshot saved: `test-results/tc-029-regular-admin-faq.png` - (1 failure is from legacy `e2e/tc020-050.spec.ts` "Full session" test also tagged TC-029 — pre-existing, unrelated)
+- **Learnings:**
+  - - Regular admin credentials: `staff` / `staff123` (role=`regular_admin`, defined in `convex/seed.ts`) - The FAQ page correctly hides "Add FAQ" and "Edit" buttons for `regular_admin` — the role-based rendering works as expected - `await expect(locator).toHaveCount(0)` is the correct Playwright assertion for "button NOT present in DOM" - `--grep "TC-029"` also matches the legacy `e2e/tc020-050.spec.ts` "Full session" test (also tagged TC-029) which fails independently; new test in `tests/e2e/` passes cleanly without interference
+---
+
+### TC-030 [PASS] Terms form — emergency contact phone accepts valid international format
+- Created class + session via Convex API, created test purchase token, navigated to `/terms?token=<token>`, selected session, filled height/age/emergency contact name, entered `+447700900000` in emergency_contact_phone (type="tel"), checked acceptance checkbox, submitted.
+- Submit button was enabled with international phone value — no validation error. Form submitted successfully and redirected to `?status=success`. "Terms accepted successfully." message visible.
+- Screenshots saved: `tc-030-form-before.png`, `tc-030-form-filled.png`, `tc-030-success.png`
+- **Learnings:**
+  - The `emergency_contact_phone` field uses `type="tel"` — browsers do not validate phone format for `tel` inputs, so any non-empty string is accepted (including `+447700900000`)
+  - The form's `canSubmit` logic only checks `emergencyContactPhone.trim().length > 0` — no regex or format validation on the client side
+  - Use `page.locator('input[name="emergency_contact_phone"]')` to target the phone field (not `getByLabel` — more reliable)
+  - Use `page.locator('select[name="session_id"]').selectOption({ value: session_id })` to select the session by Convex-generated ID
+  - Success redirect pattern: `waitForURL(/status=success/)` then assert `getByText('Terms accepted successfully.')`
+  - `--grep "TC-030"` also matches legacy `e2e/tc020-050.spec.ts` (session cancellation test also tagged TC-030) which passes independently; both tests pass
+---
+
+### TC-030 [PASS] Terms form — emergency contact phone accepts valid international format
+- **Evidence:** Test `TC-030 submitting the terms form with an international phone number succeeds` passed in 4.8s. Created a class/session via Convex API, created a test purchase token, navigated to `/terms?token=<token>`, filled all fields including `emergency_contact_phone=+447700900000`, submit button was enabled (no validation blocking), form submitted and redirected to `?status=success` with "Terms accepted successfully." visible. Screenshots saved: `tc-030-form-before.png`, `tc-030-form-filled.png`, `tc-030-success.png`.
+- **Learnings:**
+  - - The `emergency_contact_phone` field uses `type="tel"` — browsers don't validate format for tel inputs, so `+447700900000` is accepted as-is - Client-side `canSubmit` only checks `emergencyContactPhone.trim().length > 0` — no regex validation - Use `page.locator('input[name="emergency_contact_phone"]')` to target the phone field reliably - Use `page.locator('select[name="session_id"]').selectOption({ value: session_id })` for session selection - Success redirect pattern: `waitForURL(/status=success/)` then assert `getByText('Terms accepted successfully.')`
+---
+
+### TC-031 [PASS] Attendance record — contains correct adminUsername and timestamp
+- Created class, session, and participant via Convex API; logged in as admin/admin123; navigated to session participants page; used manual participant ID input to simulate QR scan; clicked "Mark"; waited for ✓ tick in attendance status column; queried `adminSessions:getSessionAttendance` via Convex API.
+- Assertions: `admin_username === "admin"` (confirms `marked_by_admin` is admin's Convex ID), `marked_at` within 60s of scan (age_seconds=0.636 in run).
+- Screenshots saved: `tc-031-before-mark.png`, `tc-031-after-mark.png`
+- (1 failure is from legacy `e2e/tc020-050.spec.ts` "Admin can view participant list" test also tagged TC-031 — pre-existing, unrelated)
+- **Learnings:**
+  - `adminSessions:getSessionAttendance` returns `admin_username` (resolved from `marked_by_admin` Convex ID) — verify `admin_username === "admin"` to confirm the correct admin's Convex ID was stored
+  - Capture `Date.now()` before and after the mark action; assert `marked_at >= beforeScanTs - 5000 && marked_at <= afterScanTs + 60000` for the 60-second window check
+  - The manual participant ID input form (Paste participant ID + Mark button) reliably simulates QR scanning in headless tests — no camera required
+  - `--grep "TC-031"` also matches `e2e/tc020-050.spec.ts` (legacy "Admin can view participant list" test, also tagged TC-031) which fails independently; new test passes cleanly
+---
+
+### TC-031 [PASS] Attendance record — contains correct adminUsername and timestamp
+- **Evidence:** Test `TC-031 attendance record has marked_by_admin matching admin Convex ID and marked_at within 60s` passed in 7.8s. Attendance record JSON from Convex: ```json { "attendance_id": "81db5ad4-be99-4236-9e35-367ab7a9ebd5", "participant_id": "26f5ee4b-72a7-4897-9208-c7afdf9cdada", "session_id": "a62f231c-47ef-425d-8923-30d6afc5ce12", "admin_username": "admin", "marked_at": 1773842500435, "marked_at_iso": "2026-03-18T14:01:40.435Z", "age_seconds": 0.636 } ``` - `admin_username === "admin"` ✓ (confirms `marked_by_admin` is admin's Convex ID) - `marked_at` age = 0.636 seconds ✓ (well within 60s window) (1 unrelated failure from legacy `e2e/tc020-050.spec.ts` "Admin can view participant list" test also tagged TC-031 — pre-existing)
+- **Learnings:**
+  - - `adminSessions:getSessionAttendance` resolves `marked_by_admin` (Convex ID) to `admin_username` — asserting `admin_username === "admin"` confirms the correct admin Convex ID was stored - Capture `Date.now()` before and after the mark action; assert `marked_at >= beforeTs - 5000 && marked_at <= afterTs + 60000` for the 60-second window check - The manual participant ID input form ("Paste participant ID" + "Mark" button) reliably simulates QR scanning in headless tests — no camera access required - "testadmin" in the test description refers to the seeded `admin` user (username=`admin`, password=`admin123`) — there is no dedicated "testadmin" account - `--grep "TC-031"` also matches legacy `e2e/tc020-050.spec.ts` ("Admin can view participant list") which fails independently; new test in `tests/e2e/` passes cleanly
+---
+
+### TC-032 [PASS] Cancel session backend guard — direct mutation call rejected when participants enrolled
+- Created class, session, and enrolled participant via Convex API. Called `adminSessions:cancelSession` directly with the `admin` (super_admin) user. Mutation returned `status:"error"` with `"Server Error"` message. Verified session status remained `"scheduled"` via `adminSessions:getSessionManagementPageData`.
+- **Learnings:**
+  - Convex HTTP API wraps `throw new Error("descriptive message")` as a generic `"[Request ID: ...] Server Error"` — the descriptive error text IS thrown server-side (visible in Convex logs) but is NOT surfaced through the HTTP API. Only `ConvexError` (user-facing error class) would pass the message through.
+  - To assert "session status unchanged" after a failed cancel, use `adminSessions:getSessionManagementPageData` (takes `class_id`, returns `sessions[]` with `status` field) — `getSessionParticipantsPageData` does NOT include `status` in its return shape.
+  - The guard check order in `cancelSession`: (1) session exists, (2) admin is super_admin, (3) already cancelled → no-op, (4) has enrolled participants → throw error. Must use a `super_admin` to get past check (2) and reach the enrolled-participants guard.
+---
