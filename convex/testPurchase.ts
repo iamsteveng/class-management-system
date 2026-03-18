@@ -105,6 +105,46 @@ export const getPurchaseByToken = queryGeneric({
   },
 });
 
+export const getParticipantsFullByToken = queryGeneric({
+  args: {
+    token: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      participant_id: v.string(),
+      session_id: v.string(),
+      terms_accepted_at: v.optional(v.number()),
+      height: v.optional(v.string()),
+      age: v.optional(v.number()),
+      emergency_contact_name: v.optional(v.string()),
+      emergency_contact_phone: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+    if (!purchase) return [];
+    const participants = await ctx.db
+      .query("participants")
+      .withIndex("by_session_id", (q) => q.eq("session_id", purchase.session_id ?? ""))
+      .collect();
+    const purchaseParticipants = participants.filter(
+      (p) => p.purchase_id === purchase._id
+    );
+    return purchaseParticipants.map((p) => ({
+      participant_id: p.participant_id,
+      session_id: p.session_id,
+      terms_accepted_at: p.terms_accepted_at,
+      height: p.height,
+      age: p.age,
+      emergency_contact_name: p.emergency_contact_name,
+      emergency_contact_phone: p.emergency_contact_phone,
+    }));
+  },
+});
+
 export const getParticipantsByToken = queryGeneric({
   args: {
     token: v.string(),
