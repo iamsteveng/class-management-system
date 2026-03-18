@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ParticipantRow = {
@@ -282,12 +283,13 @@ export function SessionParticipantsPanel({
                   <th className="px-4 py-3 font-medium">Terms Accepted</th>
                   <th className="px-4 py-3 font-medium">Terms Version</th>
                   <th className="px-4 py-3 font-medium">Attendance Status</th>
+                  <th className="px-4 py-3 font-medium">Details</th>
                 </tr>
               </thead>
               <tbody>
                 {participants.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-zinc-600">
+                    <td colSpan={7} className="px-4 py-6 text-center text-zinc-600">
                       No participants found for this session.
                     </td>
                   </tr>
@@ -306,6 +308,14 @@ export function SessionParticipantsPanel({
                         {participant.terms_version ?? "-"}
                       </td>
                       <td className="px-4 py-3 text-zinc-700">{participant.attendance_status}</td>
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/participants/${participant.participant_id}`}
+                          className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-100"
+                        >
+                          View
+                        </Link>
+                      </td>
                     </tr>
                   ))
                 )}
