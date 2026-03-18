@@ -46,3 +46,4 @@ next-env.d.ts
 # convex generated
 /convex/_generated/
 /convex/README.md
+.env*.local

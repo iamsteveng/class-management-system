@@ -975,3 +975,9 @@ Started: 2026-03-18 11:18:05 UTC
   - To assert "session status unchanged" after a failed cancel, use `adminSessions:getSessionManagementPageData` (takes `class_id`, returns `sessions[]` with `status` field) — `getSessionParticipantsPageData` does NOT include `status` in its return shape.
   - The guard check order in `cancelSession`: (1) session exists, (2) admin is super_admin, (3) already cancelled → no-op, (4) has enrolled participants → throw error. Must use a `super_admin` to get past check (2) and reach the enrolled-participants guard.
 ---
+
+### TC-032 [PASS] Cancel session backend guard — direct mutation call rejected when participants enrolled
+- **Evidence:** - `cancelSession` mutation returned `{"status":"error","errorMessage":"[Request ID: 5ab5e723ed60fac1] Server Error"}` — mutation was rejected (status=error, non-empty error message) - Server-side code throws `"Cannot cancel: session has enrolled participants"` (confirmed in `convex/adminSessions.ts:232`); Convex HTTP API wraps it as generic "Server Error" - Session status verified via `adminSessions:getSessionManagementPageData`: `"scheduled"` — unchanged after failed cancel attempt - 2 tests passed (4.2s)
+- **Learnings:**
+  - - Convex HTTP API wraps `throw new Error("...")` as generic `"[Request ID: ...] Server Error"` — descriptive messages are server-side only; use `ConvexError` if you need the message client-accessible - `getSessionParticipantsPageData` does NOT include `status` in its return shape; use `getSessionManagementPageData` (takes `class_id`, returns `sessions[]` with `status`) to verify session status - `cancelSession` guard order: session exists → super_admin check → already-cancelled no-op → enrolled participants check; must use `super_admin` role to reach the enrolled-participants guard
+---
