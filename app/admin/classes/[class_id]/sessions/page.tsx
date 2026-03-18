@@ -182,11 +182,13 @@ export default async function AdminClassSessionsPage({
           admin_username: adminUsername,
         }
       );
-    } catch {
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message.includes("enrolled participants")
+          ? "This session has enrolled participants and cannot be cancelled."
+          : "Failed to cancel session. Please try again.";
       redirect(
-        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
-          "Failed to cancel session. Please try again."
-        )}`
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(message)}`
       );
     }
 
@@ -216,7 +218,7 @@ export default async function AdminClassSessionsPage({
         ) : null}
       </section>
 
-      {!isSuperAdmin && errorMessage ? (
+      {errorMessage && !sessionCreated ? (
         <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>
       ) : null}
 
