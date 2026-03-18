@@ -24,6 +24,7 @@ export const getSessionManagementPageData = queryGeneric({
             v.literal("completed"),
             v.literal("cancelled")
           ),
+          google_maps_url: v.optional(v.string()),
         })
       ),
     })
@@ -52,6 +53,7 @@ export const getSessionManagementPageData = queryGeneric({
       quota_used: s.quota_used,
       quota_available: Math.max(0, s.quota_defined - s.quota_used),
       status: s.status,
+      google_maps_url: s.google_maps_url,
     }));
 
     return {
@@ -70,6 +72,7 @@ export const createSession = mutationGeneric({
     time: v.string(),
     quota_defined: v.number(),
     admin_username: v.string(),
+    google_maps_url: v.optional(v.string()),
   },
   returns: v.object({
     session_id: v.string(),
@@ -92,6 +95,7 @@ export const createSession = mutationGeneric({
       quota_defined: args.quota_defined,
       quota_used: 0,
       status: "scheduled",
+      google_maps_url: args.google_maps_url,
       created_at: now,
     });
 
@@ -122,6 +126,7 @@ export const updateSession = mutationGeneric({
     time: v.string(),
     quota_defined: v.number(),
     admin_username: v.string(),
+    google_maps_url: v.optional(v.string()),
   },
   returns: v.object({
     session_id: v.string(),
@@ -160,6 +165,7 @@ export const updateSession = mutationGeneric({
       date: nextDate,
       time: nextTime,
       quota_defined: nextQuotaDefined,
+      google_maps_url: args.google_maps_url,
     });
 
     await ctx.db.insert("audit_logs", {
