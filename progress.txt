@@ -1,4 +1,6 @@
 ## Codebase Patterns
+- In this repository, use `node_modules/.bin/tsc --noEmit` for typechecking (tsc is not globally installed; `npm run typecheck` calls it but may fail if node_modules not initialized).
+- Convex schema uses snake_case for field names; even though PRD uses camelCase names like `emergencyContactName`, the schema uses `emergency_contact_name`. Map between them in mutations/queries.
 - In this repository, run both `npm run typecheck` and `npm run lint` before committing feature work.
 - Convex schema in this codebase uses snake_case field names and numeric `*_at` timestamps, with explicit `by_*` index naming.
 - For third-party integrations, keep reusable helpers in `lib/` and expose credential readers for both `process.env` and Convex `ctx.env.get(...)`.
@@ -93,4 +95,38 @@ Thread: https://ampcode.com/threads/$AMP_CURRENT_THREAD_ID
   - Patterns discovered: role-visibility checks are most reliable when each test creates a unique class/session row and asserts buttons within that row.
   - Gotchas encountered: switching users in one Playwright test requires clearing auth cookies before revisiting `/admin/login`.
   - Useful context: current branch verifies server-side role enforcement by expecting Convex mutation calls with `admin_username: "staff"` to throw a super-admin authorization error.
+---
+
+## 2026-03-18 - US-001
+- Added `height` (string, optional), `age` (number, optional), `emergency_contact_name` (string, optional), `emergency_contact_phone` (string, optional) fields to the `participants` table in `convex/schema.ts`
+- Files changed: `convex/schema.ts`, `prd.json`, `progress.txt`
+- **Learnings for future iterations:**
+  - Patterns discovered: added fields as optional so existing records remain unaffected; used snake_case per codebase convention (PRD camelCase names map to snake_case in DB)
+  - Gotchas encountered: `tsc` not globally installed; must use `node_modules/.bin/tsc --noEmit` directly
+---
+
+## 2026-03-18 - US-002 through US-019 (batch)
+- US-002: Added `google_maps_url` optional field to sessions table in convex/schema.ts
+- US-003: Added `faqs` table to convex/schema.ts with question, answer, order, created_at, updated_at fields
+- US-004: Updated `acceptTermsByToken` in convex/terms.ts to accept/store height, age, emergency_contact_name, emergency_contact_phone; updated getParticipantPageData to return them
+- US-005: Updated createSession/updateSession/getSessionManagementPageData in convex/adminSessions.ts for google_maps_url; added session_google_maps_url to getParticipantPageData
+- US-006: Added enrolled participant guard to cancelSession mutation in convex/adminSessions.ts
+- US-007: Added getSessionAttendance query to convex/adminSessions.ts
+- US-008: Created convex/faqs.ts with listFaqs, createFaq, updateFaq
+- US-009: Updated app/terms/terms-form.tsx and app/terms/page.tsx to collect/submit height, age, emergency contact fields
+- US-010: Added google_maps_url field to add-session-modal.tsx and edit-session-modal.tsx; updated sessions page server actions
+- US-011: Added "View Participants" link column to sessions table in app/admin/classes/[class_id]/sessions/page.tsx
+- US-012: Created convex/adminParticipants.ts with getParticipantAdminDetails query; created app/admin/participants/[participant_id]/page.tsx; added View link to session-participants-panel.tsx
+- US-013: Participant detail page already includes height, age, emergency_contact_name, emergency_contact_phone display
+- US-014: Updated cancelSessionAction to show specific enrolled-participants error message
+- US-015: Created convex/adminTerms.ts with getCurrentTermsVersion and createTermsVersion; updated app/admin/terms/page.tsx with form
+- US-016: Added session_google_maps_url to participant page type and added "Get Directions" link
+- US-017: Already implemented (Scan QR Code button in session-participants-panel.tsx)
+- US-018: Created app/api/faqs/route.ts; added FAQ section to homepage-client.tsx
+- US-019: Added FAQ nav item to admin-nav.tsx; created app/admin/faq/ page and panel components
+- Files changed: many (see individual commits)
+- **Learnings for future iterations:**
+  - Patterns discovered: GenericId from convex/values is used for typed Convex IDs (no _generated types available)
+  - Patterns discovered: Server actions in Next.js redirect instead of returning errors; catch specific error messages to show user-friendly feedback
+  - Gotchas: When adding new nav items, add to admin-nav.tsx navItems array
 ---

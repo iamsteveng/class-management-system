@@ -30,6 +30,10 @@ export default defineSchema({
     qr_code_data: v.optional(v.string()),
     terms_accepted_at: v.optional(v.number()),
     terms_version_id: v.optional(v.id("terms_versions")),
+    height: v.optional(v.string()),
+    age: v.optional(v.number()),
+    emergency_contact_name: v.optional(v.string()),
+    emergency_contact_phone: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_participant_id", ["participant_id"])
@@ -56,6 +60,7 @@ export default defineSchema({
       v.literal("completed"),
       v.literal("cancelled")
     ),
+    google_maps_url: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_session_id", ["session_id"])
@@ -67,6 +72,14 @@ export default defineSchema({
     is_current: v.boolean(),
     created_at: v.number(),
   }).index("by_is_current", ["is_current"]),
+
+  faqs: defineTable({
+    question: v.string(),
+    answer: v.string(),
+    order: v.number(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_order", ["order"]),
 
   admins: defineTable({
     username: v.string(),

@@ -17,6 +17,7 @@ type SessionRow = {
   quota_used: number;
   quota_available: number;
   status: "scheduled" | "completed" | "cancelled";
+  google_maps_url?: string;
 };
 
 type PageData = {
@@ -74,6 +75,7 @@ export default async function AdminClassSessionsPage({
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
     const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
+    const googleMapsUrl = (formData.get("google_maps_url") as string | null)?.trim() || undefined;
 
     if (!location || !date || !time || isNaN(quotaDefined) || quotaDefined < 1) {
       redirect(
@@ -94,6 +96,7 @@ export default async function AdminClassSessionsPage({
           time,
           quota_defined: quotaDefined,
           admin_username: adminUsername,
+          google_maps_url: googleMapsUrl,
         }
       );
     } catch {
@@ -116,6 +119,7 @@ export default async function AdminClassSessionsPage({
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
     const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
+    const googleMapsUrl = (formData.get("google_maps_url") as string | null)?.trim() || undefined;
 
     if (
       !sessionId ||
@@ -143,6 +147,7 @@ export default async function AdminClassSessionsPage({
           time,
           quota_defined: quotaDefined,
           admin_username: adminUsername,
+          google_maps_url: googleMapsUrl,
         }
       );
     } catch {
@@ -177,11 +182,13 @@ export default async function AdminClassSessionsPage({
           admin_username: adminUsername,
         }
       );
-    } catch {
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message.includes("enrolled participants")
+          ? "This session has enrolled participants and cannot be cancelled."
+          : "Failed to cancel session. Please try again.";
       redirect(
-        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
-          "Failed to cancel session. Please try again."
-        )}`
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(message)}`
       );
     }
 
@@ -211,7 +218,7 @@ export default async function AdminClassSessionsPage({
         ) : null}
       </section>
 
-      {!isSuperAdmin && errorMessage ? (
+      {errorMessage && !sessionCreated ? (
         <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>
       ) : null}
 
@@ -240,6 +247,7 @@ export default async function AdminClassSessionsPage({
                 <th className="px-4 py-3">Time</th>
                 <th className="px-4 py-3">Quota (Defined / Used / Available)</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Participants</th>
                 {isSuperAdmin ? <th className="px-4 py-3">Actions</th> : null}
               </tr>
             </thead>
@@ -279,6 +287,14 @@ export default async function AdminClassSessionsPage({
                       {s.status}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/sessions/${s.session_id}/participants`}
+                      className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-800 hover:bg-zinc-100"
+                    >
+                      View Participants
+                    </Link>
+                  </td>
                   {isSuperAdmin ? (
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -288,6 +304,7 @@ export default async function AdminClassSessionsPage({
                           initialDate={s.date}
                           initialTime={s.time}
                           initialQuotaDefined={s.quota_defined}
+                          initialGoogleMapsUrl={s.google_maps_url}
                           submitAction={editSessionAction}
                         />
                         <CancelSessionButton

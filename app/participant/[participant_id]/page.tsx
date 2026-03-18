@@ -22,6 +22,7 @@ type ParticipantPageData = {
   session_location: string;
   session_date: string;
   session_time: string;
+  session_google_maps_url?: string;
   class_name: string;
   qr_code_data: string;
   can_change_session: boolean;
@@ -126,6 +127,21 @@ export default async function ParticipantPage({
               {pageData.session_location} ({pageData.session_date} {pageData.session_time})
             </dd>
           </div>
+          {pageData.session_google_maps_url ? (
+            <div>
+              <dt className="font-medium text-zinc-900">Directions</dt>
+              <dd>
+                <a
+                  href={pageData.session_google_maps_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                >
+                  Get Directions
+                </a>
+              </dd>
+            </div>
+          ) : null}
         </dl>
       </section>
 

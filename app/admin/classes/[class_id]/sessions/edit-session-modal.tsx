@@ -9,6 +9,7 @@ type EditSessionModalProps = {
   initialDate: string;
   initialTime: string;
   initialQuotaDefined: number;
+  initialGoogleMapsUrl?: string;
   submitAction: (formData: FormData) => void | Promise<void>;
 };
 
@@ -18,6 +19,7 @@ export function EditSessionModal({
   initialDate,
   initialTime,
   initialQuotaDefined,
+  initialGoogleMapsUrl,
   submitAction,
 }: EditSessionModalProps) {
   const [open, setOpen] = useState(false);
@@ -130,6 +132,23 @@ export function EditSessionModal({
                   min={1}
                   defaultValue={initialQuotaDefined}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-google-maps-url-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Google Maps URL <span className="text-zinc-400">(optional)</span>
+                </label>
+                <input
+                  id={`edit-google-maps-url-${fieldId}`}
+                  name="google_maps_url"
+                  type="url"
+                  defaultValue={initialGoogleMapsUrl ?? ""}
+                  placeholder="https://maps.google.com/..."
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
 

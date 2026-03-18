@@ -24,6 +24,7 @@ export const getSessionManagementPageData = queryGeneric({
             v.literal("completed"),
             v.literal("cancelled")
           ),
+          google_maps_url: v.optional(v.string()),
         })
       ),
     })
@@ -52,6 +53,7 @@ export const getSessionManagementPageData = queryGeneric({
       quota_used: s.quota_used,
       quota_available: Math.max(0, s.quota_defined - s.quota_used),
       status: s.status,
+      google_maps_url: s.google_maps_url,
     }));
 
     return {
@@ -70,6 +72,7 @@ export const createSession = mutationGeneric({
     time: v.string(),
     quota_defined: v.number(),
     admin_username: v.string(),
+    google_maps_url: v.optional(v.string()),
   },
   returns: v.object({
     session_id: v.string(),
@@ -92,6 +95,7 @@ export const createSession = mutationGeneric({
       quota_defined: args.quota_defined,
       quota_used: 0,
       status: "scheduled",
+      google_maps_url: args.google_maps_url,
       created_at: now,
     });
 
@@ -122,6 +126,7 @@ export const updateSession = mutationGeneric({
     time: v.string(),
     quota_defined: v.number(),
     admin_username: v.string(),
+    google_maps_url: v.optional(v.string()),
   },
   returns: v.object({
     session_id: v.string(),
@@ -160,6 +165,7 @@ export const updateSession = mutationGeneric({
       date: nextDate,
       time: nextTime,
       quota_defined: nextQuotaDefined,
+      google_maps_url: args.google_maps_url,
     });
 
     await ctx.db.insert("audit_logs", {
@@ -213,6 +219,17 @@ export const cancelSession = mutationGeneric({
 
     if (sessionRecord.status === "cancelled") {
       return { session_id: sessionRecord.session_id };
+    }
+
+    const enrolledParticipants = await ctx.db
+      .query("participants")
+      .withIndex("by_session_id", (q) =>
+        q.eq("session_id", sessionRecord.session_id)
+      )
+      .first();
+
+    if (enrolledParticipants) {
+      throw new Error("Cannot cancel: session has enrolled participants");
     }
 
     const now = Date.now();
@@ -352,6 +369,46 @@ export const getSessionParticipantsPageData = queryGeneric({
       session_time: session.time,
       participants: participantRows,
     };
+  },
+});
+
+export const getSessionAttendance = queryGeneric({
+  args: {
+    session_id: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      attendance_id: v.string(),
+      participant_id: v.string(),
+      session_id: v.string(),
+      admin_username: v.string(),
+      marked_at: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const records = await ctx.db
+      .query("attendance_records")
+      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+      .collect();
+
+    const adminById = new Map<string, string>();
+    for (const record of records) {
+      const adminId = record.marked_by_admin;
+      if (!adminById.has(adminId)) {
+        const admin = await ctx.db.get(adminId);
+        if (admin) {
+          adminById.set(adminId, admin.username);
+        }
+      }
+    }
+
+    return records.map((r) => ({
+      attendance_id: r.attendance_id,
+      participant_id: r.participant_id,
+      session_id: r.session_id,
+      admin_username: adminById.get(r.marked_by_admin) ?? "unknown",
+      marked_at: r.marked_at,
+    }));
   },
 });
 

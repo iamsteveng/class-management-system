@@ -29,8 +29,21 @@ export function TermsForm({
 }: TermsFormProps) {
   const [sessionId, setSessionId] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [height, setHeight] = useState("");
+  const [age, setAge] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+
   const noAvailableSessions = sessions.length === 0;
   const disableForm = locked || noAvailableSessions || success;
+
+  const canSubmit =
+    sessionId.length > 0 &&
+    accepted &&
+    height.trim().length > 0 &&
+    age.trim().length > 0 &&
+    emergencyContactName.trim().length > 0 &&
+    emergencyContactPhone.trim().length > 0;
 
   const helperMessage = useMemo(() => {
     if (success) {
@@ -73,6 +86,79 @@ export function TermsForm({
         </select>
       </div>
 
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-zinc-900">Participant details</h3>
+
+        <div className="space-y-1">
+          <label htmlFor="height" className="block text-sm font-medium text-zinc-900">
+            Height
+          </label>
+          <input
+            id="height"
+            type="text"
+            name="height"
+            value={height}
+            onChange={(e) => setHeight(e.target.value)}
+            disabled={disableForm}
+            placeholder="e.g. 170cm"
+            required
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="age" className="block text-sm font-medium text-zinc-900">
+            Age (years)
+          </label>
+          <input
+            id="age"
+            type="number"
+            name="age"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            disabled={disableForm}
+            placeholder="e.g. 30"
+            min={1}
+            required
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="emergency_contact_name" className="block text-sm font-medium text-zinc-900">
+            Emergency Contact Name
+          </label>
+          <input
+            id="emergency_contact_name"
+            type="text"
+            name="emergency_contact_name"
+            value={emergencyContactName}
+            onChange={(e) => setEmergencyContactName(e.target.value)}
+            disabled={disableForm}
+            placeholder="Full name"
+            required
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="emergency_contact_phone" className="block text-sm font-medium text-zinc-900">
+            Emergency Contact Phone
+          </label>
+          <input
+            id="emergency_contact_phone"
+            type="tel"
+            name="emergency_contact_phone"
+            value={emergencyContactPhone}
+            onChange={(e) => setEmergencyContactPhone(e.target.value)}
+            disabled={disableForm}
+            placeholder="Phone number"
+            required
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
+          />
+        </div>
+      </div>
+
       <label className="flex items-start gap-2 text-sm text-zinc-900">
         <input
           type="checkbox"
@@ -93,7 +179,7 @@ export function TermsForm({
       ) : null}
 
       <SubmitButton
-        canSubmit={sessionId.length > 0 && accepted}
+        canSubmit={canSubmit}
         disabled={disableForm}
       />
     </form>

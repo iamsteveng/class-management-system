@@ -132,6 +132,22 @@ export function AddSessionModal({
                 />
               </div>
 
+              <div className="space-y-2">
+                <label
+                  htmlFor="google_maps_url"
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Google Maps URL <span className="text-zinc-400">(optional)</span>
+                </label>
+                <input
+                  id="google_maps_url"
+                  name="google_maps_url"
+                  type="url"
+                  placeholder="https://maps.google.com/..."
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"

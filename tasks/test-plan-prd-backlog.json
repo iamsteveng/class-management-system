@@ -1,0 +1,726 @@
+{
+  "qaPlanSchemaVersion": "1.0.0",
+  "planId": "cms-backlog-e2e",
+  "source": {
+    "path": "tasks/test-plan-prd-backlog.md",
+    "generatedAt": "2026-03-18T09:00:00Z"
+  },
+  "execution": {
+    "defaultRetryRule": {
+      "maxRetries": 0,
+      "retryOn": ["flake", "timeout"]
+    }
+  },
+  "tests": [
+    {
+      "id": "TC-001",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms form — submit with all extra fields populated",
+      "steps": [
+        "Navigate to /terms?token=<valid>",
+        "Fill name, mobile, height, age, emergency contact name, emergency contact phone",
+        "Accept terms checkbox",
+        "Submit the form"
+      ],
+      "commands": ["npx playwright test --grep \"TC-001\""],
+      "passFail": [
+        "Form submits successfully",
+        "Participant record in Convex contains height, age, emergency_contact_name, emergency_contact_phone"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of success state", "Convex record JSON assertion"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-002",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms form — submit with missing required extra field (height omitted)",
+      "steps": [
+        "Navigate to /terms?token=<valid>",
+        "Fill name, mobile, age, emergency contact name, emergency contact phone; leave height blank",
+        "Attempt to submit"
+      ],
+      "commands": ["npx playwright test --grep \"TC-002\""],
+      "passFail": [
+        "Form shows validation error for height field",
+        "Submission is blocked — form does not submit"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of validation error state"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-003",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Terms form — submit with all extra fields missing",
+      "steps": [
+        "Navigate to /terms?token=<valid>",
+        "Fill only name and mobile; leave height, age, emergency contact fields blank",
+        "Attempt to submit"
+      ],
+      "commands": ["npx playwright test --grep \"TC-003\""],
+      "passFail": [
+        "Form shows validation errors for all four missing extra fields",
+        "Submission is blocked"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of multiple validation errors"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-004",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin session create — save with Google Maps URL",
+      "steps": [
+        "Log in as admin",
+        "Navigate to session create form for a class",
+        "Fill all required fields and enter a valid Google Maps URL",
+        "Save the session",
+        "Reopen the edit form for the created session"
+      ],
+      "commands": ["npx playwright test --grep \"TC-004\""],
+      "passFail": [
+        "Session is created without errors",
+        "Edit form reopens with Google Maps URL field pre-filled with the entered value"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of saved session", "Screenshot of pre-filled edit form"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-005",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin session create — save without Google Maps URL (optional field)",
+      "steps": [
+        "Log in as admin",
+        "Navigate to session create form",
+        "Fill all required fields; leave Google Maps URL blank",
+        "Save the session"
+      ],
+      "commands": ["npx playwright test --grep \"TC-005\""],
+      "passFail": [
+        "Session is created successfully with no error",
+        "google_maps_url is null/absent on the session record"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of created session list entry"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-006",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Admin session edit — update Google Maps URL on existing session",
+      "steps": [
+        "Log in as admin",
+        "Open edit modal for an existing session that has no Google Maps URL",
+        "Enter a Google Maps URL",
+        "Save",
+        "Reload the edit form"
+      ],
+      "commands": ["npx playwright test --grep \"TC-006\""],
+      "passFail": [
+        "Google Maps URL field is pre-filled with the entered value on reload"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of pre-filled edit form after reload"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-007",
+      "source": "US-016",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "QR code participant page — shows Maps link when URL is set",
+      "steps": [
+        "Ensure the participant's session has google_maps_url set to a valid URL",
+        "Navigate to /participant/<participant_id>"
+      ],
+      "commands": ["npx playwright test --grep \"TC-007\""],
+      "passFail": [
+        "\"Get Directions\" (or equivalent) link is visible on the page",
+        "Link href matches the stored Google Maps URL"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of participant page showing directions link"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-008",
+      "source": "US-016",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "QR code participant page — no Maps link when URL is not set",
+      "steps": [
+        "Ensure the participant's session has no google_maps_url",
+        "Navigate to /participant/<participant_id>"
+      ],
+      "commands": ["npx playwright test --grep \"TC-008\""],
+      "passFail": [
+        "No directions link is rendered",
+        "Page displays cleanly without broken/empty link elements"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of participant page without directions link"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-009",
+      "source": "US-016",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "QR code participant page — Maps link opens in new tab",
+      "steps": [
+        "Ensure the participant's session has google_maps_url set",
+        "Navigate to /participant/<participant_id>",
+        "Inspect the directions link element"
+      ],
+      "commands": ["npx playwright test --grep \"TC-009\""],
+      "passFail": [
+        "Directions link has target=\"_blank\" attribute"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["DOM attribute assertion output"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-010",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin session list — \"View Participants\" button navigates correctly",
+      "steps": [
+        "Log in as admin",
+        "Navigate to /admin/sessions",
+        "Locate a session row",
+        "Click the \"View Participants\" button"
+      ],
+      "commands": ["npx playwright test --grep \"TC-010\""],
+      "passFail": [
+        "Browser navigates to /admin/sessions/<session_id>/participants",
+        "Participant list page heading is visible"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of participant list page", "URL assertion output"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-011",
+      "source": "US-012",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin participant list — clicking participant row opens detail page",
+      "steps": [
+        "Log in as admin",
+        "Navigate to /admin/sessions/<session_id>/participants",
+        "Click on a participant row (or View/Details button)"
+      ],
+      "commands": ["npx playwright test --grep \"TC-011\""],
+      "passFail": [
+        "Browser navigates to /admin/participants/<participant_id>",
+        "Participant name is visible on the detail page"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of participant detail page", "URL assertion output"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-012",
+      "source": "US-014",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin cancel session — blocked when participants are enrolled",
+      "steps": [
+        "Log in as admin",
+        "Navigate to a session that has at least one enrolled participant",
+        "Click \"Cancel Session\"",
+        "Confirm the action if a confirmation prompt appears"
+      ],
+      "commands": ["npx playwright test --grep \"TC-012\""],
+      "passFail": [
+        "Error/warning message is displayed indicating participants are enrolled",
+        "Session status remains \"scheduled\" (not changed to \"cancelled\")"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of error message", "Session status assertion"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-013",
+      "source": "US-014",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin cancel session — allowed when no participants enrolled",
+      "steps": [
+        "Log in as admin",
+        "Navigate to a session with zero enrolled participants",
+        "Click \"Cancel Session\"",
+        "Confirm the action"
+      ],
+      "commands": ["npx playwright test --grep \"TC-013\""],
+      "passFail": [
+        "Session status changes to \"cancelled\"",
+        "No error message is shown"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of cancelled session status"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-014",
+      "source": "US-014",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Admin cancel session — error displayed inline (not raw browser alert)",
+      "steps": [
+        "Log in as admin",
+        "Attempt to cancel a session with enrolled participants"
+      ],
+      "commands": ["npx playwright test --grep \"TC-014\""],
+      "passFail": [
+        "Error message appears inline in the page UI (as toast or modal), not as a raw window.alert() dialog"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of inline error UI"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-015",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Admin terms — \"Terms\" menu entry is visible and navigates to page",
+      "steps": [
+        "Log in as admin",
+        "Inspect the admin navigation bar"
+      ],
+      "commands": ["npx playwright test --grep \"TC-015\""],
+      "passFail": [
+        "\"Terms\" (or \"Create Terms\") link is visible in the admin nav",
+        "Clicking navigates to /admin/terms"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of admin nav with Terms entry", "URL assertion output"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-016",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin terms — creating a new terms version makes it current",
+      "steps": [
+        "Log in as admin",
+        "Navigate to /admin/terms",
+        "Enter new terms content in the textarea",
+        "Submit the form"
+      ],
+      "commands": ["npx playwright test --grep \"TC-016\""],
+      "passFail": [
+        "New terms version is saved with is_current = true",
+        "Previous terms version is set to is_current = false"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Convex terms_versions record assertion showing is_current flags"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-017",
+      "source": "US-015",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Admin terms — new participant sees latest terms version",
+      "steps": [
+        "Create a new terms version via TC-016",
+        "Open the terms acceptance form for a new purchase token"
+      ],
+      "commands": ["npx playwright test --grep \"TC-017\""],
+      "passFail": [
+        "Terms content displayed on the form matches the newly created version text"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of terms form showing updated content"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-018",
+      "source": "US-017",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Attendance scanning — successful QR scan marks participant attended with green tick",
+      "steps": [
+        "Log in as admin",
+        "Navigate to /admin/sessions/<session_id>/participants",
+        "Click \"Scan QR Code\" button",
+        "Inject or scan a valid participant QR code string for the session"
+      ],
+      "commands": ["npx playwright test --grep \"TC-018\""],
+      "passFail": [
+        "Attendance record is created in Convex with correct participantId, sessionId, adminUsername, and timestamp",
+        "Green tick (✓) appears in that participant's row without a full page reload"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of green tick in participant row", "Attendance record JSON assertion"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-019",
+      "source": "US-017",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Attendance scanning — scanning unknown QR shows error",
+      "steps": [
+        "Log in as admin",
+        "Navigate to session participant list",
+        "Click \"Scan QR Code\"",
+        "Inject an unrecognised QR string"
+      ],
+      "commands": ["npx playwright test --grep \"TC-019\""],
+      "passFail": [
+        "Error message is shown in the scanner UI",
+        "Application does not crash",
+        "No attendance record is created"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of scanner error message"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-020",
+      "source": "US-007",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Attendance scanning — re-scanning same participant is idempotent",
+      "steps": [
+        "Log in as admin",
+        "Scan a valid participant QR code (first scan — creates record)",
+        "Scan the same QR code again"
+      ],
+      "commands": ["npx playwright test --grep \"TC-020\""],
+      "passFail": [
+        "Only one attendance record exists for this participant/session combination",
+        "No crash or duplicate record created",
+        "Green tick remains visible"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Attendance record count assertion (count = 1)"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-021",
+      "source": "US-013",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin participant detail — shows height, age, emergency contact",
+      "steps": [
+        "Ensure a participant record exists with height, age, emergency_contact_name, emergency_contact_phone populated",
+        "Log in as admin",
+        "Navigate to /admin/participants/<participant_id>"
+      ],
+      "commands": ["npx playwright test --grep \"TC-021\""],
+      "passFail": [
+        "Page displays Height field with the stored value and a clear label",
+        "Page displays Age field with the stored value and a clear label",
+        "Page displays Emergency Contact Name with the stored value",
+        "Page displays Emergency Contact Phone with the stored value"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of participant detail page showing all four extra fields"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-022",
+      "source": "US-013",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Admin participant detail — shows placeholder for unset extra fields",
+      "steps": [
+        "Ensure a participant record exists with no height, age, or emergency contact values",
+        "Log in as admin",
+        "Navigate to /admin/participants/<participant_id>"
+      ],
+      "commands": ["npx playwright test --grep \"TC-022\""],
+      "passFail": [
+        "Each missing field shows a placeholder such as \"—\" (not blank, undefined, or null)"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot showing placeholder values for empty extra fields"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-023",
+      "source": "US-018",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Homepage — FAQ section visible when items exist",
+      "steps": [
+        "Seed at least one FAQ item into the database",
+        "Load the homepage /"
+      ],
+      "commands": ["npx playwright test --grep \"TC-023\""],
+      "passFail": [
+        "\"Frequently Asked Questions\" (or equivalent) section heading is visible below the class listing",
+        "At least one FAQ question and answer is displayed"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of homepage FAQ section"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-024",
+      "source": "US-018",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Homepage — FAQ section hidden when no items exist",
+      "steps": [
+        "Ensure no FAQ items are in the database",
+        "Load the homepage /"
+      ],
+      "commands": ["npx playwright test --grep \"TC-024\""],
+      "passFail": [
+        "No FAQ section heading or container is rendered on the homepage"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of homepage without FAQ section"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-025",
+      "source": "US-018",
+      "level": "e2e",
+      "priority": "P2",
+      "title": "Homepage — FAQ items ordered by order field ascending",
+      "steps": [
+        "Seed three FAQ items with order values 2, 1, 3 (out of sequence)",
+        "Load the homepage /"
+      ],
+      "commands": ["npx playwright test --grep \"TC-025\""],
+      "passFail": [
+        "FAQ items appear in ascending order: order=1 first, order=2 second, order=3 third"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["DOM order assertion output showing FAQ item sequence"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-026",
+      "source": "US-019",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Admin FAQ — \"FAQ\" menu entry navigates to management page",
+      "steps": [
+        "Log in as super admin",
+        "Inspect the admin navigation bar"
+      ],
+      "commands": ["npx playwright test --grep \"TC-026\""],
+      "passFail": [
+        "\"FAQ\" link is visible in the admin nav",
+        "Clicking navigates to /admin/faq"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of admin nav with FAQ entry", "URL assertion output"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-027",
+      "source": "US-019",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin FAQ — super admin can add new FAQ item",
+      "steps": [
+        "Log in as super admin",
+        "Navigate to /admin/faq",
+        "Click \"Add FAQ\"",
+        "Enter a question, answer, and order number",
+        "Submit the form"
+      ],
+      "commands": ["npx playwright test --grep \"TC-027\""],
+      "passFail": [
+        "New FAQ item appears in the admin FAQ list immediately",
+        "Item is visible on the homepage FAQ section"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of updated admin FAQ list", "Screenshot of homepage showing new item"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-028",
+      "source": "US-019",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Admin FAQ — super admin can edit existing FAQ item",
+      "steps": [
+        "Log in as super admin",
+        "Navigate to /admin/faq",
+        "Click \"Edit\" on an existing FAQ item",
+        "Change the answer text",
+        "Submit the edit form"
+      ],
+      "commands": ["npx playwright test --grep \"TC-028\""],
+      "passFail": [
+        "Updated answer is shown in the admin FAQ list",
+        "Change is reflected on the homepage FAQ section"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of updated FAQ item in admin list", "Screenshot of homepage reflecting change"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-029",
+      "source": "US-019",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Regular admin cannot add or edit FAQ items",
+      "steps": [
+        "Log in as regular admin (role: regular_admin)",
+        "Navigate to /admin/faq"
+      ],
+      "commands": ["npx playwright test --grep \"TC-029\""],
+      "passFail": [
+        "Page loads successfully (view-only access)",
+        "\"Add FAQ\" button is NOT present in the DOM",
+        "\"Edit\" buttons are NOT present in the DOM"
+      ],
+      "retryRules": [{"maxRetries": 0, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of FAQ page as regular admin showing absent Add/Edit controls"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-030",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P2",
+      "title": "Terms form — emergency contact phone accepts valid international format",
+      "steps": [
+        "Navigate to /terms?token=<valid>",
+        "Enter emergency contact phone as \"+447700900000\" (international format)",
+        "Fill all other required fields",
+        "Submit"
+      ],
+      "commands": ["npx playwright test --grep \"TC-030\""],
+      "passFail": [
+        "Form accepts the international phone format",
+        "Submission succeeds without validation error on the phone field"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Screenshot of successful submission"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-031",
+      "source": "US-007",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Attendance record — contains correct adminUsername and timestamp",
+      "steps": [
+        "Log in as admin with username \"testadmin\"",
+        "Navigate to session participant list",
+        "Scan a valid participant QR code",
+        "Inspect the created attendance record"
+      ],
+      "commands": ["npx playwright test --grep \"TC-031\""],
+      "passFail": [
+        "attendance_record.marked_by_admin matches the logged-in admin's Convex ID",
+        "attendance_record.marked_at is a recent Unix timestamp (within 60 seconds of scan)"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Attendance record JSON fields assertion"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-032",
+      "source": "US-006",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Cancel session backend guard — direct mutation call rejected when participants enrolled",
+      "steps": [
+        "Identify a session_id that has enrolled participants",
+        "Call the cancel session mutation directly via Convex test harness or dashboard",
+        "Observe the response"
+      ],
+      "commands": ["npx playwright test --grep \"TC-032\""],
+      "passFail": [
+        "Mutation throws a descriptive error (e.g. \"Cannot cancel: session has enrolled participants\")",
+        "Session status is unchanged (still \"scheduled\")"
+      ],
+      "retryRules": [{"maxRetries": 1, "retryOn": ["flake", "timeout"]}],
+      "evidence": {
+        "required": ["Error message text from mutation response", "Session status assertion"],
+        "artifacts": []
+      }
+    }
+  ]
+}

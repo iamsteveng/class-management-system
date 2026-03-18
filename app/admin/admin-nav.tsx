@@ -39,6 +39,11 @@ const navItems: NavItem[] = [
     href: "/admin/terms",
     isActive: (pathname) => pathname.startsWith("/admin/terms"),
   },
+  {
+    label: "FAQ",
+    href: "/admin/faq",
+    isActive: (pathname) => pathname.startsWith("/admin/faq"),
+  },
 ];
 
 export function AdminNav() {
