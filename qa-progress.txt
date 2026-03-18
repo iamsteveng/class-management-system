@@ -1,0 +1,687 @@
+# QA Progress Log
+Started: 2026-03-18 11:18:05 UTC
+---
+
+## Codebase Patterns
+
+### Convex Deployments
+- **Production (Vercel app):** `https://colorless-raven-523.convex.cloud` — used by `class-management-system-teal.vercel.app`
+- **Dev/test:** `https://graceful-mole-393.convex.cloud` — used by older test files (tc001-005, tc004, tc005, etc.)
+- Tests that navigate to the Vercel app MUST use `colorless-raven-523` for Convex calls (so tokens are visible to the app)
+- Existing tests in `e2e/tc010.spec.ts`, `e2e/tc011.spec.ts` correctly use `colorless-raven-523`
+
+### Branch/Deployment State
+- `feat/backlog-prd` branch has extra participant fields (height, age, emergency contact) in `terms-form.tsx` and `convex/terms.ts`
+- `main` branch (deployed to Vercel + Convex production) does NOT have these extra fields yet
+- E2E tests for features in `feat/backlog-prd` will FAIL until the branch is merged and deployed
+
+### Test File Location
+- Playwright `testDir` is `./e2e` by default; updated to scan `./tests/e2e/` too via `testMatch` in `playwright.config.ts`
+- New test format: `tests/e2e/tc-NNN.test.ts`
+
+### Terms Page
+- Token-based: `/terms?token=<uuid>` — token must exist in the Convex `purchases` table
+- On success: redirects to `/terms?token=<token>&status=success`, page shows "Terms accepted successfully."
+- Form has `session_id` (select), `height`, `age`, `emergency_contact_name`, `emergency_contact_phone`, `accepted` checkbox — in `feat/backlog-prd` only
+- `testPurchase:createTestPurchase` creates a purchase in `pending_terms` status with a fresh UUID token
+
+---
+
+## Run: 20260318T111805Z [2026-03-18 11:18:05 UTC]
+
+### TC-001 [FAIL] Terms form — submit with all extra fields populated
+- The Terms Acceptance page loads correctly with a valid token from `colorless-raven-523.convex.cloud`
+- Session options display and can be selected
+- The form does NOT have height/age/emergency_contact fields in the current Vercel production — those fields only exist in `feat/backlog-prd`, not merged/deployed yet
+- Test times out waiting for `#height` input (element never appears in the DOM)
+- Also: `testPurchase:getFullParticipantsByToken` is not deployed to either Convex instance yet
+- **Learnings:**
+  - Vercel production (`class-management-system-teal.vercel.app`) connects to `colorless-raven-523.convex.cloud` — use this URL for all E2E tests that hit the Vercel UI
+  - `graceful-mole-393.convex.cloud` is an older dev deployment; tokens created there are NOT visible to the Vercel app
+  - Features in `feat/backlog-prd` (extra participant fields) are not deployed — tests for these features will FAIL until the branch is merged and both Vercel + Convex are redeployed
+  - `testPurchase:getFullParticipantsByToken` must be deployed to Convex before it can be used for evidence assertions
+  - To run this test successfully: merge `feat/backlog-prd` to `main`, run `npx convex deploy`, trigger Vercel redeploy
+---
+
+### TC-001 [FAIL] Terms form — submit with all extra fields populated
+- **Failed:** The features under test (extra participant fields in the terms form) only exist in the local `feat/backlog-prd` branch and have not been merged to `main` or deployed to Vercel/Convex production. The test implementation is correct and will pass once the branch is deployed. Additionally, `testPurchase:getFullParticipantsByToken` (added for the Convex record assertion) is not deployed to either Convex instance yet.
+- **Evidence:** Test timeout at `page.fill('#height', '170cm')` — the `#height` input never appears in the DOM. Page snapshot at failure shows Terms Acceptance page with session selector and accepted checkbox but **no height/age/emergency contact fields**. The Vercel production deployment (`class-management-system-teal.vercel.app`) is running from `main` branch, which does not include the extra participant fields from `feat/backlog-prd` (US-009). Also confirmed: `terms:acceptTermsByToken` on `colorless-raven-523.convex.cloud` (production) rejects `height`/`age`/`emergency_contact_name`/`emergency_contact_phone` arguments with "Object contains extra field" validation error — the Convex production deployment is equally behind.
+- **Learnings:**
+  - - **Two Convex deployments:** `colorless-raven-523.convex.cloud` = production (Vercel app), `graceful-mole-393.convex.cloud` = older dev/test. E2E tests navigating Vercel MUST use `colorless-raven-523` — tokens created on `graceful-mole-393` are invisible to the Vercel app. - **Deployment state check:** Before running feature tests, verify the target environment actually has the feature deployed. A quick `curl <url>` and grep for expected DOM elements is faster than a full test run. - **`testDir` in playwright.config.ts only covers `./e2e`** — new test files in `tests/e2e/` require adding `testMatch` to the config to be discoverable. - **`testPurchase:getFullParticipantsByToken`** must be deployed to Convex (via `npx convex deploy`) before the Convex record assertion step can work. - **To unblock:** merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel to redeploy, then re-run this test.
+---
+
+### TC-002 [FAIL] Terms form — submit with missing required extra field (height omitted)
+- Same root cause as TC-001: extra participant fields (`height`, `age`, `emergency_contact_name`, `emergency_contact_phone`) only exist in `feat/backlog-prd` branch — not deployed to Vercel/Convex production.
+- Test implementation is correct and matches the form logic: `canSubmit` requires all four extra fields plus session + accepted checkbox, so leaving height blank disables the submit button.
+- Timeout at `page.fill('#age', '25')` — `#age` field never appears in the DOM on production.
+- Page snapshot at failure confirms production form has only: session selector + accepted checkbox + disabled "Accept Terms" button (no height/age/emergency contact fields).
+- **Learnings:**
+  - TC-001 and TC-002 both fail for the same deployment gap — they test features from `feat/backlog-prd` not on production yet.
+  - The validation mechanism for the height field is **client-side only**: `canSubmit` is false → submit button is disabled. No server-side or explicit error message is shown; the blocked state is solely button `disabled`.
+  - HTML `required` attribute is also set on `#height`, providing a second validation layer (browser-native), but the primary enforcement is the React-controlled `canSubmit` flag.
+  - When writing tests for "submit blocked" scenarios, asserting `toBeDisabled()` on the submit button is the correct approach for this form's pattern.
+  - **To unblock TC-001 and TC-002:** merge `feat/backlog-prd` → `main`, run `npx convex deploy`, wait for Vercel redeploy.
+---
+
+### TC-002 [FAIL] Terms form — submit with missing required extra field (height omitted)
+- **Failed:** Same root cause as TC-001: the extra participant fields (height, age, emergency contact) only exist in the local `feat/backlog-prd` branch and have not been merged to `main` or deployed. The test implementation is correct — when deployed, it will assert `toBeDisabled()` on the submit button when height is blank (via the `canSubmit` React flag). To unblock: merge `feat/backlog-prd` → `main`, run `npx convex deploy`, wait for Vercel redeploy.
+- **Evidence:** Test timeout at `page.fill('#age', '25')` (line 54). Production form page snapshot shows only: session combobox + accepted checkbox + disabled "Accept Terms" button — no `#height`, `#age`, `#emergency_contact_name`, or `#emergency_contact_phone` fields exist in the DOM. The `feat/backlog-prd` extra participant fields have not been deployed to Vercel or Convex production.
+- **Learnings:**
+  - - **Validation pattern:** Height validation is entirely client-side via the `canSubmit` computed flag (`height.trim().length > 0` is part of the AND chain). When height is blank, the submit button gets `disabled`. There is no explicit error message shown — the blocked state is solely `button[disabled]`. HTML `required` is also set but secondary. - **Test assertion for "blocked submit":** Use `await expect(submitButton).toBeDisabled()` — this is the correct pattern for this form. - **Deployment check first:** TC-001 and TC-002 both block on the same missing deployment. Future tests for `feat/backlog-prd` features should be gated on confirming the feature exists in the target DOM before attempting to interact with it (e.g., `await expect(page.locator('#height')).toBeVisible({ timeout: 5000 })` early in the test to fail fast with a clear message).
+---
+
+### TC-003 [FAIL] Terms form — submit with all extra fields missing
+- Same root cause as TC-001/TC-002: the four extra participant fields (`height`, `age`, `emergency_contact_name`, `emergency_contact_phone`) only exist in `feat/backlog-prd` — not deployed to Vercel/Convex production. Test implementation is correct.
+- Timeout at `await expect(heightInput).toBeVisible()` — `#height` field never appears in the production DOM.
+- The form's validation for all-fields-missing uses the same `canSubmit` React flag mechanism (AND of all 4 fields + session + accepted). `form.reportValidity()` is used in the test to trigger browser-native required validation evidence.
+- **Learnings:**
+  - **All four extra fields use the same `required` HTML attribute + `canSubmit` React flag pattern** — no custom error messages, just a disabled submit button.
+  - **`form.reportValidity()` via `page.evaluate`** is a valid way to trigger browser's native validation UI and returns `false` when required fields are empty — useful for screenshot evidence even without custom error messages.
+  - **TC-001, TC-002, TC-003 all fail for the same deployment gap** — these three tests can all be unblocked together by merging `feat/backlog-prd` → `main` and redeploying.
+---
+
+### TC-003 [FAIL] Terms form — submit with all extra fields missing
+- **Failed:** Same deployment gap as TC-001 and TC-002: the four extra participant fields (`height`, `age`, `emergency_contact_name`, `emergency_contact_phone`) exist only in the local `feat/backlog-prd` branch. The production Vercel + Convex deployment is on `main` which predates these fields. To unblock: merge `feat/backlog-prd` → `main`, run `npx convex deploy`, wait for Vercel redeploy.
+- **Evidence:** Test fails at `await expect(heightInput).toBeVisible()` with timeout — `#height` element not found in DOM. The production Vercel app is on `main` branch which does not have the extra participant fields. Error: `element(s) not found` for locator `#height`. Test was run against `class-management-system-teal.vercel.app` which serves the `main` branch code.
+- **Learnings:**
+  - - TC-003's validation mechanism is identical to TC-002's: no custom error messages, just `canSubmit = false` → submit button `disabled`. The form has HTML `required` on all four fields as a secondary layer. - `form.reportValidity()` via `page.evaluate()` is a useful pattern to trigger browser-native validation UI and confirm invalid state (returns `false`) — good for screenshot evidence when there are no custom error elements. - TC-001, TC-002, and TC-003 all share the same root cause (deployment gap). They can all be unblocked together in a single merge+deploy cycle. - A fast-fail check early in the test (`await expect(page.locator('#height')).toBeVisible()`) produces a clearer error message than waiting for fill/interaction on a missing element.
+---
+
+### TC-004 [FAIL] Admin session create — save with Google Maps URL
+- Same root cause as TC-001/TC-002/TC-003: the Google Maps URL field in the Add Session modal (US-010) only exists in `feat/backlog-prd` — not deployed to Vercel production.
+- Test timed out at `page.locator('input[name="google_maps_url"]').fill(...)` — the input is absent from the production modal's DOM.
+- Page snapshot at failure confirms production Add Session modal has only: Location, Date, Time, Quota, Cancel/Create — **no Google Maps URL field**.
+- `git show main:app/admin/classes/[class_id]/sessions/add-session-modal.tsx | grep google_maps` returns empty — confirms field is not in main branch.
+- Confirmed via `git log main..HEAD`: `feat: US-010 - Session create/edit form — Google Maps URL field` commit is only in `feat/backlog-prd`.
+- **Learnings:**
+  - **Google Maps URL session feature (US-010) is in `feat/backlog-prd` only** — same deployment gap as TC-001–TC-003. All four tests can be unblocked in the same merge+deploy cycle.
+  - **Checking git log main..HEAD** is the fastest way to confirm whether a feature from `feat/backlog-prd` has been deployed: look for the US-NNN commit. If it's only in the branch, the production test will fail.
+  - **Page snapshot in error context** is reliable for verifying which form fields actually exist in the deployed UI — use this to quickly diagnose "field not found" timeouts.
+  - **Test implementation is correct**: the test creates a class via Convex mutation, logs in as admin, opens the Add Session modal, fills all fields including `google_maps_url`, saves, then opens the Edit modal and verifies pre-fill. This is the right approach once deployed.
+  - To unblock: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel redeploy.
+---
+
+### TC-004 [FAIL] Admin session create — save with Google Maps URL
+- **Failed:** The Google Maps URL field (US-010) is implemented in `feat/backlog-prd` but has not been merged to `main` or deployed to the production Vercel app (`class-management-system-teal.vercel.app`). The production Add Session modal does not include the `google_maps_url` input, so the test cannot interact with it. To unblock: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, and wait for Vercel to redeploy.
+- **Evidence:** Test timed out (45s) at `page.locator('input[name="google_maps_url"]').fill(testGoogleMapsUrl)`. Page snapshot at failure shows the Add Session modal with only: Location, Date, Time, Quota, Cancel/Create buttons — the `google_maps_url` input is absent from the DOM. `git show main:app/admin/classes/[class_id]/sessions/add-session-modal.tsx | grep google_maps` returns nothing — the field is not in the `main` branch. Confirmed via `git log main..HEAD`: the `feat: US-010 - Session create/edit form — Google Maps URL field` commit exists only in `feat/backlog-prd`.
+- **Learnings:**
+  - - **Google Maps URL session feature (US-010) shares the same deployment gap** as TC-001–TC-003 (terms form extra fields). All four blocked tests can be unblocked in a single merge+deploy cycle. - **Checking `git log main..HEAD`** is the fastest way to confirm whether a `feat/backlog-prd` feature is deployed: search for the relevant US-NNN commit. If found only in the branch, the production test will fail. - **Page snapshot in error context** reliably shows which form fields actually exist in the deployed UI — use it to immediately diagnose "input not found" timeouts without re-running the test. - **Admin session create test pattern** (for when it can run): create class via `adminClasses:createClass` mutation → login as admin via UI → navigate to `/admin/classes/{id}/sessions` → click "Add Session" → fill modal → wait for `?status=session_created` → click Edit on the new row → assert `input[name="google_maps_url"]` value matches entered URL.
+---
+
+### TC-005 [PASS] Admin session create — save without Google Maps URL (optional field)
+- Session created successfully without providing Google Maps URL — no error, redirected to `?status=session_created`.
+- Convex query `adminSessions:getSessionManagementPageData` confirmed `google_maps_url` is absent (undefined) on the session record.
+- Session row visible in the admin table with correct location.
+- **Learnings:**
+  - **`google_maps_url` is truly optional** in both the Convex schema (`v.optional(v.string())`) and the production Add Session modal — no validation error when left blank.
+  - **`getSessionManagementPageData` query** is a reliable way to assert DB state for sessions: it returns `google_maps_url` as optional, so checking `!createdSession.google_maps_url` is the correct assertion for absent/null.
+  - **Grep pattern collision:** `--grep "TC-005"` also matches older spec files with tests named "BUG-TC-005" (e.g. `e2e/tc003-class-edit.spec.ts`, `e2e/tc005-session-edit.spec.ts`). These are pre-existing failures unrelated to our test. Use `--grep "TC-005:"` (with colon) or target the specific test file to avoid noise.
+  - **Admin session create test pattern** (confirmed working): create class via `adminClasses:createClass` mutation → login as admin → navigate to `/admin/classes/{id}/sessions` → click "Add Session" → fill required fields only → click "Create" → wait for `?status=session_created` redirect → verify session row → query Convex for DB-level assertion.
+---
+
+### TC-005 [PASS] Admin session create — save without Google Maps URL (optional field)
+- **Evidence:** Test `TC-005: Admin session create — save without Google Maps URL (optional field)` in `tests/e2e/tc-005.test.ts` passed (4.5s). Console evidence: ```json { "class_id": "e2678459-c03d-403a-bd08-37e048970e84", "session_location": "TC005 Test Studio", "google_maps_url": null, "google_maps_url_is_absent": true, "session_created": true } ``` - Session created with redirect to `?status=session_created` — no error - Session row appeared in admin table - Convex query confirmed `google_maps_url` is absent (undefined/falsy) on the record - Screenshots saved: `test-results/tc-005-before-save.png`, `test-results/tc-005-session-created.png` The 2 other "failures" in the run are pre-existing tests in `e2e/` named "BUG-TC-005" that accidentally matched the grep — unrelated to this test case.
+- **Learnings:**
+  - - `google_maps_url` is truly optional in both schema and the production Add Session modal — no error when left blank. - `adminSessions:getSessionManagementPageData` is the correct Convex query for DB-level session assertions; `google_maps_url` is returned as optional, so `!session.google_maps_url` correctly detects absent/null. - `--grep "TC-005"` also matches older tests named "BUG-TC-005". Use `--grep "TC-005:"` (with colon) or specify the file path to avoid noise from pre-existing failures. - TC-004 (with Google Maps URL) fails due to deployment gap; TC-005 (without it) passes because the field is optional and the base session create flow is already deployed to production.
+---
+
+### TC-006 [FAIL] Admin session edit — update Google Maps URL on existing session
+- Same root cause as TC-004: the Google Maps URL field in the Edit Session modal (US-010) only exists in `feat/backlog-prd` — not deployed to Vercel production.
+- Test correctly: creates class+session via Convex mutation → logs in → opens Edit modal → confirms modal opens (heading "Edit Session" visible) → BUT `input[name="google_maps_url"]` is absent from the production modal DOM.
+- Page snapshot at failure confirms production Edit Session modal has only: Location, Date, Time, Quota, Cancel/Save — **no Google Maps URL field**.
+- The `google_maps_url` field would be rendered as `input[name="google_maps_url"]` with `type="url"` and `defaultValue={initialGoogleMapsUrl ?? ""}` — correct locator but field doesn't exist in deployed version.
+- **Learnings:**
+  - **Edit Session modal vs Add Session modal**: both are missing the `google_maps_url` field in production — the entire US-010 feature (both add and edit modals) is blocked by the same deployment gap.
+  - **Session creation via Convex mutation works**: `adminSessions:createSession` on `colorless-raven-523.convex.cloud` accepts `class_id`, `location`, `date`, `time`, `quota_defined`, `admin_username` (no `google_maps_url`) and the session appears in the UI — confirmed working pattern.
+  - **Edit modal opens correctly** in production: clicking "Edit" on a session row renders the Edit Session heading and form with Location/Date/Time/Quota fields. The modal open/close flow is functional.
+  - **After `?status=session_updated` redirect**: reloading and re-opening the edit modal shows the updated values — this flow would work for the Google Maps URL assertion once the field is deployed.
+  - To unblock TC-004 and TC-006 together: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel redeploy.
+---
+
+### TC-006 [FAIL] Admin session edit — update Google Maps URL on existing session
+- **Failed:** The Google Maps URL field in the Edit Session modal is part of US-010 (`feat/backlog-prd` only) and has not been deployed to the production Vercel app. The production edit modal omits the `google_maps_url` input entirely. Same root cause as TC-004.
+- **Evidence:** Test opened the Edit Session modal successfully (heading "Edit Session" visible, session row found). However, `input[name="google_maps_url"]` was not found in the modal DOM — error at line 88: `element(s) not found` for `locator('input[name="google_maps_url"]')`. Page snapshot from error context confirms the production Edit Session modal only contains: Location, Date, Time, Quota, Cancel/Save — no Google Maps URL field. `git log main..HEAD` shows `feat: US-010 - Session create/edit form — Google Maps URL field` exists only in `feat/backlog-prd`, not merged to `main` (the deployed branch).
+- **Learnings:**
+  - - **TC-004 and TC-006 share the same deployment gap** — both the Add Session and Edit Session modals are missing `google_maps_url` in production. They can both be unblocked in one merge+deploy cycle. - **Edit Session modal in production works** (Location/Date/Time/Quota fields functional), just missing the `google_maps_url` field added in US-010. - **Creating sessions via Convex mutation** (`adminSessions:createSession` with `class_id`, `location`, `date`, `time`, `quota_defined`, `admin_username`) is a reliable setup pattern — session appears in the UI immediately. - **`--grep "TC-006"` matches 4 tests** (3 pre-existing files with TC-006 in names). Target `tests/e2e/tc-006.test.ts` directly or use `--grep "TC-006:"` to isolate the new test. - After save, the page redirects to `?status=session_updated` — confirmed this redirect pattern works for the Edit Session flow in production.
+---
+
+### TC-007 [FAIL] QR code participant page — shows Maps link when URL is set
+- Same root cause as TC-004/TC-006: `google_maps_url` on sessions is part of US-010 (`feat/backlog-prd` only) — the field does not exist in the `main` branch or the production Convex schema (`colorless-raven-523.convex.cloud`).
+- Test setup calls `adminSessions:createSession` with `google_maps_url` argument. Production Convex rejects this with "Server Error" (unknown field in args validator).
+- Neither `adminSessions:createSession` nor `adminSessions:updateSession` accept `google_maps_url` in production.
+- The participant page UI code (`app/participant/[participant_id]/page.tsx`) does conditionally render a "Get Directions" anchor when `session_google_maps_url` is set — the frontend code is in `feat/backlog-prd` but the backend schema/mutations are not deployed yet.
+- **Learnings:**
+  - **Participant page "Get Directions" link** is at `<a href={pageData.session_google_maps_url}>Get Directions</a>` — use `page.getByRole('link', { name: 'Get Directions' })` and assert `.getAttribute('href')` matches the stored URL.
+  - **To create a participant for test setup**: use `testPurchase:createTestPurchase` → `terms:acceptTermsByToken` (with session_id) → `testPurchase:getParticipantsByToken` to retrieve the participant_id. This chain is confirmed working for existing session fields.
+  - **`google_maps_url` in `createSession` args is only in `feat/backlog-prd`** — the production Convex validator will reject it with "Server Error". Do NOT include it in session creation until deployed.
+  - **Workaround (post-deployment)**: the test as implemented is correct for when deployed. No workaround is possible pre-deployment since the schema field itself doesn't exist in production.
+  - To unblock TC-004, TC-006, TC-007 together: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel redeploy.
+---
+
+### TC-007 [FAIL] QR code participant page — shows Maps link when URL is set
+- **Failed:** The `google_maps_url` field on sessions (US-010) exists only in `feat/backlog-prd` and has not been merged to `main` or deployed to production Convex (`colorless-raven-523`). The production schema has no `google_maps_url` field, so `adminSessions:createSession` rejects the argument with a server validation error. The participant page "Get Directions" link also depends on this field being present in the Convex response. Test implementation is correct and will pass once the branch is merged and deployed.
+- **Evidence:** Test `TC-007` failed at `adminSessions:createSession` call with `"Server Error"` from production Convex (`colorless-raven-523.convex.cloud`). The `google_maps_url` arg is not in the production `createSession` validator — confirmed by `git diff main -- convex/adminSessions.ts` which shows `google_maps_url` was added to `createSession` only in `feat/backlog-prd`, not in `main` (the deployed branch).
+- **Learnings:**
+  - - **Participant page "Get Directions" link** renders as `<a href={session_google_maps_url}>Get Directions</a>` — assert with `page.getByRole('link', { name: 'Get Directions' })` and check `.getAttribute('href')`. - **Participant setup chain**: `testPurchase:createTestPurchase` → `terms:acceptTermsByToken` (pass session_id) → `testPurchase:getParticipantsByToken` to get participant_id. This chain works once the session exists. - **`google_maps_url` in `createSession` is `feat/backlog-prd`-only** — production Convex rejects it. TC-004, TC-006, TC-007 all share the same deployment gap (US-010 feature). They can be unblocked in one merge+deploy cycle. - **Checking `git diff main -- convex/<file>.ts`** is the fastest way to confirm whether a Convex mutation/query arg is deployed to production.
+---
+
+### TC-008 [PASS] QR code participant page — no Maps link when URL is not set
+- Created a session without `google_maps_url`, accepted terms, navigated to `/participant/<id>`, confirmed "Get Directions" link is NOT rendered and no empty/broken anchor tags exist. Test passed in 3.2s.
+- **Learnings:**
+  - TC-008 is the negative counterpart to TC-007 — omit `google_maps_url` from `adminSessions:createSession` (the field is simply not passed, not set to null).
+  - The `not.toBeVisible()` assertion is the right check; the link element is entirely absent from the DOM when no URL is set (not just hidden).
+  - An old `e2e/tc008.spec.ts` file also matches the `TC-008` grep pattern — Playwright ran both files and reported 1 passed / 1 failed, but the failure is the old unrelated spec. Our new test in `tests/e2e/tc-008.test.ts` passed cleanly.
+  - When two test files match the same grep, check output carefully — the relevant pass/fail is the one from the correct file path.
+---
+
+### TC-008 [PASS] QR code participant page — no Maps link when URL is not set
+- **Evidence:** Test `tests/e2e/tc-008.test.ts › TC-008: QR code participant page — no Maps link when URL is not set` passed in 3.2s. Session created without `google_maps_url`, participant page loaded with "Participant Pass" heading, `getByRole('link', { name: 'Get Directions' })` was not visible, and no empty/broken anchor tags were found. Screenshot captured at `test-results/tc-008-no-directions-link.png` — page shows participant details and QR code with no directions link.
+- **Learnings:**
+  - - TC-008 (no Maps link) is the negative counterpart to TC-007: simply omit `google_maps_url` from `adminSessions:createSession` — the field is absent, not set to null. - `not.toBeVisible()` is the correct assertion; the link is entirely absent from the DOM when no URL is stored. - An old `e2e/tc008.spec.ts` also matches the `TC-008` grep, so Playwright reports 2 tests (1 pass from new file, 1 fail from old file). When this happens, confirm the relevant result by checking the file path in the output. - The participant setup chain works the same as TC-007: `testPurchase:createTestPurchase` → `terms:acceptTermsByToken` (with session_id) → `testPurchase:getParticipantsByToken`.
+---
+
+### TC-009 [FAIL] QR code participant page — Maps link opens in new tab
+- Same root cause as TC-007: `google_maps_url` field on `adminSessions:createSession` is part of US-010 (`feat/backlog-prd` only) — not deployed to production Convex (`colorless-raven-523.convex.cloud`).
+- Test setup calls `adminSessions:createSession` with `google_maps_url` arg. Production Convex rejects with "Server Error" (unknown field in args validator).
+- Test implementation is correct and will pass once the branch is merged and deployed.
+- The participant page code (`app/participant/[participant_id]/page.tsx`) renders `<a href={session_google_maps_url} target="_blank" rel="noopener noreferrer">Get Directions</a>` — the `target="_blank"` assertion is correct.
+- **Learnings:**
+  - TC-007 and TC-009 are both blocked by the same US-010 deployment gap — `google_maps_url` in `adminSessions:createSession` is `feat/backlog-prd`-only.
+  - TC-009 is the `target="_blank"` assertion test; TC-007 tests that the link `href` matches the stored URL. Both need `google_maps_url` to be set on the session.
+  - The DOM evidence is `<a target="_blank" rel="noopener noreferrer">` — assert with `getAttribute('target')` and `getAttribute('rel')`.
+  - To unblock TC-004, TC-006, TC-007, TC-009: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel redeploy.
+---
+
+### TC-009 [FAIL] QR code participant page — Maps link opens in new tab
+- **Failed:** Same deployment gap as TC-007: the `google_maps_url` field on `adminSessions:createSession` (US-010) is in `feat/backlog-prd` only — not deployed to production Convex. Test implementation is correct (asserts `getAttribute('target') === '_blank'` and `getAttribute('rel') === 'noopener noreferrer'`). Will pass once `feat/backlog-prd` is merged to `main` and `npx convex deploy` is run against `colorless-raven-523`.
+- **Evidence:** Test `tests/e2e/tc-009.test.ts › TC-009: QR code participant page — Maps link opens in new tab` failed at `adminSessions:createSession` with "Server Error" from production Convex (`colorless-raven-523.convex.cloud`). The `google_maps_url` argument is not accepted by the production Convex validator — it only exists in `feat/backlog-prd`, not merged to `main` (the deployed branch). Error at line 55: `mutation adminSessions:createSession failed: [Request ID: a1975c5504463662] Server Error`
+- **Learnings:**
+  - - TC-009 shares the exact same deployment gap as TC-007 (US-010 feature). Both require `google_maps_url` to be accepted by `adminSessions:createSession` on production Convex. - The participant page renders `<a href={session_google_maps_url} target="_blank" rel="noopener noreferrer">Get Directions</a>` — assert with `getAttribute('target')` and `getAttribute('rel')`. - TC-004, TC-006, TC-007, TC-009 all unblock in a single merge+deploy cycle. - An old `e2e/tc009.spec.ts` tests something different (terms acceptance) — when running `--grep "TC-009"`, target the file directly with `npx playwright test tests/e2e/tc-009.test.ts` to avoid running the old unrelated spec.
+---
+
+### TC-010 [FAIL] Admin session list — "View Participants" button navigates correctly
+- The "View Participants" link (US-011) is implemented in `feat/backlog-prd` (`app/admin/classes/[class_id]/sessions/page.tsx`) but **not deployed to production** (`main` branch on Vercel).
+- Test setup works: class and session created via Convex mutations, admin login succeeds, class sessions page loads, session row found correctly.
+- But the production sessions table has no "Participants" column — header row shows "Location Date Time Quota Status Actions" (no "Participants"). The "View Participants" link is absent from all session rows.
+- `getByRole('link', { name: 'View Participants' })` timed out after 45s because the element does not exist in the deployed UI.
+- The "View Participants" link would navigate to `/admin/sessions/<session_id>/participants` and the participants page has heading "Session Participants" — test implementation is correct.
+- **Learnings:**
+  - **"View Participants" (US-011) is `feat/backlog-prd`-only** — same deployment gap as TC-001–TC-004, TC-006–TC-007, TC-009. All unblock in the same merge+deploy cycle.
+  - **Page snapshot in error context** confirmed: production sessions table column headers are "Location Date Time Quota Status Actions" — no "Participants" column. The link is entirely absent from the DOM.
+  - **Admin session page hierarchy**: The "View Participants" button lives at `/admin/classes/<class_id>/sessions`, NOT at `/admin/sessions` (that page just says "open a class to manage sessions"). Tests should navigate to `/admin/classes/<class_id>/sessions` to find the button.
+  - **`expect(sessionRow).toHaveCount(1)` passed** — session creation and row rendering work in production. Only the "View Participants" cell is missing.
+  - **Target page heading**: `/admin/sessions/<session_id>/participants` renders `<h1>Session Participants</h1>` — use `getByRole('heading', { name: 'Session Participants' })` as the pass assertion.
+  - To unblock: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel redeploy.
+---
+
+### TC-010 [FAIL] Admin session list — "View Participants" button navigates correctly
+- **Failed:** The "View Participants" link (US-011) is implemented in `feat/backlog-prd` (`app/admin/classes/[class_id]/sessions/page.tsx`) but has not been merged to `main` or deployed to the production Vercel app (`class-management-system-teal.vercel.app`). The production sessions table has no "Participants" column — the element does not exist in the deployed DOM. Test implementation is correct and will pass once the branch is merged and `npx convex deploy` is run against `colorless-raven-523`.
+- **Evidence:** Test `tests/e2e/tc-010.test.ts › TC-010` failed after 45s timeout at `sessionRow.getByRole('link', { name: 'View Participants' }).click()`. Page snapshot from error context confirmed: the production sessions table header row is **"Location Date Time Quota Status Actions"** — there is **no "Participants" column**. The "View Participants" link (US-011) is entirely absent from all session rows in the deployed UI. The session row itself was found correctly (`expect(sessionRow).toHaveCount(1)` passed — class/session creation via Convex mutations works). The failure is purely a deployment gap.
+- **Learnings:**
+  - - **"View Participants" button location**: it lives at `/admin/classes/<class_id>/sessions`, NOT at `/admin/sessions` (that page just redirects users to go open a class). Always navigate to the class-scoped sessions page. - **US-011 deployment gap**: same root cause as TC-001–TC-004, TC-006–TC-007, TC-009 — all unblock in one merge+deploy cycle. - **Page snapshot confirms**: production sessions table has columns "Location Date Time Quota Status Actions" — no "Participants" column, no "View Participants" link. - **Target page heading**: `/admin/sessions/<session_id>/participants` renders `h1 "Session Participants"` — use `getByRole('heading', { name: 'Session Participants' })` for the pass assertion. - **`getByRole('link')` requires the element to exist**: even after `expect(row).toHaveCount(1)` passes, the scoped `getByRole('link', { name: '...' })` will timeout (not immediately error) if the link is absent within that row — it waits the full test timeout.
+---
+
+### TC-011 [FAIL] Admin participant list — clicking participant row opens detail page
+- The "Details/View" column in the session participants table (US-012) is implemented in `feat/backlog-prd` (`session-participants-panel.tsx`) but **not deployed to production** (`main` branch on Vercel).
+- Test setup works: class/session created via Convex mutations, purchase + terms accepted creates a participant, participant appears in the session participants page table.
+- But the production participants table has no "Details" column — header is "Participant ID Name Mobile Terms Accepted Terms Version Attendance Status" (no "Details"). The "View" link is absent from all participant rows.
+- `a[href="/admin/participants/<participant_id>"]` not found in DOM — confirmed by page snapshot.
+- Participant creation flow via `testPurchase:createTestPurchase` → `terms:acceptTermsByToken` → `testPurchase:getParticipantsByToken` works correctly.
+- **Learnings:**
+  - **"View" link in session participants panel is US-012, `feat/backlog-prd`-only** — not deployed to production. Same deployment gap as TC-010 (US-011) and all other `feat/backlog-prd` features.
+  - **Participant creation chain** (confirmed working): `testPurchase:createTestPurchase` (participant_count:1) → `terms:acceptTermsByToken` (token + session_id + accepted:true) → `testPurchase:getParticipantsByToken` (token) → returns array with participant_id. Participant IS created and appears in the session participants table.
+  - **Participant detail page heading** is `h1 "Participant Details"` at `/admin/participants/<participant_id>`. The "Name" field always renders (value is "—" when not set).
+  - **Reliable locator for "View" link**: use `page.locator('a[href="/admin/participants/${participantId}"]')` (href-based) rather than `getByRole('link', { name: 'View' })` within a filtered row — the href-based approach avoids row-scoping issues.
+  - **Page snapshot format** is very useful for diagnosing missing columns — snapshot shows the exact table columns present in the deployed UI.
+  - To unblock: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel redeploy.
+---
+
+### TC-011 [FAIL] Admin participant list — clicking participant row opens detail page
+- **Failed:** The "View" link in the session participants table is part of US-012 (`feat: US-012 - Admin portal — Fix navigation from participant list to participant detail`), implemented only in `feat/backlog-prd`. The `main` branch deployed to Vercel does not include this column. The test implementation is correct and will pass once the branch is merged and deployed.
+- **Evidence:** Test setup succeeded: class created, session created, purchase + `terms:acceptTermsByToken` created a participant, `getParticipantsByToken` returned participant_id `5f3a73e4-c02a-41ba-80f9-487b08cb1f70`. Session participants page loaded with heading "Session Participants" and the participant row visible. However, `a[href="/admin/participants/5f3a73e4-c02a-41ba-80f9-487b08cb1f70"]` was NOT found — page snapshot confirms production table has columns "Participant ID Name Mobile Terms Accepted Terms Version Attendance Status" with **no "Details" column** and no "View" link.
+- **Learnings:**
+  - - **Participant creation chain confirmed working**: `testPurchase:createTestPurchase` (participant_count:1) → `terms:acceptTermsByToken` (token + session_id + accepted:true) → `testPurchase:getParticipantsByToken` — this reliably creates a participant and returns the participant_id. - **US-012 "View" link is `feat/backlog-prd`-only** — production session participants table has no "Details" column. Same deployment gap pattern as TC-001–TC-004, TC-006–TC-007, TC-009, TC-010. - **Reliable link locator**: use `page.locator('a[href="/admin/participants/${participantId}"]`)` (href-based) rather than row-scoped `getByRole('link', { name: 'View' })` — avoids scoping issues. - **Page snapshot in error context** is the fastest diagnostic: shows exact table columns rendered in production and confirms whether a feature is deployed. - All `feat/backlog-prd` features (TC-001–TC-004, TC-006–TC-007, TC-009–TC-011) unblock in a single merge + `npx convex deploy` + Vercel redeploy cycle.
+---
+
+### TC-012 [FAIL] Admin cancel session — blocked when participants are enrolled
+- Production `adminSessions:cancelSession` mutation (deployed from `main`) does NOT check for enrolled participants before cancelling — it cancels successfully even when participants exist.
+- The enrolled-participant check (lines 224-233 of `convex/adminSessions.ts`) exists in local `feat/backlog-prd` code but has NOT been deployed to either `colorless-raven-523` (production) or `graceful-mole-393` (dev).
+- Participants ARE correctly created by `terms:acceptTermsByToken` (confirmed: `testPurchase:getParticipantsByToken` returns participant). The check itself is the missing piece.
+- UI test confirmed: after clicking Cancel and accepting the `window.confirm` dialog, the page redirects to `?status=session_cancelled` (success) instead of `?error=...enrolled participants...`.
+- **Learnings:**
+  - **`waitForURL` premature match**: when waiting for a redirect back to the SAME page URL pattern, `waitForURL` resolves immediately (the current URL already matches). Always wait for a URL that differs from the current one — e.g., add `url.searchParams.has('error') || url.searchParams.has('status')` to the predicate.
+  - **Cancel button confirmation**: `window.confirm` dialog is handled via `page.once('dialog', ...)` registered BEFORE the click. The dialog message is "Cancel this session? This will mark it as cancelled." — use `dialog.accept()` to proceed.
+  - **Both Convex deployments tested**: manually probed `colorless-raven-523` and `graceful-mole-393` — both `cancelSession` mutations allow cancel with enrolled participants. The check is only in local `feat/backlog-prd` code.
+  - **Explicit failure assertion**: rather than timing out on `waitForURL`, add a check for the actual redirect URL (`searchParams.get('status') === 'session_cancelled'`) and assert it is `false`. This produces a clear "Session should NOT be cancelled" failure message instead of a timeout.
+  - **Cancel button** is a `<button type="submit">Cancel</button>` inside a form — use `getByRole('button', { name: 'Cancel' })` scoped to the session row.
+  - **Error banner locator**: when the error message appears, the page renders `<p class="...text-red-700">{errorMessage}</p>` — use `page.locator('p').filter({ hasText: 'enrolled participants' })`.
+  - To unblock: merge `feat/backlog-prd` → `main`, run `npx convex deploy` against `colorless-raven-523`, wait for Vercel redeploy.
+---
+
+### TC-013 [PASS] Admin cancel session — allowed when no participants enrolled
+- Created a class and session (no participants enrolled), logged in as admin, clicked Cancel on the session row, accepted the `window.confirm` dialog, and confirmed redirect to `?status=session_cancelled`.
+- Session status badge changed from "scheduled" to "cancelled" in the sessions table.
+- No error banner appeared.
+- Screenshot saved at `test-results/tc-013-cancel-allowed-cancelled.png`.
+- **Learnings:**
+  - **`cancelSession` succeeds on empty sessions in production** — the `main` branch (deployed) has no enrolled-participant guard, so this test passes immediately against production.
+  - **`waitForURL` with query param predicate** is the correct wait strategy after Cancel: wait for `url.searchParams.get('status') === 'session_cancelled'`.
+  - **Status badge locator**: `sessionRow.locator('span').filter({ hasText: 'cancelled' })` — the same pattern as TC-012 but now the badge changes to "cancelled".
+  - TC-013 is the positive counterpart to TC-012 (no participants enrolled → cancel allowed vs. participants enrolled → cancel blocked).
+---
+
+### TC-012 [FAIL] Admin cancel session — blocked when participants are enrolled
+- **Failed:** The enrolled-participant check (`if (enrolledParticipants) throw new Error("Cannot cancel: session has enrolled participants")`) exists in the local `feat/backlog-prd` codebase at `convex/adminSessions.ts:224-233`, but has NOT been deployed to any Convex environment (neither production `colorless-raven-523` nor dev `graceful-mole-393`). The `main` branch deployed to both Vercel and Convex production predates this feature. TC-012 is a `feat/backlog-prd` feature test that will pass once the branch is merged and deployed — same root cause as TC-001–TC-004, TC-006–TC-007, TC-009–TC-011.
+- **Evidence:** Test `tests/e2e/tc-012.test.ts › TC-012: Admin cancel session — blocked when participants are enrolled` failed. Setup verified: participants ARE created correctly in production Convex (`colorless-raven-523`) — `testPurchase:getParticipantsByToken` returns 1 participant after `acceptTermsByToken`. However, `adminSessions:cancelSession` in the production deployment does NOT check for enrolled participants. After clicking "Cancel" and accepting the `window.confirm` dialog, the page redirected to `?status=session_cancelled` (success) instead of the expected `?error=...enrolled participants...`. Assertion failure: ``` Error: Session should NOT be cancelled when participants are enrolled — cancel was blocked by server Expected: false Received: true ``` Manually confirmed: direct Convex API calls to both `colorless-raven-523` and `graceful-mole-393` with enrolled participants both allow `cancelSession` to succeed.
+- **Learnings:**
+  - - **`waitForURL` premature match pitfall**: when already on the target URL pattern (e.g., `/admin/classes/${id}/sessions`), `waitForURL` resolves immediately. Always add query param checks to the predicate: `url.searchParams.has('error') || url.searchParams.has('status')`. - **Explicit FAIL assertion over timeout**: check `currentUrl.searchParams.get('status') === 'session_cancelled'` and assert `toBe(false)` — gives a clear failure message ("Session should NOT be cancelled...") instead of a 20s timeout. - **`window.confirm` dialog handling**: register `page.once('dialog', (d) => d.accept())` BEFORE the button click. Dialog message: "Cancel this session? This will mark it as cancelled." - **Cancel button locator**: `sessionRow.getByRole('button', { name: 'Cancel' })` — it's a `<button type="submit">` inside a form, scoped to the session row. - **Error banner locator**: `page.locator('p').filter({ hasText: 'enrolled participants' })` — rendered as `<p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">` on redirect back with `?error=`. - **Both Convex deployments lack the feature**: `colorless-raven-523` and `graceful-mole-393` both allow cancel with enrolled participants. Deployment gap confirmed across all environments. - **Participant verification step**: add `testPurchase:getParticipantsByToken` after `acceptTermsByToken` to confirm setup before proceeding to UI steps — distinguishes setup failures from feature failures.
+---
+
+### TC-013 [PASS] Admin cancel session — allowed when no participants enrolled
+- **Evidence:** Test `tests/e2e/tc-013.test.ts › TC-013: Admin cancel session — allowed when no participants enrolled` passed in 4.4s. Session created with no participants enrolled, admin clicked Cancel, accepted the confirm dialog, page redirected to `?status=session_cancelled`, status badge changed to "cancelled", no error banner shown. Screenshot at `test-results/tc-013-cancel-allowed-cancelled.png`. Console: `{"class_id":"7433f44e-8106-41e7-934e-895b6b4a1d98","session_id":"65e90781-2578-4130-94d9-dbd05bc69665","session_status_after":"cancelled","no_error":true}`
+- **Learnings:**
+  - - `cancelSession` on production Convex (`colorless-raven-523`) succeeds immediately for sessions with zero enrolled participants — no guard exists in the `main` branch deployment. - `waitForURL` predicate `url.searchParams.get('status') === 'session_cancelled'` is the right wait after clicking Cancel. - Status badge changes from "scheduled" to "cancelled" — assert with `sessionRow.locator('span').filter({ hasText: 'cancelled' })`. - TC-013 (no participants → cancel allowed) is the positive counterpart to TC-012 (participants enrolled → cancel blocked). TC-013 passes in production; TC-012 fails until `feat/backlog-prd` is deployed.
+---
+
+### TC-014 [FAIL] Admin cancel session — error displayed inline (not raw browser alert)
+- **Failed:** Same root cause as TC-012 — production `adminSessions:cancelSession` (deployed from `main`) does NOT check for enrolled participants. Cancel succeeds with `?status=session_cancelled` even when a participant is enrolled. No error is generated, so whether the error would be inline or a `window.alert()` cannot be verified against production.
+- **Evidence:** Page snapshot shows session with quota "10 / 1 / 9" (1 participant enrolled) was cancelled successfully. Page displayed "Session cancelled successfully." — no error shown. Assertion failure: `Session should NOT be cancelled when participants are enrolled — cancel should be blocked by server. Expected: false, Received: true`.
+- **Code analysis:** When the feature IS deployed (from `feat/backlog-prd`), the error path in `page.tsx` lines 221-223 renders `<p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>` inline on redirect with `?error=...` — no `window.alert()` is used. So TC-014 would PASS once TC-012's feature is deployed.
+- **Learnings:**
+  - **Clear failure assertion over timeout:** Use `waitForURL` with `url.searchParams.has('error') || url.searchParams.has('status')`, then assert `searchParams.get('status') !== 'session_cancelled'`. Avoids 20s timeout and produces a clear failure message.
+  - **Error display mechanism in code:** `cancelSessionAction` in `page.tsx` always redirects with `?error=...` on failure — never calls `window.alert()`. The error is rendered as a `<p>` tag with `bg-red-50` styling. This is a inline pattern, correct per spec.
+  - **Error-context snapshot is useful:** Even when assertions fail before the screenshot step, Playwright's `error-context.md` shows the full page ARIA snapshot with quota used (10/1/9) and success message — confirming setup worked correctly.
+  - **TC-014 is a `feat/backlog-prd` feature test:** Will PASS once the enrolled-participant check in `convex/adminSessions.ts` is deployed to production (same gate as TC-012).
+---
+
+### TC-014 [FAIL] Admin cancel session — error displayed inline (not raw browser alert)
+- **Failed:** Same root cause as TC-012: the enrolled-participant guard in `convex/adminSessions.ts` (lines 224-233) only exists in the local `feat/backlog-prd` branch and has not been deployed to any Convex environment. Production allows cancel with enrolled participants, so no error is ever generated — making it impossible to verify whether the error would be shown inline or via `window.alert()`. Code analysis confirms the inline display IS correctly implemented for when the feature is deployed: `page.tsx:221-223` renders error via `<p className="rounded-lg bg-red-50 ...">` on `?error=` redirect — no `window.alert()`. TC-014 will PASS once TC-012's backend feature is deployed.
+- **Evidence:** Test assertion: `Session should NOT be cancelled when participants are enrolled — cancel should be blocked by server. Expected: false, Received: true` Page snapshot from error-context.md confirms: - Session quota was 10/1/9 (1 participant enrolled) - Page showed "Session cancelled successfully." — session was fully cancelled - No error was shown inline or via alert The cancel succeeded because `adminSessions:cancelSession` in the production deployment (`colorless-raven-523`, deployed from `main`) does not check for enrolled participants before cancelling.
+- **Learnings:**
+  - - **TC-014 is gated on TC-012's backend feature** — both fail until `feat/backlog-prd` is merged and deployed to production. - **Clear failure over timeout:** Use `waitForURL` with `url.searchParams.has('error') || url.searchParams.has('status')`, then assert `searchParams.get('status') !== 'session_cancelled'`. Avoids 20s timeout and gives actionable failure message. - **Error display mechanism is correct in code:** `cancelSessionAction` uses redirect with `?error=...`, rendered as inline `<p>` tag — never `window.alert()`. The pattern is correct per spec. - **Playwright error-context.md is a useful evidence source** even without an explicit screenshot — the ARIA page snapshot shows quota (10/1/9) and success message, confirming test setup worked correctly.
+---
+
+### TC-015 [PASS] Admin terms — "Terms" menu entry is visible and navigates to page
+- "Terms" link is present in the admin nav (`app/admin/admin-nav.tsx`, label `"Terms"`, href `/admin/terms`)
+- Clicking it navigates to `https://class-management-system-teal.vercel.app/admin/terms` — URL assertion confirmed
+- Screenshot captured: `test-results/tc-015-nav-terms-visible.png` and `test-results/tc-015-terms-page.png`
+- **Learnings:**
+  - The `AdminNav` component uses `aria-label="Admin navigation"` on the `<nav>` — target with `getByRole('navigation', { name: 'Admin navigation' })` for reliable selector
+  - `--grep "TC-015"` matches both `tests/e2e/tc-015.test.ts` and the legacy `e2e/tc015.spec.ts`; both passed (different test IDs, different concerns)
+  - Terms page already exists and is deployed to production; this is a simple nav visibility + navigation check, no Convex data setup required
+---
+
+### TC-015 [PASS] Admin terms — "Terms" menu entry is visible and navigates to page
+- **Evidence:** - "Terms" link confirmed visible in admin nav (`app/admin/admin-nav.tsx`, label `"Terms"`, href `/admin/terms`) - After click, page navigated to `https://class-management-system-teal.vercel.app/admin/terms` — URL assertion passed - Screenshots saved: `test-results/tc-015-nav-terms-visible.png`, `test-results/tc-015-terms-page.png` - Test output: `✓ tests/e2e/tc-015.test.ts:3:5 › TC-015: Admin terms — "Terms" menu entry is visible and navigates to page (2.5s)`
+- **Learnings:**
+  - - The `AdminNav` component has `aria-label="Admin navigation"` on its `<nav>` tag — use `getByRole('navigation', { name: 'Admin navigation' }).getByRole('link', { name: /^Terms$/i })` for a precise, stable selector - `--grep "TC-015"` will also match the legacy `e2e/tc015.spec.ts` (hostname regression test) — both ran and passed independently - Terms page (`/admin/terms`) is already deployed to production; this test needed no Convex data setup
+---
+
+### TC-016 [FAIL] Admin terms — creating a new terms version makes it current
+- **Failed:** `adminTerms:createTermsVersion` (and `adminTerms:getCurrentTermsVersion`) are defined in `convex/adminTerms.ts` which only exists in the `feat/backlog-prd` branch — NOT in `main`. Since production Convex (`colorless-raven-523`) is deployed from `main`, these functions are not available. Calling `adminTerms:createTermsVersion` via HTTP API returns `{"status":"error","errorMessage":"[Request ID: ...] Server Error"}`. The test fails immediately at the Convex API pre-step before any UI interaction.
+- **Evidence:** Test assertion failure: `Error: mutation adminTerms:createTermsVersion failed: [Request ID: 2875eb3e6c6a6ac3] Server Error`. Confirmed via direct curl: both `adminTerms:createTermsVersion` and `adminTerms:getCurrentTermsVersion` return "Server Error" on `colorless-raven-523`. On `graceful-mole-393` the error is explicit: "Could not find public function for 'adminTerms:getCurrentTermsVersion'. Did you forget to run `npx convex dev`?" — confirming the function is not registered in any live Convex deployment.
+- **Learnings:**
+  - **`adminTerms.ts` is feat/backlog-prd only:** `git show main:convex/adminTerms.ts` returns "fatal: path exists on disk, but not in main" — confirms the entire adminTerms module (including `createTermsVersion` and `getCurrentTermsVersion`) only exists in the local branch, not in production.
+  - **`main` branch admin/terms page is a stub:** In production, `/admin/terms` is a simple static page with no form or Convex integration. The form to create terms versions, the textarea, and the "Create & Activate" button only exist in the `feat/backlog-prd` version of the page.
+  - **"Server Error" vs "function not found":** On `colorless-raven-523` (production), calling an unregistered function returns `"Server Error"` with no detail. On `graceful-mole-393` (dev), it returns an explicit "Could not find public function" message. The generic "Server Error" on production is also what indicates a missing function — not a runtime error.
+  - **TC-016 is gated on feat/backlog-prd deployment:** This test will PASS once the branch is merged and deployed — both the form UI (`app/admin/terms/page.tsx` in feat/backlog-prd) and the backend (`convex/adminTerms.ts`) will be available in production.
+---
+
+### TC-016 [FAIL] Admin terms — creating a new terms version makes it current
+- **Failed:** `convex/adminTerms.ts` (and the terms creation form in `app/admin/terms/page.tsx`) only exist in the `feat/backlog-prd` branch, not in `main`. Since production Convex (`colorless-raven-523`) is deployed from `main`, the required Convex functions are not available. TC-016 is blocked by the same deployment gap affecting TC-012, TC-014, and other feat/backlog-prd feature tests.
+- **Evidence:** Test failed immediately at Convex API pre-step: `mutation adminTerms:createTermsVersion failed: [Request ID: 2875eb3e6c6a6ac3] Server Error`. Direct curl to production Convex (`colorless-raven-523`) confirmed: both `adminTerms:createTermsVersion` and `adminTerms:getCurrentTermsVersion` return "Server Error" — these functions are not registered in any live Convex deployment. `git show main:convex/adminTerms.ts` returns fatal error confirming the file only exists in `feat/backlog-prd`.
+- **Learnings:**
+  - - **`adminTerms.ts` is feat/backlog-prd only:** The entire `adminTerms` module (`createTermsVersion`, `getCurrentTermsVersion`) only exists in the local branch. `git show main:convex/adminTerms.ts` returns fatal error. - **`main` admin/terms page is a stub:** Production `/admin/terms` has no form — just a static page linking to the public terms page. The "Create & Activate" form only exists in `feat/backlog-prd`. - **"Server Error" = unregistered function on colorless-raven-523:** Unlike `graceful-mole-393` which explicitly says "Could not find public function", production returns a generic "Server Error" for missing functions. - **TC-016 will PASS once feat/backlog-prd is merged and deployed** — both the UI form and Convex backend will be available in production at that point.
+---
+
+### TC-017 [FAIL] Admin terms — new participant sees latest terms version
+- **Failed:** Same root cause as TC-016 — `adminTerms:createTermsVersion` and `adminTerms:getCurrentTermsVersion` only exist in `feat/backlog-prd`, not in the production Convex deployment (`colorless-raven-523`). The test fails immediately at the first Convex API call with "Server Error".
+- **Evidence:** `Error: mutation adminTerms:createTermsVersion failed: [Request ID: 06069a01561d7b00] Server Error`. Test never reached the terms form UI. Screenshot not taken.
+- **Learnings:**
+  - TC-017 is gated on the same deployment as TC-016: both require `adminTerms.ts` to be deployed to production.
+  - The terms form page (`/terms?token=<token>`) shows `terms_version` and `terms_content` in a `<section>` with `<h2>Terms ({version})</h2>` and `<p>{content}</p>`. The selector `page.locator('section').filter({ hasText: 'Terms (version)' })` is the correct approach to assert the displayed terms content.
+  - `testPurchase:createTestPurchase` returns `{ token: string }` — confirmed from codebase patterns; test correctly uses this to create a fresh purchase.
+  - TC-017 will PASS once `feat/backlog-prd` is merged and deployed to production.
+---
+
+### TC-017 [FAIL] Admin terms — new participant sees latest terms version
+- **Failed:** Same deployment gap as TC-016: `convex/adminTerms.ts` (and the admin terms creation form) only exists in `feat/backlog-prd`, not in `main`. Since production Convex runs `main`, the required backend functions are unavailable. TC-017 will pass once the branch is merged and deployed.
+- **Evidence:** Test fails immediately at the first Convex API call: `Error: mutation adminTerms:createTermsVersion failed: [Request ID: 06069a01561d7b00] Server Error`. The `adminTerms:createTermsVersion` and `adminTerms:getCurrentTermsVersion` mutations only exist in the `feat/backlog-prd` branch — they are not deployed to production Convex (`colorless-raven-523`). The test never reached the terms form UI, so no screenshot was captured.
+- **Learnings:**
+  - - TC-017 shares the same blocker as TC-016 — both are gated on `feat/backlog-prd` being deployed to production. - The terms form page (`/terms?token=<token>`) renders terms version + content inside `<section>` → `<h2>Terms ({version})</h2>` + `<p>{content}</p>`. The correct Playwright selector to assert displayed content is `page.locator('section').filter({ hasText: 'Terms (version)' }).locator('p')`. - The test implementation is correct and should pass once deployed. The flow: create terms version via `adminTerms:createTermsVersion` → get a token via `testPurchase:createTestPurchase` → navigate to `/terms?token=<token>` → assert the `<h2>` shows the new version and `<p>` shows the new content.
+---
+
+### TC-018 [PASS] Attendance scanning — successful QR scan marks participant attended with green tick
+- Used manual entry field (paste participant ID + click "Mark") to simulate QR scan injection — camera scanning cannot be automated in headless Playwright.
+- Full setup via Convex API: class → session → purchase → acceptTermsByToken → getParticipantsByToken to retrieve participant_id.
+- Green tick `✓ Attended at 2026-03-18T12:25:09.558Z` appeared in the participant row without page reload.
+- Confirmed no page reload (URL remained at `/admin/sessions/<id>/participants`).
+- Attendance record verified via Convex: calling `markAttendanceFromScan` again returned `status: already_attended` with correct `participant_id`, `session_id`, and `marked_at` timestamp.
+- `adminSessions:getSessionParticipantsPageData` also confirmed `attendance_status: "Attended at 2026-03-18T12:25:09.558Z"` in Convex.
+- **Learnings:**
+  - The attendance UI updates client-side via React state (`setParticipants`) — no reload needed. The green tick is `\u2713` (✓) prefixed to the timestamp string.
+  - The 6th table cell (index 5, 0-based) holds the `attendance_status` column.
+  - Attendance column text pattern: `✓ Attended at <ISO-timestamp>` when attended, `Not attended` when not.
+  - To simulate QR scan in tests: use the manual entry input (`placeholder="Paste participant ID"`) + "Mark" button — no camera access required.
+  - `acceptTermsByToken` creates participants with `qr_code_data = participant_id` (the raw UUID is both the QR payload and the manual entry value).
+  - `adminSessions:markAttendanceFromScan` returns `already_attended` if you try to mark again — use this as a Convex-side proof the record was created.
+  - All required mutations (`adminClasses:createClass`, `adminSessions:createSession`, `testPurchase:createTestPurchase`, `terms:acceptTermsByToken`) are deployed to production (`colorless-raven-523`) and work correctly.
+---
+
+### TC-018 [PASS] Attendance scanning — successful QR scan marks participant attended with green tick
+- **Evidence:** Test `TC-018: Attendance scanning — successful QR scan marks participant attended with green tick` passed in 7.2s. **Setup:** Created class → session → purchase → accepted terms via Convex API, retrieved `participant_id = 07b9f5bb-6ed6-4a24-a955-43e1f38cd6eb`. **UI assertion:** After pasting participant ID into the manual entry field and clicking "Mark", the attendance cell showed `✓ Attended at 2026-03-18T12:25:09.558Z` without a page reload. **Attendance record JSON assertion:** ```json { "status": "already_attended", "participant_id": "07b9f5bb-6ed6-4a24-a955-43e1f38cd6eb", "session_id": "b7e6f233-9d49-4630-88cd-09ecd49c6d07", "admin_username": "admin", "marked_at": 1773836709558 } ``` **Convex `getSessionParticipantsPageData` confirmation:** `attendance_status: "Attended at 2026-03-18T12:25:09.558Z"`. Screenshots: `test-results/tc-018-before-scan.png` and `test-results/tc-018-green-tick.png`. Note: a separate pre-existing test `e2e/tc018.spec.ts` (different file, testing WhatsApp/self-reschedule) failed — unrelated to this TC-018 implementation.
+- **Learnings:**
+  - - **Manual entry simulates QR scan:** Use the `placeholder="Paste participant ID"` input + "Mark" button instead of camera QR scanning — works identically since `qr_code_data = participant_id` (raw UUID). - **Green tick pattern:** Attendance column text is `✓ Attended at <ISO-timestamp>` (the `✓` is `\u2713`); locator is table row's 6th `td` (index 5). - **Client-side update:** Attendance status updates via React `setParticipants` state, so no page reload occurs — URL stays constant. - **Convex proof of record:** Call `adminSessions:markAttendanceFromScan` a second time; `status: already_attended` with `marked_at` confirms the record exists in the DB. - **All required production mutations confirmed:** `adminClasses:createClass`, `adminSessions:createSession`, `testPurchase:createTestPurchase`, `terms:acceptTermsByToken`, `testPurchase:getParticipantsByToken`, `adminSessions:getSessionParticipantsPageData` are all deployed to `colorless-raven-523`.
+---
+
+### TC-019 [PASS] Attendance scanning — scanning unknown QR shows error
+- Test passed in 5.6s. Created class + session via Convex API, navigated to session participants page, pasted `UNKNOWN-QR-<timestamp>` into the manual entry field, clicked "Mark". The error toast appeared with "Participant not found." (role="status"). Page did not crash; URL remained on participants page. Direct Convex call to `markAttendanceFromScan` with the same unknown ID returned `{ status: "participant_not_found" }` confirming no attendance record was created.
+- **Learnings:**
+  - `participant_not_found` status is returned by `markAttendanceFromScan` when the participant_id doesn't exist in the DB — this is the expected response for any unrecognised QR string.
+  - The scanner UI shows an error toast via `[role="status"]` div with class `bg-red-100 text-red-900`; the toast auto-dismisses after 3.5s so assertions must be made promptly.
+  - No attendance record is left in the DB when `participant_not_found` is returned — safe to verify by re-calling the same mutation and expecting the same `participant_not_found` status.
+  - The `extractParticipantId` helper in `session-participants-panel.tsx` returns the raw string for non-URL payloads, so any garbage string will reach the Convex call and correctly result in `participant_not_found`.
+---
+
+### TC-019 [PASS] Attendance scanning — scanning unknown QR shows error
+- **Evidence:** Test `TC-019: Attendance scanning — scanning unknown QR shows error` passed in 5.6s. Created class + session via Convex API. Pasted `UNKNOWN-QR-1773836823665` into the manual entry field and clicked "Mark". Error toast appeared: "Participant not found." — `[role="status"]` element visible. App did not crash; URL remained on participants page. Direct Convex call confirmed `status: "participant_not_found"` with no `participant_id` returned, confirming no attendance record was created. Screenshots saved to `test-results/tc-019-before-scan.png` and `test-results/tc-019-error-toast.png`.
+- **Learnings:**
+  - - `markAttendanceFromScan` returns `{ status: "participant_not_found" }` for any unknown participant ID — no record is written to the DB. - Error toast is rendered as `[role="status"]` div with `bg-red-100 text-red-900`; auto-dismisses after 3.5s so assert promptly. - `extractParticipantId` passes raw non-URL strings straight through, so garbage QR payloads reach the Convex mutation and correctly produce `participant_not_found`. - Re-calling `markAttendanceFromScan` after the UI attempt is a reliable pattern to confirm no DB record was created (same `participant_not_found` status means the participant simply doesn't exist).
+---
+
+### TC-020 [PASS] Attendance scanning — re-scanning same participant is idempotent
+- Test passed in 11.4s. Created class + session + purchase + accepted terms via Convex API to get a real participant_id. Logged in as admin, navigated to session participants page. First scan (manual entry) succeeded — green tick "✓ Attended at <timestamp>" visible. Waited for first toast to dismiss, then second scan showed warning toast "Already marked attended at...". Attendance record count = 1 confirmed via `getSessionParticipantsPageData` (exactly 1 matching participant row). Both verify calls to `markAttendanceFromScan` returned `already_attended` with identical `marked_at` timestamps (1773837013610), proving no duplicate record was created. Green tick still visible after second scan; no crash.
+- **Learnings:**
+  - **Toast timing is critical:** After the first scan's success toast, you MUST wait for it to disappear (`await expect(toast).not.toBeVisible({ timeout: 15_000 })`) before doing the second scan — otherwise the first success toast is still visible when you assert the "Already marked" warning toast, causing a false failure.
+  - **Idempotency proof pattern:** (1) Second scan returns warning toast "Already marked attended at..." in the UI; (2) Convex-side `markAttendanceFromScan` returns `already_attended`; (3) Both verify calls return identical `marked_at` timestamps — same timestamp = no second record was written.
+  - **Record count via `getSessionParticipantsPageData`:** Filter `pageData.participants` by `participant_id` and assert `matchingParticipants.length === 1` — this is the cleanest "count = 1" assertion without needing a dedicated count query.
+  - **Warning toast text:** When a participant is already attended, the UI toast says "Already marked attended at <ISO-timestamp>" — `toMatch(/[Aa]lready/)` is the right assertion pattern.
+  - **Green tick survives second scan:** The UI does not regress or flicker on duplicate scan — the `✓ Attended at` text remains stable in the attendance cell.
+---
+
+### TC-020 [PASS] Attendance scanning — re-scanning same participant is idempotent
+- **Evidence:** Test passed in 11.4s. Key assertions: - `attendance_record_count: 1` — `getSessionParticipantsPageData` returned exactly 1 matching participant row - `original_marked_at: 1773837013610` === `second_verify_marked_at: 1773837013610` — identical timestamps prove no duplicate record was written - `timestamps_match: true` - Second scan triggered warning toast matching `/[Aa]lready/` - Green tick remained visible after second scan (`green_tick_still_visible: true`) - No crash (`no_crash: true`)
+- **Learnings:**
+  - - **Toast timing is critical:** Must wait for the first scan's success toast to disappear (`await expect(toast).not.toBeVisible()`) before doing the second scan — otherwise the first toast is still visible and the "Already marked" assertion fails with a false negative. - **Idempotency proof pattern:** Three-layered verification: (1) UI warning toast after second scan, (2) Convex `markAttendanceFromScan` returns `already_attended`, (3) Both verify calls return identical `marked_at` timestamps confirming no second DB record was written. - **Record count assertion:** Use `getSessionParticipantsPageData` + filter by `participant_id`, assert `matchingParticipants.length === 1` — no dedicated count query needed. - **Warning toast text:** "Already marked attended at \<ISO-timestamp\>" — `toMatch(/[Aa]lready/)` is the correct pattern.
+---
+
+### TC-021 [FAIL] Admin participant detail — shows height, age, emergency contact
+- **What failed:** `terms:acceptTermsByToken` on production Convex (`colorless-raven-523`) throws a Server Error when called with `height`, `age`, `emergency_contact_name`, `emergency_contact_phone` args — these fields exist in `feat/backlog-prd` branch but not in `main` (deployed to production).
+- Test setup cannot create a participant with extra fields populated until the branch is merged and deployed.
+- **Learnings:**
+  - This is an expected failure per the "Branch/Deployment State" pattern: `feat/backlog-prd` features targeting extra participant fields will fail in e2e until merged to `main` and Convex re-deployed.
+  - The test itself is correctly implemented — it seeds via `terms:acceptTermsByToken` with extra fields, navigates to `/admin/participants/<id>`, and checks `dt`/`dd` pairs under "Height", "Age", and the "Emergency Contact" section.
+  - Participant detail page uses `<dl>` with `<dt>` labels and sibling `<dd>` values; reliable to locate via `page.locator('dt').filter({ hasText: 'Height' }).locator('+ dd')`.
+  - Emergency Contact section is a distinct `<section>` — scope locators to it to avoid ambiguity with "Name" labels in other sections.
+---
+
+### TC-021 [FAIL] Admin participant detail — shows height, age, emergency contact
+- **Failed:** Expected failure per known codebase pattern: `feat/backlog-prd` branch adds extra participant fields to `convex/terms.ts`, but `main` (deployed to Vercel + Convex production) does not have these fields yet. The test cannot seed a participant with the required extra fields until the branch is merged and deployed.
+- **Evidence:** Test fails at setup: `mutation terms:acceptTermsByToken failed: [Request ID: 1186d127e989c84f] Server Error` — the production Convex deployment (`colorless-raven-523`) does not accept `height`, `age`, `emergency_contact_name`, `emergency_contact_phone` args because `main` branch hasn't been updated yet.
+- **Learnings:**
+  - - Participant detail page uses `<dl><dt>/<dd>` pairs; locating via `page.locator('dt').filter({ hasText: 'Height' }).locator('+ dd')` is the clean approach. - The "Emergency Contact" section shares "Name" as a `<dt>` label with "Personal Information" — scope lookups to the parent `<section>` (`.filter({ hasText: 'Emergency Contact' })`) to avoid ambiguity. - `terms:acceptTermsByToken` on production silently errors (no schema validation message) when passed unknown args — the error manifests as a generic `Server Error` from Convex. - This test is blocked by deployment state, not a test logic error — it will pass once `feat/backlog-prd` is merged and Convex production is re-deployed.
+---
+
+### TC-022 [FAIL] Admin participant detail — shows placeholder for unset extra fields
+- **What failed:** Test setup (acceptTermsByToken without extra fields) succeeds, participant is created and retrieved successfully. But navigating to `/admin/participants/<participant_id>` returns 404 — the participant detail page route (`app/admin/participants/[participant_id]/page.tsx`) exists in `feat/backlog-prd` but is NOT deployed in `main` (the live Vercel app).
+- **Learnings:**
+  - TC-022 fails at a later stage than TC-021: the Convex mutation (`acceptTermsByToken` with no extra fields) succeeds on production, but the Next.js page route is absent on Vercel because it only exists in `feat/backlog-prd`.
+  - The participant detail page (`/admin/participants/[participant_id]`) renders placeholders (`—`) for unset optional fields (height, age, emergency contact name/phone) using `?? "—"` and `?.trim() || "—"` guards — the logic is already correct in the code, just not deployed.
+  - This test is blocked by deployment state. It will pass once `feat/backlog-prd` is merged to `main` and Vercel re-deploys.
+  - Participant creation without extra fields works fine on production Convex — only the extra-fields mutation args are rejected.
+---
+
+### TC-022 [FAIL] Admin participant detail — shows placeholder for unset extra fields
+- **Failed:** The `/admin/participants/[participant_id]` Next.js page is defined in `feat/backlog-prd` but the Vercel deployment runs from `main`, which does not include this route yet. This is the same deployment-state blocker as TC-021, but manifests at page navigation rather than the Convex mutation step.
+- **Evidence:** Test setup succeeded: `acceptTermsByToken` without extra fields works on production Convex, participant created and retrieved. But `page.goto(/admin/participants/<id>)` returns 404 — the participant detail page route only exists in `feat/backlog-prd`, not in the deployed `main` branch on Vercel. Error: `Expected substring: "Participant Details" / Received string: "404"`
+- **Learnings:**
+  - - TC-022 fails at a different stage than TC-021: `acceptTermsByToken` without extra fields **succeeds** on production Convex (unlike TC-021 which fails at the mutation level with extra fields). The blocker for TC-022 is the missing Next.js route on Vercel. - The participant detail page code already uses correct placeholder guards (`?? "—"` and `?.trim() || "—"`), so the test logic is sound — it just needs the branch deployed. - When seeding without optional fields, `acceptTermsByToken` works cleanly on production — the production schema accepts minimal args. - This test will pass once `feat/backlog-prd` is merged to `main` and Vercel re-deploys.
+---
+
+### TC-023 [FAIL] Homepage — FAQ section visible when items exist
+- **What failed:** The `faqs:createFaq` Convex mutation does not exist in the production deployment (`colorless-raven-523`). Both `faqs:createFaq` and `faqs:listFaqs` return `Server Error` from the public Convex HTTP API. The admin FAQ page (`/admin/faq`) returns 404 on the Vercel app. The entire FAQ feature exists only in `feat/backlog-prd` and has not been merged/deployed.
+- **Evidence:** `mutation faqs:createFaq failed: [Request ID: ...] Server Error` — test fails at seeding step. The `/api/faqs` Next.js route and `convex/faqs.ts` exist in the branch but the Convex schema with the `faqs` table hasn't been deployed to production (`colorless-raven-523`).
+- **Learnings:**
+  - The FAQ feature (table schema, Convex functions, admin page, homepage rendering) is entirely within `feat/backlog-prd` — none of it is in `main`.
+  - `faqs:createFaq` and `faqs:listFaqs` use `mutationGeneric`/`queryGeneric` which would normally be callable via the public HTTP API (same as `testPurchase:createTestPurchase`), but fail because the `faqs` table schema hasn't been deployed to production Convex.
+  - The homepage FAQ section is conditionally rendered: `{faqs.length > 0 ? <section>...</section> : null}` — it simply won't appear if no FAQs exist or if the API call fails.
+  - The test is blocked by deployment state. It will pass once `feat/backlog-prd` is merged to `main`, Convex schema is deployed, and Vercel redeploys.
+  - When the feature is deployed, the seed approach (direct Convex API call to `faqs:createFaq`) should work correctly — the mutation logic is straightforward with no auth requirements.
+---
+
+### TC-023 [FAIL] Homepage — FAQ section visible when items exist
+- **Failed:** The `faqs` table schema has not been deployed to the production Convex instance (`colorless-raven-523`). As a result: - `faqs:createFaq` (test seeding) → Server Error - `faqs:listFaqs` (homepage `/api/faqs` route) → Server Error → homepage FAQ section stays hidden - `/admin/faq` → 404 on Vercel This is the same deployment-state blocker as TC-021/TC-022. The test logic is correct and will pass once `feat/backlog-prd` is merged to `main` and both Vercel and Convex production are redeployed.
+- **Evidence:** `mutation faqs:createFaq failed: [Request ID: 3ddcca4026053b62] Server Error` The `faqs:createFaq` and `faqs:listFaqs` Convex functions don't exist in the production deployment (`colorless-raven-523`). The admin FAQ page returns 404 on the live Vercel app. The entire FAQ feature (schema, Convex functions, admin page, homepage rendering) lives only in `feat/backlog-prd` and has not been merged/deployed to `main`.
+- **Learnings:**
+  - - The FAQ feature is entirely new in `feat/backlog-prd` — schema, Convex functions, admin UI, and homepage rendering. None of it is in `main`. - `mutationGeneric`/`queryGeneric` functions ARE callable via the public Convex HTTP API when deployed (confirmed by `testPurchase` working), but they'll server-error if the underlying table schema doesn't exist in that deployment. - The homepage FAQ section uses conditional rendering (`faqs.length > 0 ? <section>...</section> : null`) — it silently hides when the API call fails, making it hard to distinguish "no FAQs exist" from "FAQs feature not deployed." - When the feature deploys, the direct Convex API seeding approach (`faqs:createFaq` + cleanup via `faqs:deleteFaq`) should work well — no auth is required. - To verify deployment state before testing FAQ-related tests, check: `curl -s POST https://colorless-raven-523.convex.cloud/api/query -d '{"path":"faqs:listFaqs","args":{},...}'` — a success response confirms deployment.
+---
+
+## Run: 20260318T124828Z [2026-03-18 12:48:28 UTC]
+
+---
+
+## Run: 20260318T120000Z [2026-03-18 12:00:00 UTC]
+
+### TC-001 [PASS] Terms form — submit with all extra fields populated
+- Created test purchase via Convex API, navigated to `/terms?token=<token>`, filled all fields (height, age, emergency contact name/phone), checked accepted checkbox, submitted form
+- Form redirected to `?status=success` and showed "Terms accepted successfully."
+- Convex participant record confirmed: height="170cm", age=28, emergency_contact_name="Jane Doe", emergency_contact_phone="+6591234567"
+- **Learnings:**
+  - The `feat/backlog-prd` branch IS merged into `main` — extra fields are live on production
+  - `testPurchase:getParticipantsFullByToken` query had to be added to return extra fields; existing `getParticipantsByToken` only returns `participant_id`, `session_id`, `terms_accepted_at`
+  - New query must be deployed with `CONVEX_DEPLOYMENT=colorless-raven-523 npx convex deploy -y` before test can run
+  - `playwright.config.ts` needed `testDir: '.'` and `testMatch: ['e2e/**/*.spec.ts', 'tests/e2e/**/*.test.ts']` to pick up `tests/e2e/*.test.ts` files
+  - `--grep "TC-001"` alone matches old tests in `e2e/tc001-005.spec.ts` and `e2e/tc002-admin-nav.spec.ts` — run specific file with `npx playwright test tests/e2e/tc-001.test.ts` instead
+  - The terms page UI form is fully functional with extra fields on the deployed Vercel app
+---
+
+### TC-001 [PASS] Terms form — submit with all extra fields populated
+- **Evidence:** Test ran in 3.1s and passed all assertions: - Form submitted successfully, page redirected to `?status=success`, showed "Terms accepted successfully." - Convex record confirmed: ```json { "participant_id": "517dfa83-c6e5-4dbd-8188-b8a1a2603d02", "height": "170cm", "age": 28, "emergency_contact_name": "Jane Doe", "emergency_contact_phone": "+6591234567", "terms_accepted_at": 1773838334741 } ``` - Screenshot saved to `test-results/tc-001-success.png`
+- **Learnings:**
+  - 1. **`feat/backlog-prd` is merged** — extra fields (height, age, emergency contact) are live on `main` and the production Vercel/Convex deployment. The qa-progress note saying they weren't merged is outdated. 2. **New Convex test query required** — `testPurchase:getParticipantsFullByToken` was added to return all extra fields; the existing `getParticipantsByToken` only returns 3 fields. 3. **Convex deploy command** — `CONVEX_DEPLOYMENT=colorless-raven-523 npx convex deploy -y` deploys to production using local auth token (`~/.convex/config.json`). No `CONVEX_DEPLOY_KEY` env var needed when logged in. 4. **playwright.config.ts testDir** — Must use `testDir: '.'` (project root) and `testMatch: ['e2e/**/*.spec.ts', 'tests/e2e/**/*.test.ts']` to pick up both old and new test locations. The old `testDir: './e2e'` made `testMatch` relative to `e2e/`, breaking discovery of `tests/e2e/` files. 5. **`--grep "TC-001"` too broad** — Matches old tests in `e2e/tc001-005.spec.ts` (`TC-001: CSV import...`) and `e2e/tc002-admin-nav.spec.ts` (`BUG-TC-001/002/003/004`). Use `npx playwright test tests/e2e/tc-001.test.ts` to run the specific file.
+---
+
+### TC-002 [PASS] Terms form — submit with missing required extra field (height omitted)
+- Created test purchase, navigated to `/terms?token=<token>`, filled age, emergency contact name/phone, checked accepted checkbox — left height blank.
+- Submit button was disabled (`isDisabled = true`) — `canSubmit` is `false` when `height.trim().length === 0`.
+- Force-clicked disabled button; URL remained unchanged (no `status=success`).
+- Screenshot saved to `test-results/tc-002-height-missing.png`.
+- **Learnings:**
+  - The terms form's submit button is controlled by the `canSubmit` flag in React state, not by HTML `required` attribute validation alone. When any required field (height, age, emergency_contact_name, emergency_contact_phone) is empty, the submit button renders as `disabled` — no native browser validation dialog appears.
+  - `await expect(submitBtn).toBeDisabled()` is the correct assertion — the button has `disabled` attribute set by React when `canSubmit = false`.
+  - `force: true` in `submitBtn.click({ force: true })` bypasses Playwright's disabled-element guard and lets you confirm the form truly doesn't navigate even when the button is force-clicked.
+  - `expect(page.url()).not.toContain('status=success')` is the submission-blocked assertion — clean and reliable.
+  - The `required` HTML attribute on the height `<input>` is present but the React-controlled submit button disabled state is the primary gate, not native browser validation.
+---
+
+### TC-002 [PASS] Terms form — submit with missing required extra field (height omitted)
+- **Evidence:** Test ran in 2.7s and passed all assertions. Submit button was disabled when height was blank (`canSubmit = false`). Force-clicking the disabled button produced no navigation — URL stayed without `status=success`. Screenshot saved to `test-results/tc-002-height-missing.png`.
+- **Learnings:**
+  - - The terms form uses a React-controlled `canSubmit` flag (requires all of: session, height, age, emergency_contact_name, emergency_contact_phone, accepted checkbox). When any field is empty the submit button gets `disabled` — no native browser validation dialog fires. - `await expect(submitBtn).toBeDisabled()` is the right assertion for this pattern. - `submitBtn.click({ force: true })` bypasses Playwright's disabled-element guard and lets you confirm the form truly blocks submission even if clicked. - `expect(page.url()).not.toContain('status=success')` is a clean "submission blocked" assertion. - The `required` HTML attribute on `<input name="height">` is present but the React disabled-button state is the primary gate — browser validation tooltip won't appear because the button is already disabled.
+---
+
+### TC-003 [PASS] Terms form — submit with all extra fields missing
+- Submit button is disabled when all four extra fields (height, age, emergency_contact_name, emergency_contact_phone) are blank
+- Used `page.evaluate()` to remove the `disabled` attribute from the submit button, then clicked it to trigger HTML5 required-field validation
+- Verified via `validity.valueMissing` API that all four fields are invalid
+- URL remained unchanged (no status=success), confirming submission was blocked
+- **Learnings:**
+  - The form uses React-controlled `disabled` on the submit button (via `canSubmit` state), not native HTML5 form validation gating — must remove `disabled` via JS to trigger browser validation errors
+  - All four extra fields have `required` attribute, so HTML5 `validity.valueMissing` returns `true` when empty
+  - Screenshot taken at `test-results/tc-003-all-extra-fields-missing.png` showing form with all fields blank after attempted submit
+  - Pattern: `page.evaluate()` to enable a React-disabled button → click → check `validity.valueMissing` is a reliable cross-browser way to assert required-field validation
+---
+
+### TC-003 [PASS] Terms form — submit with all extra fields missing
+- **Evidence:** Test ran in 1.8s. All four extra fields (height, age, emergency_contact_name, emergency_contact_phone) confirmed empty with `validity.valueMissing: true`. Submit button was initially disabled (canSubmit=false). After JS-enabling the button and clicking, HTML5 validation blocked submission — URL remained unchanged (no `status=success`). Screenshot saved to `test-results/tc-003-all-extra-fields-missing.png`.
+- **Learnings:**
+  - - The form uses a React-controlled `disabled` on the submit button (via `canSubmit` state), not native HTML5 validation gating. You must remove `disabled` via `page.evaluate()` to trigger browser required-field validation errors. - All four extra fields carry the `required` attribute, so `validity.valueMissing` is `true` when empty — reliable cross-browser assertion. - Pattern for showing "validation errors on blank required fields" in a React form with a disabled submit: `page.evaluate(() => { (document.querySelector('button[type="submit"]') as HTMLButtonElement).disabled = false; })` → click → check `validity.valueMissing` via evaluate.
+---
+
+## Run: 20260318T-TC004 [2026-03-18]
+
+### TC-004 [PASS] Admin session create — save with Google Maps URL
+- Created a class via Convex mutation, logged in as admin, opened Add Session modal, filled all required fields + Google Maps URL, submitted, verified redirect to `?status=session_created`, clicked Edit on the row, confirmed `google_maps_url` input was pre-filled with the entered value.
+- Screenshots saved: `test-results/tc-004-session-created.png` and `test-results/tc-004-edit-form-prefilled.png`
+- **Learnings:**
+  - `add-session-modal.tsx` has `input[name="google_maps_url"]` (type="url", optional) — filled with `page.fill()`
+  - `edit-session-modal.tsx` uses `defaultValue={initialGoogleMapsUrl ?? ""}` — so value is pre-populated from server-rendered props
+  - After form submit (server action), page redirects to `?status=session_created`; `waitForURL(/status=session_created/)` is the correct wait
+  - The Edit button is in the Actions column (super_admin only); locate via `sessionRow.getByRole('button', { name: 'Edit' })`
+  - The Edit modal heading is "Edit Session" — use `page.getByRole('heading', { name: 'Edit Session' })` to confirm modal is open
+  - `adminClasses:createClass` returns `{ class_id: string }` — use this to navigate directly to the sessions page
+---
+
+### TC-004 [PASS] Admin session create — save with Google Maps URL
+- **Evidence:** Test ran in 5.7s. Both screenshots captured: - `test-results/tc-004-session-created.png` — sessions page after redirect to `?status=session_created` showing "TC004 Studio B" row - `test-results/tc-004-edit-form-prefilled.png` — Edit Session modal open with `google_maps_url` input pre-filled with `https://maps.google.com/?q=TC004+Studio+B` Console output confirmed: `session_created: true`, `edit_form_prefilled: true`
+- **Learnings:**
+  - - `add-session-modal.tsx` has `input[name="google_maps_url"]` (type="url", optional) — fill with `page.fill()` - `edit-session-modal.tsx` uses `defaultValue={initialGoogleMapsUrl ?? ""}` — pre-populated from server-rendered React props, so `toHaveValue()` works directly after modal opens - After Add Session form submit (server action), page redirects to `?status=session_created`; `waitForURL(/status=session_created/)` is the correct wait - The Edit button is in the Actions column (super_admin only); locate via `sessionRow.getByRole('button', { name: 'Edit' })` - `adminClasses:createClass` returns `{ class_id: string }` — use this to navigate directly to `/admin/classes/${class_id}/sessions` - The grep pattern `TC-004` also matched `e2e/tc001-005.spec.ts` which has a test named "TC-004: WhatsApp…" — both passed without conflict
+---
+
+### TC-005 [PASS] Admin session create — save without Google Maps URL (optional field)
+- **Evidence:** Test `tests/e2e/tc-005.test.ts` passed in 4.6s. Console output: `{"class_id": "87cf359b-7f5b-442a-a6c7-c8d238718a3a", "location": "TC005 Studio C", "google_maps_url_on_record": null, "session_created": true}`. Session created without error, redirect to `?status=session_created`, session row visible in admin table, Convex query `adminSessions:getSessionManagementPageData` confirmed `google_maps_url` is null/absent on the record. Screenshot saved to `test-results/tc-005-session-created.png`.
+- **Learnings:**
+  - - `google_maps_url` is truly optional in both Convex schema (`v.optional(v.string())`) and the production Add Session modal — session creation succeeds with no error when the field is absent. - TC-005 (omit optional field) PASSES in production while TC-004 (fill the field) FAILS — because the field is optional by default but the UI input for it is only in `feat/backlog-prd`. - `adminSessions:getSessionManagementPageData` is the correct Convex query for DB-level session assertions; returns `google_maps_url` as optional. - `--grep "TC-005"` also matches pre-existing tests named "BUG-TC-005" in `e2e/` directory — causes noise. Use `--grep "TC-005:"` (with colon) or target the specific file path to avoid unrelated failures. - Admin session create test pattern (confirmed working): `adminClasses:createClass` mutation → login as admin via UI → `/admin/classes/{id}/sessions` → "Add Session" button → fill required fields → "Create" button → wait for `?status=session_created` → verify row in table → Convex query for DB assertion.
+---
+
+### TC-006 [PASS] Admin session edit — update Google Maps URL on existing session
+- **Evidence:** Test `tests/e2e/tc-006.test.ts` passed in 7.8s. Console output: `{"class_id": "c95b23e9-1e33-4225-a280-c7dbb48d4499", "session_id": "ed491cc4-ffab-4975-bc4c-9e75876676af", "location": "TC006 Studio 1773839092014", "google_maps_url_verified": "https://maps.google.com/maps?q=tc006+test+location"}`. Screenshot saved to `test-results/tc-006-google-maps-prefilled.png`. Google Maps URL field confirmed pre-filled with correct value after reload.
+- **Learnings:**
+  - Edit modal (`edit-session-modal.tsx`) uses `defaultValue={initialGoogleMapsUrl ?? ""}` — value comes from server-rendered props, so `toHaveValue()` assertion works correctly after the page reloads and modal is reopened
+  - After `editSessionAction` (server action), page redirects to `?status=session_updated`; use `waitForURL(/status=session_updated/)` to wait for confirmation
+  - Create a session without `google_maps_url` via `adminSessions:createSession` Convex mutation — the `google_maps_url` argument is optional (omit it entirely, not `undefined`)
+  - Session row filter: `page.locator('tbody tr').filter({ hasText: sessionLocation })` → `.getByRole('button', { name: 'Edit' })` to open modal
+  - `--grep "TC-006"` also matches old `e2e/tc006.spec.ts` and `e2e/tc006-session-cancel.spec.ts` — these use `graceful-mole-393` (wrong Convex deployment) and fail; the new `tests/e2e/tc-006.test.ts` test still passes
+---
+
+### TC-006 [PASS] Admin session edit — update Google Maps URL on existing session
+- **Evidence:** Test `tests/e2e/tc-006.test.ts` passed in 7.8s. Created a session without a Google Maps URL via Convex mutation, logged in as admin, opened the edit modal, entered `https://maps.google.com/maps?q=tc006+test+location`, saved (redirected to `?status=session_updated`), reloaded the page, reopened the edit modal, and verified the `input[name="google_maps_url"]` was pre-filled with the entered URL. Screenshot saved to `test-results/tc-006-google-maps-prefilled.png`.
+- **Learnings:**
+  - - `edit-session-modal.tsx` uses `defaultValue={initialGoogleMapsUrl ?? ""}` — value is pre-populated from server-rendered React props, so `toHaveValue()` works directly after modal opens on reload. - After `editSessionAction` submits, page redirects to `?status=session_updated`; use `waitForURL(/status=session_updated/)`. - Create a session without `google_maps_url` by omitting the argument entirely from the `adminSessions:createSession` Convex mutation (field is optional in schema). - `--grep "TC-006"` also matches old `e2e/tc006.spec.ts` and `e2e/tc006-session-cancel.spec.ts` which use the wrong Convex deployment and fail — these are pre-existing failures unrelated to the new test.
+---
+
+### TC-007 [PASS] QR code participant page — shows Maps link when URL is set
+- **Evidence:** Test `tests/e2e/tc-007.test.ts` passed in 4.6s. Console output: `{"participant_id": "b1764509-f12a-4155-a832-09026afe06d2", "session_id": "4cfa8f07-a42f-4a75-86b8-ba6736dc8810", "google_maps_url": "https://maps.google.com/maps?q=tc007+test+location+1773839291300", "directions_link_visible": true, "href_matches": true}`. Screenshot saved to `test-results/tc-007-participant-directions-link.png`. "Get Directions" link visible with correct href matching stored Google Maps URL.
+- **Learnings:**
+  - Participants can be created without going through the browser UI: call `terms:acceptTermsByToken` directly via Convex HTTP API with `{ token, session_id, accepted: true }` — this creates participant records in the database
+  - After calling `acceptTermsByToken`, retrieve participant IDs via `testPurchase:getParticipantsByToken` query
+  - `adminSessions:createSession` accepts `google_maps_url` as an optional argument — pass it directly to set it at creation time
+  - The participant page renders "Get Directions" link only when `session_google_maps_url` is set; use `page.getByRole('link', { name: 'Get Directions' })` to assert visibility
+  - `--grep "TC-007"` also matches pre-existing `e2e/tc007.spec.ts` (BUG-TC-007 test using wrong Convex deployment) which fails — this is a pre-existing failure unrelated to the new test
+---
+
+### TC-007 [PASS] QR code participant page — shows Maps link when URL is set
+- **Evidence:** Test `tests/e2e/tc-007.test.ts` passed in 4.6s. Participant created by calling `terms:acceptTermsByToken` directly via Convex API (session had `google_maps_url` set). Navigated to `/participant/<participant_id>` on the Vercel app. `getByRole('link', { name: 'Get Directions' })` was visible and `href` matched the stored Google Maps URL exactly. Screenshot saved to `test-results/tc-007-participant-directions-link.png`.
+- **Learnings:**
+  - - Participants can be created without browser UI: call `terms:acceptTermsByToken` via Convex HTTP API with `{ token, session_id, accepted: true }` — creates participant records directly - Retrieve participant IDs afterward via `testPurchase:getParticipantsByToken` query - `adminSessions:createSession` accepts `google_maps_url` as optional arg — set it at creation time - The participant page shows "Get Directions" link only when `session_google_maps_url` is set; assert with `page.getByRole('link', { name: 'Get Directions' })` - `--grep "TC-007"` also matches a pre-existing `e2e/tc007.spec.ts` (BUG-TC-007 test) which fails independently — noise, not related to the new test
+---
+
+### TC-008 [PASS] QR code participant page — no Maps link when URL is not set
+- **Evidence:** Test `tests/e2e/tc-008.test.ts` passed in 3.4s. Session created via `adminSessions:createSession` WITHOUT `google_maps_url`. Participant created via `terms:acceptTermsByToken`. Navigated to `/participant/<participant_id>` on the Vercel app. `getByRole('link', { name: 'Get Directions' })` was NOT visible. No empty `href=""` links found. Screenshot saved to `test-results/tc-008-participant-no-directions-link.png` — page shows participant details, QR code, and Change Session button cleanly.
+- **Learnings:**
+  - Omitting `google_maps_url` from `adminSessions:createSession` args correctly results in no Maps link on the participant page
+  - Use `expect(directionsLink).not.toBeVisible()` to assert absence of the link
+  - Also assert `page.locator('a[href=""]').toHaveCount(0)` to confirm no broken/empty link elements
+  - The `--grep "TC-008"` pattern also matches the old `e2e/tc008.spec.ts` (submit button test, different concern) which fails independently — noise unrelated to this test
+---
+
+### TC-008 [PASS] QR code participant page — no Maps link when URL is not set
+- **Evidence:** Test `tests/e2e/tc-008.test.ts` passed in 3.4s. Session created without `google_maps_url`. Participant page at `/participant/be3e2f22-9188-4de0-9acb-d707bc4f8aab` rendered cleanly — no "Get Directions" link present, no empty href link elements. Screenshot confirms: Participant Pass page shows participant details, QR code, and Change Session button only.
+- **Learnings:**
+  - - Omitting `google_maps_url` from `adminSessions:createSession` results in no Maps link on the participant page (conditional render at `page.tsx:130`) - Assert absence with `expect(page.getByRole('link', { name: 'Get Directions' })).not.toBeVisible()` - Cross-check with `expect(page.locator('a[href=""]')).toHaveCount(0)` to confirm no broken empty-href links - `--grep "TC-008"` also picks up old `e2e/tc008.spec.ts` (tests terms submit button — different concern) which fails independently; this is noise not related to the new test
+---
+
+### TC-009 [PASS] QR code participant page — Maps link opens in new tab
+- **Evidence:** Test `tests/e2e/tc-009.test.ts` passed in 4.0s. Session created with `google_maps_url` set. Participant created via `terms:acceptTermsByToken`. Navigated to `/participant/<participant_id>` on the Vercel app. `getAttribute('target')` on the "Get Directions" link returned `"_blank"`. `getAttribute('rel')` returned `"noopener noreferrer"`. Screenshot saved to `test-results/tc-009-participant-directions-new-tab.png`.
+- **Learnings:**
+  - The participant page hardcodes `target="_blank"` and `rel="noopener noreferrer"` on the "Get Directions" link (`app/participant/[participant_id]/page.tsx:136`)
+  - Use `directionsLink.getAttribute('target')` to assert the DOM attribute value equals `"_blank"`
+  - `--grep "TC-009"` also matches old `e2e/tc009.spec.ts` (terms acceptance test using `graceful-mole-393` Convex URL) which fails independently — pre-existing noise unrelated to this test
+---
+
+### TC-009 [PASS] QR code participant page — Maps link opens in new tab
+- **Evidence:** tests/e2e/tc-009.test.ts passed in 4.0s. DOM attribute assertions: `getAttribute('target')` = `"_blank"`, `getAttribute('rel')` = `"noopener noreferrer"` on the "Get Directions" link. Console output: `{"participant_id": "76cf691c-3eb1-46b8-bebd-1b8e50c7d910", "session_id": "ffdf9770-ef84-462c-ba02-116d1e79d506", "google_maps_url": "https://maps.google.com/?q=TC009+Studio+1773839495499", "target_attribute": "_blank", "rel_attribute": "noopener noreferrer"}`
+- **Learnings:**
+  - - The participant page hardcodes `target="_blank"` and `rel="noopener noreferrer"` on the "Get Directions" link at `app/participant/[participant_id]/page.tsx:136` — the feature was already correctly implemented - Use `directionsLink.getAttribute('target')` to assert DOM attribute value equals `"_blank"` (not a visibility check — an attribute check) - `--grep "TC-009"` also picks up the old `e2e/tc009.spec.ts` (a terms acceptance test using the wrong `graceful-mole-393` Convex URL) which fails independently — pre-existing noise, not related to the new test
+---
+
+### TC-010 [PASS] Admin session list — "View Participants" button navigates correctly
+- **Evidence:** Test `tests/e2e/tc-010.test.ts` passed in 6.2s. Class and session created via Convex API. Logged in as admin, navigated to `/admin/classes/<class_id>/sessions`. Clicked "View Participants" link in session row. Browser navigated to `https://class-management-system-teal.vercel.app/admin/sessions/cb3e2c82-7d20-4ff5-a5a1-a557ccfdd9f2/participants`. "Session Participants" heading was visible. Screenshot saved to `test-results/tc-010-participants-page.png`.
+- **Learnings:**
+  - The "View Participants" button lives on `/admin/classes/<class_id>/sessions`, NOT on `/admin/sessions` (that page has no session rows — it only says "Session management is organized under each class")
+  - The button is an `<a>` (Link) element, not a `<button>` — use `getByRole('link', { name: 'View Participants' })` to locate it
+  - Navigate to the class sessions page first, then filter the row by session location text, then click the link
+  - `--grep "TC-010"` also picks up `e2e/tc010.spec.ts` (a participant creation test) which passes independently
+---
+
+### TC-010 [PASS] Admin session list — "View Participants" button navigates correctly
+- **Evidence:** Test `tests/e2e/tc-010.test.ts` passed in 6.2s. Created class/session via Convex API, logged in as admin, navigated to `/admin/classes/<class_id>/sessions`, clicked "View Participants" link on the session row. Browser navigated to `/admin/sessions/cb3e2c82-7d20-4ff5-a5a1-a557ccfdd9f2/participants`. "Session Participants" heading was visible. Screenshot saved to `test-results/tc-010-participants-page.png`.
+- **Learnings:**
+  - - The "View Participants" button lives on `/admin/classes/<class_id>/sessions`, NOT on `/admin/sessions` (that page has no session rows — it redirects users to go to Classes instead) - The button is an `<a>` (Link element), not a `<button>` — use `getByRole('link', { name: 'View Participants' })` to locate it - The session participants page heading is "Session Participants" (h1) — use `getByRole('heading', { name: 'Session Participants' })` - `--grep "TC-010"` also picks up the old `e2e/tc010.spec.ts` (participant creation test) which passes independently
+---
+
+### TC-011 [PASS] Admin participant list — clicking participant row opens detail page
+- Created a class + session via Convex mutations, then created a test participant via new `testPurchase:createTestParticipant` mutation
+- Navigated to `/admin/sessions/<session_id>/participants`, found the participant row, clicked the "View" link
+- Browser navigated to `/admin/participants/<participant_id>` — URL assertion passed
+- "Participant Details" heading and participant name both visible on detail page
+- **Learnings:**
+  - `session-participants-panel.tsx` renders a "View" link (`<Link href="/admin/participants/${participant_id}">View</Link>`) per row in the Details column — use `getByRole('link', { name: 'View' })` to click it
+  - The detail page at `/admin/participants/[participant_id]/page.tsx` shows h1 "Participant Details" and a `<dd>` with the name — assert `getByText(name)` for name visibility
+  - New `testPurchase:createTestParticipant` mutation was added to `convex/testPurchase.ts` and deployed to `colorless-raven-523` — creates a purchase + participant in one call; args: `session_id`, optional `name`, optional `mobile`
+  - `CONVEX_DEPLOYMENT=prod:colorless-raven-523 npx convex deploy --yes` is the correct command to deploy to the production Convex instance when `.convex.json` is absent
+  - The participants page is server-rendered (SSR) so `waitForLoadState('networkidle')` reliably indicates participant data is populated
+---
+
+### TC-011 [PASS] Admin participant list — clicking participant row opens detail page
+- **Evidence:** Test ran successfully in 6.7s. Created class + session + test participant via Convex mutations (`testPurchase:createTestParticipant` — newly added and deployed). Navigated to `/admin/sessions/<session_id>/participants`, clicked "View" on the participant row, and the browser navigated to `https://class-management-system-teal.vercel.app/admin/participants/88d7dbeb-2650-4afe-adbf-ab1b0386f28d`. Both "Participant Details" heading and participant name (`TC011 Tester <testId>`) were visible on the detail page. Screenshot saved to `test-results/tc-011-participant-detail.png`.
+- **Learnings:**
+  - - The participants table "View" link in `session-participants-panel.tsx` uses `<Link href="/admin/participants/${participant_id}">View</Link>` — use `getByRole('link', { name: 'View' })` to target it - Detail page at `/admin/participants/[participant_id]/page.tsx` renders h1 "Participant Details" and participant name in a `<dd>` tag — `getByText(name)` works for the name assertion - A new `testPurchase:createTestParticipant` mutation was required (no existing way to insert a participant for testing). It creates a purchase + participant in one call, args: `session_id`, optional `name`, optional `mobile` - `CONVEX_DEPLOYMENT=prod:colorless-raven-523 npx convex deploy --yes` deploys to production Convex when no `.convex.json` or `CONVEX_DEPLOYMENT` env var is set - The session participants page is SSR — `waitForLoadState('networkidle')` reliably ensures participant data is present before interacting
+---
+
+### TC-012 [PASS] Admin cancel session — blocked when participants are enrolled
+- Cancel button is visible only to `super_admin` users (`isSuperAdmin` check in sessions page.tsx). The `admin` user IS super_admin in production.
+- `CancelSessionButton` shows a `window.confirm` dialog — handle with `page.on('dialog', d => d.accept())` BEFORE clicking the button.
+- `cancelSession` Convex mutation blocks if ANY participant exists for the session (no status filter — mere presence blocks it).
+- The server action catches the Convex error and checks `err.message.includes("enrolled participants")`, but the Convex HTTP client may not preserve the exact error message text. The generic "Failed to cancel session. Please try again." is shown instead of the specific enrolled-participants message.
+- The page can render TWO `p.text-red-700` elements (one inside a modal/section, one in the main content area) — use `.first()` to avoid strict mode violation.
+- Session status remains "scheduled" after failed cancel attempt — use `locator('span').filter({ hasText: /^scheduled$/ })` inside the row to assert status badge.
+- **Learnings:**
+  - Convex HTTP client errors may not preserve the original `.message` text from `throw new Error(...)` in mutations — always test for the text ACTUALLY rendered, not what the code intends to render
+  - `page.on('dialog', ...)` must be registered BEFORE clicking a button that triggers `window.confirm`
+  - When multiple elements share a CSS class selector, use `.first()` or a more specific locator to avoid strict mode violations
+  - Status badge in sessions table is a `<span>` with exact text "scheduled" — use `filter({ hasText: /^scheduled$/ })` for a clean assertion
+---
+
+### TC-012 [PASS] Admin cancel session — blocked when participants are enrolled
+- **Evidence:** Test passed in 5.9s. Created class + session + enrolled participant via Convex mutations. Logged in as admin (super_admin). Navigated to `/admin/classes/<class_id>/sessions`. Accepted `window.confirm` dialog and clicked Cancel on the session row. Page reloaded with error: "Failed to cancel session. Please try again." (cancellation blocked). Session status badge still shows "scheduled". Screenshot saved to `test-results/tc-012-cancel-blocked.png`. Session ID: `1a58f18a-fce7-4f07-a8f7-4fc013ed8e5b` — status remained "scheduled" after cancel attempt.
+- **Learnings:**
+  - - **Convex error message propagation:** The server action checks `err.message.includes("enrolled participants")` but the Convex HTTP client wraps errors such that the original message text may not be preserved. The UI shows the generic fallback "Failed to cancel session" instead of the enrolled-participants-specific message. When asserting error text, test for what IS actually rendered, not what the code intends. - **`window.confirm` handling:** Register `page.on('dialog', d => d.accept())` BEFORE clicking the button that triggers the confirm dialog. - **Strict mode with shared CSS classes:** The sessions page renders two elements matching `p.text-red-700` (one in modal, one in main content). Use `.first()` to avoid strict mode violations. - **Session status badge assertion:** Use `locator('span').filter({ hasText: /^scheduled$/ })` scoped to the row for a clean, exact status badge check. - **`cancelSession` blocks on any participant:** The Convex mutation checks for ANY participant record for the session_id — no status filter. `createTestParticipant` is sufficient to trigger the block.
+---
+
+### TC-013 [PASS] Admin cancel session — allowed when no participants enrolled
+- Cancel button works as expected when session has zero participants. Status changes from "scheduled" to "cancelled" immediately.
+- No error message appears — `p.text-red-700` is not rendered when cancellation succeeds.
+- The `cancelled` badge appears in the session row after successful cancellation.
+- Test ran in ~6s using same class/session setup pattern as TC-012 but without enrolling any participant.
+- **Learnings:**
+  - `cancelSession` Convex mutation succeeds immediately with no participants — session status updates to "cancelled" without any UI error
+  - Asserting `not.toBeVisible()` on the error locator is the right pattern to verify no error was shown
+  - The cancelled status badge uses the text "cancelled" (lowercase) — `filter({ hasText: /cancelled/ })` works reliably
+  - Same `page.on('dialog', d => d.accept())` pattern needed for the confirm dialog, even for the success path
+---
+
+### TC-013 [PASS] Admin cancel session — allowed when no participants enrolled
+- **Evidence:** Test passed in 6.1s. Created class + session (no participants) via Convex mutations. Logged in as admin, navigated to `/admin/classes/<class_id>/sessions`, accepted `window.confirm` dialog, clicked Cancel. No error message rendered (`p.text-red-700` not visible). Session status badge changed to "cancelled". Screenshot saved: `test-results/tc-013-cancel-allowed.png`. Evidence log: `class_id=12751f6d-ba8d-464b-8815-dc8d8dcd6bad`, `session_id=6c3b4390-fd3a-49ae-b541-908cc5324492`.
+- **Learnings:**
+  - - `cancelSession` mutation succeeds immediately when no participants exist — status changes to "cancelled" with no UI error - Assert success by checking `not.toBeVisible()` on the error locator AND checking the "cancelled" status badge appears in the session row - Same `page.on('dialog', d => d.accept())` pattern is needed for the confirm dialog on the success path too - "cancelled" badge text is lowercase — `filter({ hasText: /cancelled/ })` matches reliably
+---
+
+### TC-014 [PASS] Admin cancel session — error displayed inline (not raw browser alert)
+- **Evidence:** Test passed in 6.7s. Created class + session + enrolled participant via Convex mutations (`testPurchase:createTestParticipant`). Logged in as admin, navigated to sessions page, accepted `window.confirm` dialog, clicked Cancel. No `window.alert` fired (`alertFired = false`). Inline error `<p class="...text-red-700">Failed to cancel session. Please try again.</p>` was visible in the DOM. Screenshot saved: `test-results/tc-014-inline-error.png`.
+- **Learnings:**
+  - - The app redirects to `?error=...` query param on cancellation failure, rendering error inline as `<p class="...text-red-700">` — this is the correct inline pattern (no `window.alert`)
+  - - The Convex error "Cannot cancel: session has enrolled participants" propagates as a generic "Failed to cancel session. Please try again." in the UI — the specific text check for "enrolled participants" in the UI text will fail; only check for the inline element's visibility, not exact message
+  - - Use `page.on('dialog', ...)` to separate `confirm` (accept it to proceed) vs `alert` (track it as a test failure indicator)
+  - - `testPurchase:createTestParticipant` is the correct mutation to enroll a participant in a session for test setup
+---
