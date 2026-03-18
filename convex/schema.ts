@@ -73,6 +73,14 @@ export default defineSchema({
     created_at: v.number(),
   }).index("by_is_current", ["is_current"]),
 
+  faqs: defineTable({
+    question: v.string(),
+    answer: v.string(),
+    order: v.number(),
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_order", ["order"]),
+
   admins: defineTable({
     username: v.string(),
     role: v.union(v.literal("super_admin"), v.literal("regular_admin")),
