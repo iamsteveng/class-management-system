@@ -15,10 +15,18 @@ type SessionItem = {
   quota_available: number;
 };
 
+type FaqItem = {
+  _id: string;
+  question: string;
+  answer: string;
+  order: number;
+};
+
 export function HomepageClient() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(true);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [classesError, setClassesError] = useState<string | null>(null);
@@ -111,6 +119,31 @@ export function HomepageClient() {
     };
   }, [selectedClassId]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadFaqs() {
+      try {
+        const response = await fetch("/api/faqs");
+        if (!response.ok) {
+          return;
+        }
+        const data = (await response.json()) as { faqs: FaqItem[] };
+        if (isMounted) {
+          setFaqs(data.faqs);
+        }
+      } catch {
+        // silently ignore — FAQs are optional
+      }
+    }
+
+    void loadFaqs();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl space-y-6 px-4 py-10">
       <section className="space-y-2">
@@ -180,6 +213,20 @@ export function HomepageClient() {
           </ul>
         )}
       </section>
+
+      {faqs.length > 0 ? (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-zinc-900">Frequently Asked Questions</h2>
+          <div className="space-y-3">
+            {faqs.map((faq) => (
+              <div key={faq._id} className="rounded-xl border border-zinc-200 bg-white p-5">
+                <h3 className="font-medium text-zinc-900">{faq.question}</h3>
+                <p className="mt-2 whitespace-pre-line text-sm text-zinc-700">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }
