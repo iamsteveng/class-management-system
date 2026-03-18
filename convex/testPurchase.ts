@@ -33,6 +33,50 @@ export const createTestPurchase = mutationGeneric({
   },
 });
 
+export const createTestParticipant = mutationGeneric({
+  args: {
+    session_id: v.string(),
+    name: v.optional(v.string()),
+    mobile: v.optional(v.string()),
+  },
+  returns: v.object({
+    participant_id: v.string(),
+    purchase_id: v.id("purchases"),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const token = crypto.randomUUID();
+    const orderId = `ORD-TEST-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    const purchaseId = await ctx.db.insert("purchases", {
+      order_id: orderId,
+      customer_mobile: args.mobile ?? "+60000000000",
+      purchase_datetime: new Date(now).toISOString(),
+      participant_count: 1,
+      status: "pending_terms",
+      token: token,
+      session_id: args.session_id,
+      created_at: now,
+    });
+
+    const participantId = crypto.randomUUID();
+
+    await ctx.db.insert("participants", {
+      participant_id: participantId,
+      purchase_id: purchaseId,
+      session_id: args.session_id,
+      name: args.name,
+      mobile: args.mobile,
+      created_at: now,
+    });
+
+    return {
+      participant_id: participantId,
+      purchase_id: purchaseId,
+    };
+  },
+});
+
 export const generateCsvUploadUrl = mutationGeneric({
   args: {},
   returns: v.string(),
