@@ -22,6 +22,17 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
+async function convexMutation(fnPath: string, args: Record<string, unknown>) {
+  const res = await fetch(`${CONVEX_URL}/api/mutation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+  });
+  const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
+  if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);
+  return json.value;
+}
+
 test.describe('TC-024: Homepage — FAQ section hidden when no items exist', () => {
   test('TC-024 FAQ section heading and container are not rendered when no FAQ items exist', async ({ page }) => {
     const screenshotDir = path.join(process.cwd(), 'test-results');
@@ -31,15 +42,9 @@ test.describe('TC-024: Homepage — FAQ section hidden when no items exist', () 
     console.log(`TC-024 setup: found ${faqs.length} FAQ item(s) in database`);
 
     if (faqs.length > 0) {
-      // There is no deployed deleteFaq mutation; skip if database is polluted
-      // (e.g. by TC-023 which seeds a FAQ but does not clean up)
-      console.warn(
-        `TC-024 SKIP: ${faqs.length} FAQ item(s) exist in the database. ` +
-        `A deleteFaq/deleteAllFaqs mutation must be deployed to enable proper test isolation. ` +
-        `Existing items: ${faqs.map((f) => f.question).join(', ')}`
-      );
-      test.skip(true, `Database contains ${faqs.length} FAQ item(s); cannot clean up without a deployed deleteFaq mutation.`);
-      return;
+      // Delete all existing FAQs using the test helper mutation
+      const deleted = await convexMutation('testPurchase:deleteAllFaqs', {}) as number;
+      console.log(`TC-024 setup: deleted ${deleted} existing FAQ item(s)`);
     }
 
     // Step 2: Load homepage

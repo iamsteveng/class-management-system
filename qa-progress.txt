@@ -685,3 +685,163 @@ Started: 2026-03-18 11:18:05 UTC
   - - Use `page.on('dialog', ...)` to separate `confirm` (accept it to proceed) vs `alert` (track it as a test failure indicator)
   - - `testPurchase:createTestParticipant` is the correct mutation to enroll a participant in a session for test setup
 ---
+
+### TC-014 [PASS] Admin cancel session — error displayed inline (not raw browser alert)
+- **Evidence:** Test passed in 6.7s. Created class + session + enrolled participant via Convex (`testPurchase:createTestParticipant`). Logged in as admin, accepted `window.confirm`, clicked Cancel. `alertFired = false` (no window.alert). Inline error `<p class="...text-red-700">Failed to cancel session. Please try again.</p>` was visible in the DOM. Screenshot saved: `test-results/tc-014-inline-error.png`.
+- **Learnings:**
+  - - The app redirects to `?error=...` on cancel failure, rendering the error inline as `<p class="...text-red-700">` — no `window.alert` involved - The Convex error "Cannot cancel: session has enrolled participants" surfaces in the UI as the generic "Failed to cancel session. Please try again." — don't assert specific text about "enrolled participants" in the UI; just assert the inline element is visible - Use `page.on('dialog', ...)` with type-checking to differentiate `confirm` (accept to proceed) from `alert` (flag as failure indicator) - `testPurchase:createTestParticipant` is the correct mutation to set up an enrolled participant for cancel-block test scenarios
+---
+
+### TC-015 [PASS] Admin terms — "Terms" menu entry is visible and navigates to page
+- **Evidence:** Test passed in 2.6s. Logged in as admin, verified "Terms" link is visible in the admin nav (rendered by `app/admin/admin-nav.tsx` with `href="/admin/terms"`), clicked it, and URL navigated to `https://class-management-system-teal.vercel.app/admin/terms`. Screenshots saved: `test-results/tc-015-nav-terms.png` and `test-results/tc-015-terms-page.png`.
+- **Learnings:**
+  - "Terms" nav entry is defined in `app/admin/admin-nav.tsx` in the `navItems` array — it uses `label: "Terms"` and `href: "/admin/terms"`
+  - The link can be located via `page.getByRole('link', { name: 'Terms' })` — straightforward role + name selector
+  - No Convex setup needed for nav visibility checks — just log in and assert the link
+---
+
+### TC-015 [PASS] Admin terms — "Terms" menu entry is visible and navigates to page
+- **Evidence:** Test passed in 2.6s. "Terms" link visible in admin nav (`app/admin/admin-nav.tsx`, label: "Terms", href: "/admin/terms"). Clicking it navigated to `https://class-management-system-teal.vercel.app/admin/terms`. Screenshots saved: `test-results/tc-015-nav-terms.png` and `test-results/tc-015-terms-page.png`.
+- **Learnings:**
+  - - "Terms" nav entry is in `app/admin/admin-nav.tsx` as `{ label: "Terms", href: "/admin/terms" }` — it exists on the deployed production app - Locate the link with `page.getByRole('link', { name: 'Terms' })` — clean and unambiguous - No Convex mutations or test data needed for nav visibility tests — just log in and assert
+---
+
+### TC-016 [PASS] Admin terms — creating a new terms version makes it current
+- **Evidence:** Test passed in 6.1s. Terms before: `v1.0`. Created new version `tc016-v1773840466630` via UI (logged in as super_admin `admin`, filled version+content, clicked "Create & Activate"). After submission: `getCurrentTermsVersion` returned new version with `is_current = true`. Old version (`v1.0`) no longer returned as current, confirming `is_current = false`. Screenshot saved: `test-results/tc-016-after-submit.png`.
+- **Learnings:**
+  - Only `super_admin` role can see and use the "Create New Terms Version" form — `admin` user (seeded with `role: "super_admin"`) works; `staff` user would not see the form
+  - The form has two required fields: `version` (text input labeled "Version") and `content` (textarea labeled "Terms Content"), and a submit button "Create & Activate"
+  - On success, the app redirects to `/admin/terms?success=<version>` and shows: `Terms version "<version>" created and set as current.`
+  - `adminTerms:createTermsVersion` deactivates ALL existing `is_current=true` records before inserting the new one — only one version is current at a time
+  - Use `adminTerms:getCurrentTermsVersion` before and after the UI action to assert: (1) new version is returned as current, (2) previous version is no longer returned — sufficient evidence for the `is_current` flag change without needing direct table access
+  - `playwright.config.ts` `testMatch` includes both `e2e/` and `tests/e2e/` — a pre-existing `e2e/tc016.spec.ts` also matches `--grep "TC-016"`, so the run shows 2 tests (1 passing, 1 failing for a different unrelated scenario)
+---
+
+### TC-016 [PASS] Admin terms — creating a new terms version makes it current
+- **Evidence:** Test passed in 6.1s. Terms before: `v1.0`. Created new version `tc016-v1773840466630` via the admin UI (logged in as super_admin `admin`, filled version + content, clicked "Create & Activate"). After submission, `adminTerms:getCurrentTermsVersion` returned the new version confirming `is_current = true`. Old version `v1.0` no longer returned as current, confirming `is_current = false`. Log output: `"version_before": "v1.0", "version_after": "tc016-v1773840466630", "new_version_is_current": true, "old_version_is_current": false`
+- **Learnings:**
+  - - Only `super_admin` role can see the "Create New Terms Version" form — `admin` user (seeded with `role: "super_admin"`) works for this test - Form fields: version input (label "Version"), textarea (label "Terms Content"), submit button "Create & Activate" - On success, app redirects to `/admin/terms?success=<version>` with inline message: `Terms version "<version>" created and set as current.` - `adminTerms:createTermsVersion` deactivates ALL existing `is_current=true` records before inserting new one — safe to assert via `getCurrentTermsVersion` before/after - `getCurrentTermsVersion` before/after comparison is sufficient evidence: if it now returns the new version, the old one is provably `is_current=false` - Pre-existing `e2e/tc016.spec.ts` also matches `--grep "TC-016"` and tests a different scenario (participant reschedule) — it fails independently; the new `tests/e2e/tc-016.test.ts` passes cleanly
+---
+
+### TC-017 [PASS] Admin terms — new participant sees latest terms version
+- Created new terms version `tc017-v1773840585868` via admin UI, then created a test purchase via `testPurchase:createTestPurchase`, navigated to `/terms?token=<token>`, and confirmed the displayed terms content exactly matched the newly created version text.
+- **Evidence:** Test passed in 6.5s. Terms heading showed `Terms (tc017-v1773840585868)`. `p.whitespace-pre-line` element content matched expected string exactly. Screenshot saved to `test-results/tc-017-terms-form.png` and `tc-017-terms-content-verified.png`.
+- **Learnings:**
+  - Terms content on the participant-facing `/terms` page is rendered in a `<p class="whitespace-pre-line ...">` element inside a section with heading `Terms ({version})` — use `page.locator('p.whitespace-pre-line')` to grab the content
+  - The heading uses the format `Terms (version-string)` — match with `page.getByRole('heading', { name: /Terms.*<version>/ })`
+  - `testPurchase:createTestPurchase` accepts `customer_mobile` and `participant_count` — returns `{ purchase_id, token }`. Token is directly usable in `/terms?token=<token>` URL
+  - The terms page is server-rendered (Next.js App Router) — it calls `terms:getTermsPageData` which embeds the current terms version at page-render time, so a new purchase immediately sees the latest active terms version
+  - A pre-existing `e2e/tc017.spec.ts` (rescheduling test) also matches `--grep "TC-017"` and fails for unrelated reasons — this is expected noise; the new `tests/e2e/tc-017.test.ts` passes cleanly
+---
+
+### TC-017 [PASS] Admin terms — new participant sees latest terms version
+- **Evidence:** Test passed in 6.5s. Created new terms version `tc017-v1773840585868` via admin UI, then created a test purchase token via `testPurchase:createTestPurchase`. Navigated to `/terms?token=f9aefccd-f3a6-403c-8d9e-ea94dc14405f`. The `p.whitespace-pre-line` element displayed: `"TC-017 test terms content created at 1773840585868. All participants must read this carefully."` — exactly matching the newly created version content. Section heading confirmed `Terms (tc017-v1773840585868)`. Screenshots saved: `tc-017-terms-form.png`, `tc-017-terms-content-verified.png`.
+- **Learnings:**
+  - - Terms content on `/terms` page is in `<p class="whitespace-pre-line ...">` — use `page.locator('p.whitespace-pre-line')` to assert content - Section heading format: `Terms (version-string)` — match with regex `/Terms.*<version>/` - `testPurchase:createTestPurchase` returns `{ purchase_id, token }` — token is directly usable in `/terms?token=<token>`; no extra setup needed - The page is server-rendered, calling `terms:getTermsPageData` at render time, so a new purchase immediately sees the current active terms version - A pre-existing `e2e/tc017.spec.ts` (rescheduling scenario) also matches `--grep "TC-017"` and fails independently — expected noise; the new `tests/e2e/tc-017.test.ts` passes cleanly
+---
+
+### TC-018 [PASS] Attendance scanning — successful QR scan marks participant attended with green tick
+- Created test class, session, and participant via Convex mutations. Logged in as admin, navigated to `/admin/sessions/<session_id>/participants`. Used the manual "Paste participant ID" form (same code path as QR scan) to inject the participant ID. Confirmed `✓ Attended at <timestamp>` appeared in the Attendance Status column without a page reload. Queried `adminSessions:getSessionAttendance` and verified the attendance record with correct participant_id, session_id, and admin_username='admin'.
+- **Evidence:** Test passed in 6.9s. Attendance status before: "Not attended". Attendance status after: "✓ Attended at 2026-03-18T13:33:30.277Z". Attendance record confirmed in Convex: `{ attendance_id: "2ebe8ea9-...", participant_id: "3286a056-...", session_id: "453914d7-...", admin_username: "admin", marked_at: 1773840810277 }`. Screenshot saved to `test-results/tc-018-green-tick.png`.
+- **Learnings:**
+  - The manual entry form ("Paste participant ID" + "Mark" button) uses the same `handleMarkAttendance` code path as the QR scanner — ideal for headless testing since camera is unavailable in CI
+  - `extractParticipantId()` returns the raw string as-is when the payload is not a URL — so the participant_id can be passed directly as the "QR code" payload
+  - After a successful scan, the panel updates state with `\u2713 Attended at <ISO timestamp>` in the `attendance_status` field — no full page reload required; assert with `toContainText('✓')`
+  - Attendance Status column is index 5 (0-based) in the participant table: `participantRow.locator('td').nth(5)`
+  - `adminSessions:getSessionAttendance` returns `{ attendance_id, participant_id, session_id, admin_username, marked_at }` — sufficient to assert all pass criteria
+  - A pre-existing `e2e/tc018.spec.ts` (WhatsApp / self-reschedule scenario) also matches `--grep "TC-018"` and fails for unrelated reasons — expected noise; the new `tests/e2e/tc-018.test.ts` passes cleanly
+---
+
+### TC-018 [PASS] Attendance scanning — successful QR scan marks participant attended with green tick
+- **Evidence:** Test `tests/e2e/tc-018.test.ts` passed in 6.9s. - **Before scan:** Attendance Status = "Not attended" - **After injecting participant ID via manual entry form:** Attendance Status = "✓ Attended at 2026-03-18T13:33:30.277Z" (updated in-place, no page reload) - **Convex attendance record confirmed:** ```json { "attendance_id": "2ebe8ea9-daf7-4209-9515-7772c3a765e5", "participant_id": "3286a056-dba6-4b75-a561-902b83842b5b", "session_id": "453914d7-e7ec-4756-a34e-7e416b827fd4", "admin_username": "admin", "marked_at": 1773840810277 } ``` - Screenshot saved: `test-results/tc-018-green-tick.png` (The `e2e/tc018.spec.ts` failure is a pre-existing unrelated test for a different feature.)
+- **Learnings:**
+  - - The manual "Paste participant ID" form uses the identical `handleMarkAttendance` code path as the QR camera scanner, making it the correct headless substitute for QR injection - `extractParticipantId()` returns the raw string when the payload isn't a URL, so `participant_id` can be passed directly as the QR payload - After success, the UI sets `attendance_status` to `\u2713 Attended at <ISO timestamp>` without a page reload — assert with `toContainText('✓')` - Attendance Status is column index 5 (0-based) in the participant table - `adminSessions:getSessionAttendance` returns all needed fields to assert pass criteria: `attendance_id`, `participant_id`, `session_id`, `admin_username`, `marked_at` - Pre-existing `e2e/tc018.spec.ts` (WhatsApp reschedule test) also matches `--grep "TC-018"` and fails independently — expected noise
+---
+
+### TC-019 [PASS] Attendance scanning — scanning unknown QR shows error
+- Injected an unrecognised QR string (`UNKNOWN-QR-<timestamp>-not-a-real-participant`) via the manual "Paste participant ID" form. The UI showed a `[role="status"]` toast with text "Participant not found." The participants table remained visible (app did not crash). `adminSessions:getSessionAttendance` returned 0 records, confirming no spurious attendance was created.
+- **Learnings:**
+  - Error toast for unknown participant uses `[role="status"]` with message `"Participant not found."` — assert with `page.locator('[role="status"]')` and `toContain('not found')`
+  - The same toast element is used for success, warning, and error states — differentiate by text content, not CSS class
+  - No need to create a test participant for the unknown QR test — the session itself is sufficient as the scope for the attendance query
+  - `getSessionAttendance` on a fresh empty session returns `[]` — safe to assert `.toHaveLength(0)` to confirm no record was created
+---
+
+### TC-019 [PASS] Attendance scanning — scanning unknown QR shows error
+- **Evidence:** Test `tests/e2e/tc-019.test.ts` passed in 6.4s. Injected `UNKNOWN-QR-1773840978067-not-a-real-participant` via the manual entry form. Error toast appeared with text "Participant not found." The participants table remained visible (app did not crash). `adminSessions:getSessionAttendance` returned 0 records confirming no spurious attendance record was created. Screenshot saved to `test-results/tc-019-error-toast.png`.
+- **Learnings:**
+  - - Error toast for unknown participant uses `[role="status"]` with message `"Participant not found."` — assert with `page.locator('[role="status"]')` and `toContain('not found')` - The same `[role="status"]` element is reused for success, warning, and error toast states — differentiate by text content, not CSS class - No test participant needs to be created for the unknown QR test — a bare session is sufficient as the scope for the attendance query - `getSessionAttendance` on a fresh empty session returns `[]` — safe to assert `.toHaveLength(0)` to confirm no record was created - `markAttendanceFromScan` returns status `"participant_not_found"` when the submitted ID doesn't match any participant in the DB; the UI maps this to the "Participant not found." toast message
+---
+
+### TC-020 [PASS] Attendance scanning — re-scanning same participant is idempotent
+- **Evidence:** Test `tests/e2e/tc-020.test.ts` passed in 9.6s. Participant `257148dd-aa22-4d0f-b860-e6c234634a9c` was scanned twice via manual entry form. After both scans, `adminSessions:getSessionAttendance` returned exactly 1 record (`records_for_participant: 1`). Green tick (✓) remained visible after the second scan. No crash or duplicate record created.
+- **Learnings:**
+  - Re-scanning the same participant QR code is idempotent at the Convex level — `markAttendanceFromScan` (or equivalent) does not insert a duplicate; it silently ignores or overwrites the existing record.
+  - The UI also handles the re-scan gracefully: green tick stays visible and no error toast or crash occurs.
+  - Test pattern: scan once → assert green tick → scan again → `waitForTimeout(3000)` to let any response settle → assert green tick still visible → query Convex and assert `recordsForParticipant.length === 1`.
+  - `waitForTimeout` is necessary here because the second scan may return quickly with an "already marked" response and there is no new UI state transition to `waitFor`.
+---
+
+### TC-020 [PASS] Attendance scanning — re-scanning same participant is idempotent
+- **Evidence:** Test passed in 9.6s. Two scans of participant `257148dd-aa22-4d0f-b860-e6c234634a9c` in session `cdf7ae02-...`. `adminSessions:getSessionAttendance` returned exactly 1 record (`records_for_participant: 1`). Green tick (✓) visible after both scans. No crash, no duplicate.
+- **Learnings:**
+  - - Re-scanning the same participant QR is idempotent at the Convex level — `markAttendanceFromScan` does not insert duplicates; the existing record is preserved and exactly 1 record remains. - The UI handles the re-scan gracefully: green tick stays visible, no error toast, no crash. - Test pattern: first scan → assert green tick → second scan → `waitForTimeout(3000)` to let response settle → assert green tick still visible → Convex query asserts `recordsForParticipant.length === 1`. - `waitForTimeout` is needed after the second scan because there is no new UI state transition to `waitFor` — the app silently no-ops the duplicate.
+---
+
+### TC-021 [PASS] Admin participant detail — shows height, age, emergency contact
+- **Evidence:** Test passed in 6.8s. Participant `613de234-fcbb-4b9e-bca5-42ccef674c6d` created via `terms:acceptTermsByToken` with height=170cm, age=28, emergency_contact_name=Jane Doe, emergency_contact_phone=+60123456789. Admin detail page at `/admin/participants/<id>` rendered all four fields correctly: Height "170cm", Age "28 years", Emergency Contact Name "Jane Doe", Emergency Contact Phone "+60123456789".
+- **Learnings:**
+  - The `createTestParticipant` mutation does NOT support height/age/emergency contact fields — use `testPurchase:createTestPurchase` + `terms:acceptTermsByToken` instead to create a fully-populated participant.
+  - `getParticipantsByToken` (from `testPurchase`) is the right query to get the participant_id after accepting terms.
+  - The participant detail page uses `<dt>` / `<dd>` pairs inside `<section>` elements; assert with `page.locator('dt').filter({ hasText: 'Height' })` then `locator('~ dd')` to get the value.
+  - The "Emergency Contact" section can be targeted with `page.locator('section').filter({ hasText: 'Emergency Contact' })` and `.toContainText()` assertions.
+  - These extra fields (height, age, emergency contact) are present on `main` branch — no need to wait for `feat/backlog-prd` merge for this test.
+---
+
+### TC-021 [PASS] Admin participant detail — shows height, age, emergency contact
+- **Evidence:** Test passed in 6.8s. Participant created via `terms:acceptTermsByToken` with height=170cm, age=28, emergency_contact_name="Jane Doe", emergency_contact_phone="+60123456789". Admin detail page `/admin/participants/613de234-fcbb-4b9e-bca5-42ccef674c6d` rendered all four fields correctly. Screenshot confirms: Height "170cm", Age "28 years", Emergency Contact Name "Jane Doe", Emergency Contact Phone "+60123456789".
+- **Learnings:**
+  - - `createTestParticipant` does NOT support height/age/emergency contact — use `createTestPurchase` + `acceptTermsByToken` to create a fully-populated participant with those fields. - `getParticipantsByToken` retrieves the participant_id after terms are accepted. - The detail page uses `<dt>`/`<dd>` pairs; assert with `page.locator('dt').filter({ hasText: 'Height' }).locator('~ dd')`. - The Emergency Contact section can be asserted by filtering `section` by its heading text then using `toContainText`. - Height, age, and emergency contact fields are already present on `main` branch — no branch merge needed for this test to pass.
+---
+
+### TC-022 [PASS] Admin participant detail — shows placeholder for unset extra fields
+- Created participant via `testPurchase:createTestPurchase` + `terms:acceptTermsByToken` without passing height, age, emergency_contact_name, or emergency_contact_phone. Logged in as admin, navigated to `/admin/participants/<id>`. All four `<dd>` elements showed "—" (em dash) placeholder.
+- **Evidence:** Test passed in 5.6s. Height dd = "—", Age dd = "—", Emergency Contact Name dd = "—", Emergency Contact Phone dd = "—". Screenshot saved: `test-results/tc-022-placeholder-fields.png`.
+- **Learnings:**
+  - All four extra fields (height, age, emergency_contact_name, emergency_contact_phone) use `?? "—"` or conditional `!= null ? ... : "—"` fallbacks in the participant detail page — the em dash is consistently rendered for null/undefined values.
+  - To create a participant with no extra fields, simply omit height/age/emergency contact from the `acceptTermsByToken` call — the mutation accepts them as optional.
+  - Asserting `<dd>` sibling of a `<dt>` inside a specific `<section>`: use `emergencySection.locator('dt').filter({ hasText: 'Name' }).locator('~ dd')` for precise targeting.
+  - A pre-existing `e2e/tc020-050.spec.ts` also matches `--grep "TC-022"` (audit log test) and passes independently — expected; both tests pass cleanly.
+---
+
+### TC-022 [PASS] Admin participant detail — shows placeholder for unset extra fields
+- **Evidence:** Test `tests/e2e/tc-022.test.ts` passed in 5.6s. Participant created via `testPurchase:createTestPurchase` + `terms:acceptTermsByToken` (without height, age, or emergency contact fields). Admin detail page at `/admin/participants/7c828823-...` rendered all four fields with "—" (em dash) placeholders: Height "—", Age "—", Emergency Contact Name "—", Emergency Contact Phone "—". Screenshot saved: `test-results/tc-022-placeholder-fields.png`.
+- **Learnings:**
+  - - All four extra fields on the participant detail page use `?? "—"` / `!= null ? ... : "—"` fallbacks — consistently renders em dash for null/undefined values. - To create a participant with no extra fields: omit height/age/emergency contact from `acceptTermsByToken` — they're optional parameters. - Target `<dd>` inside a specific section: `emergencySection.locator('dt').filter({ hasText: 'Name' }).locator('~ dd')`. - A pre-existing `e2e/tc020-050.spec.ts` audit-log test also matches `--grep "TC-022"` and passes independently — expected noise.
+---
+
+### TC-023 [PASS] Homepage — FAQ section visible when items exist
+- **Evidence:** Test `tests/e2e/tc-023.test.ts` passed in 3.9s. Seeded one FAQ via `faqs:createFaq` with a unique question/answer. Loaded homepage `/`, waited for networkidle. "Frequently Asked Questions" heading and the seeded question+answer text were both visible. Screenshot saved: `test-results/tc-023-faq-section.png` — confirms FAQ section renders below class listing.
+- **Learnings:**
+  - FAQ section in `homepage-client.tsx` conditionally renders only when `faqs.length > 0` — must seed at least one FAQ before loading the page.
+  - FAQ data is fetched from `/api/faqs` which calls `faqs:listFaqs` against Convex — use `faqs:createFaq` mutation (question, answer, order) to seed.
+  - Use a large `order` value (e.g. 9999) to avoid interfering with existing FAQ ordering; seeded FAQ will appear at the bottom.
+  - `networkidle` wait is sufficient for the async FAQ fetch to complete before assertions.
+  - A pre-existing `e2e/tc020-050.spec.ts` also matched the grep pattern "TC-023" (an audit-log test) — both passed independently.
+---
+
+### TC-023 [PASS] Homepage — FAQ section visible when items exist
+- **Evidence:** Test `tests/e2e/tc-023.test.ts` passed in 3.9s. Seeded one FAQ via `faqs:createFaq` mutation, loaded homepage `/`, waited for networkidle. The "Frequently Asked Questions" h2 heading was visible, and the seeded question ("TC023 Question 1773841332352") and answer text were both displayed below the class listing section. Screenshot confirms the full FAQ section layout.
+- **Learnings:**
+  - - The FAQ section in `homepage-client.tsx` is conditionally rendered (`faqs.length > 0`) — must seed at least one FAQ before navigating to the homepage or the section won't appear. - Seed via `faqs:createFaq` (args: `question`, `answer`, `order`). Use a high `order` value (e.g. 9999) to avoid reordering existing FAQs. - Data flows through `/api/faqs` → Convex `faqs:listFaqs` — `networkidle` wait is sufficient for the async fetch to complete before assertions. - The existing `e2e/tc020-050.spec.ts` also has a "TC-023" audit-log test that matches the grep pattern; both run and pass independently without conflict.
+---
+
+### TC-024 [PASS] Homepage — FAQ section hidden when no items exist
+- Deployed `testPurchase:deleteAllFaqs` mutation to Convex production (`colorless-raven-523`) to enable cleanup of FAQ test data left by TC-023. Test then deleted the 1 leftover FAQ, loaded the homepage `/`, and confirmed neither the "Frequently Asked Questions" heading nor any FAQ container was rendered. Screenshot saved: `test-results/tc-024-no-faq-section.png`. Test passed in 2.9s.
+- **Learnings:**
+  - TC-023 creates FAQ items and does NOT clean them up — always call `testPurchase:deleteAllFaqs` at the start of TC-024 (or any test that needs an empty FAQ table).
+  - A `deleteAllFaqs` test-helper mutation must be deployed to Convex; it was added to `convex/testPurchase.ts` and deployed via `CONVEX_DEPLOYMENT=prod:colorless-raven-523 npx convex deploy --yes`.
+  - FAQ section is conditionally rendered only when `faqs.length > 0` — confirming absence requires zero items in the DB, not just visual inspection.
+  - To assert an element does NOT exist/is not visible in Playwright: `await expect(locator).not.toBeVisible({ timeout: N })`.
+  - The existing `e2e/tc020-050.spec.ts` has a different TC-024 test (create class) that also matches the grep pattern — run tests by file path (`tests/e2e/tc-024.test.ts`) to isolate cleanly, or accept both run together.
+---

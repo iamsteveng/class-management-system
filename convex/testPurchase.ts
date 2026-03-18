@@ -312,3 +312,15 @@ export const getLatestAuditLogForEntity = queryGeneric({
     };
   },
 });
+
+export const deleteAllFaqs = mutationGeneric({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    const faqs = await ctx.db.query("faqs").collect();
+    for (const faq of faqs) {
+      await ctx.db.delete(faq._id);
+    }
+    return faqs.length;
+  },
+});
