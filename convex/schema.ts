@@ -60,6 +60,7 @@ export default defineSchema({
       v.literal("completed"),
       v.literal("cancelled")
     ),
+    google_maps_url: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_session_id", ["session_id"])
