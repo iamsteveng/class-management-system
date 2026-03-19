@@ -1291,3 +1291,21 @@ Started: 2026-03-18 11:18:05 UTC
   - The green tick is an SVG element, not a Unicode character or text — assert by checking for the surrounding `<h1>` or `<a>` elements instead
   - `feat/backlog-prd` extra fields (height, age, emergency contact) are already deployed to production — use `isVisible()` checks for forward-compatibility
 ---
+
+### TC-018 [PASS] Terms success state removes form fields after submission
+- **Evidence:** Test passed in 2.8s. Created test purchase (token: 22e8ceaf...), submitted terms form for session `session_tour_2026_03_23_1400`, redirected to `?status=success&participant_id=3d85f79d...`. All assertions passed: `select#session_id`, `input[name="accepted"]`, height/age/emergency inputs, `<form>`, and "Accept Terms" button all have count 0. Success heading "Your class application is confirmed" and "Open your QR Code" link are visible. Screenshot at `test-results/tc-018-success-state.png`.
+- **Learnings:**
+  - - The success page heading is "Your class application is confirmed" (not "Terms accepted successfully") — always read `page.tsx` source before assuming success text - The success state is rendered server-side (Next.js server action `redirect()`) — when `status=success` is in URL, the page returns a completely different component with no `<form>` at all - Assert form absence using `toHaveCount(0)` on each field selector — more reliable than text content checks - The green tick is an SVG element, not a Unicode char — assert via surrounding heading/link elements instead - `feat/backlog-prd` extra fields are already deployed to production on main; CLAUDE.md note saying they are not is outdated
+---
+
+### TC-019 [FAIL] Change Session sends WhatsApp notification
+- Session change flow works end-to-end: created class + 2 sessions + participant, logged in as super_admin, clicked "Change Session", selected new session, confirmed — UI showed "Session changed successfully." banner and redirected to `?status=session_changed`. Audit log confirmed `participant_session_changed` was recorded (criterion 1 PASS).
+- WhatsApp notification criterion FAIL: `changeParticipantSession` mutation in `convex/participants.ts` does NOT call any WhatsApp/Twilio sending function. The UI (`change-session-panel.tsx`) says "A WhatsApp notification will be sent." but the backend never sends it. Audit log action is only `participant_session_changed` — no `whatsapp_notification_sent` or similar event is recorded.
+- **Learnings:**
+  - `tests/integration/` is a new directory — added `tests/integration/**/*.test.ts` to `testMatch` in `playwright.config.ts` to enable Playwright to discover these tests
+  - `testPurchase:createTestParticipant` is the correct helper to create a participant directly in a session (bypasses terms flow)
+  - `testPurchase:getLatestAuditLogForEntity` queries audit logs by `entity_type` + `entity_id` — useful for verifying mutations were called
+  - The Change Session modal is in `change-session-panel.tsx` — select session via `input[type="radio"][value="${session_id}"]` and confirm via `getByRole('button', { name: 'Confirm Change' })`
+  - Success redirect goes to `?status=session_changed` — verify with `waitForURL(/status=session_changed/)`
+  - **BUG FOUND:** `convex/participants.ts:changeParticipantSession` does not send a WhatsApp notification despite the UI in `change-session-panel.tsx` explicitly stating "A WhatsApp notification will be sent." This is a backend feature gap.
+---
