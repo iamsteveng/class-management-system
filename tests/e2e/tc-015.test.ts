@@ -1,37 +1,53 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
+const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
 const BASE_URL = 'https://class-management-system-teal.vercel.app';
 
-test.describe('TC-015: Admin terms — "Terms" menu entry is visible and navigates to page', () => {
-  test('TC-015 Terms link is visible in admin nav and navigates to /admin/terms', async ({ page }) => {
-    // Log in as admin
-    await page.goto(`${BASE_URL}/admin/login`);
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
+async function convexMutation(fnPath: string, args: Record<string, unknown>) {
+  const res = await fetch(`${CONVEX_URL}/api/mutation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+  });
+  const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
+  if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);
+  return json.value;
+}
 
-    // Assert "Terms" link is visible in the nav
-    const termsLink = page.getByRole('link', { name: 'Terms' });
-    await expect(termsLink).toBeVisible({ timeout: 10_000 });
+test.describe('TC-015: Terms success state shows green tick and confirmation message', () => {
+  test('TC-015 success state displays green tick icon and confirmation text', async ({ page }) => {
+    // Create a test purchase to get a valid token
+    const result = await convexMutation('testPurchase:createTestPurchase', {
+      customer_mobile: '+6599015015',
+    }) as { token: string };
+    const token = result.token;
 
-    // Screenshot evidence of nav with Terms entry
+    // Navigate directly to success state URL
+    await page.goto(`${BASE_URL}/terms?token=${token}&status=success`);
+    await page.waitForLoadState('networkidle');
+
     const screenshotDir = path.join(process.cwd(), 'test-results');
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-015-nav-terms.png'), fullPage: false });
 
-    // Click the Terms link and assert navigation to /admin/terms
-    await termsLink.click();
-    await page.waitForURL(/\/admin\/terms/, { timeout: 15_000 });
+    // Screenshot evidence of success state
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-015-success-state.png'), fullPage: true });
 
-    expect(page.url()).toContain('/admin/terms');
+    // Pass criteria 1: green tick icon is visible (SVG inside emerald circle)
+    const greenTickContainer = page.locator('div.rounded-full.bg-emerald-100');
+    await expect(greenTickContainer).toBeVisible({ timeout: 15_000 });
 
-    // Screenshot evidence after navigation
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-015-terms-page.png'), fullPage: true });
+    const tickSvg = greenTickContainer.locator('svg');
+    await expect(tickSvg).toBeVisible({ timeout: 10_000 });
+
+    // Pass criteria 2: confirmation message text is displayed
+    const confirmationText = page.getByText('Your class application is confirmed');
+    await expect(confirmationText).toBeVisible({ timeout: 10_000 });
 
     console.log('TC-015 evidence:', JSON.stringify({
-      terms_link_visible: true,
-      url_after_click: page.url(),
+      token,
+      green_tick_visible: true,
+      confirmation_text_visible: true,
+      url: page.url(),
     }, null, 2));
   });
 });
