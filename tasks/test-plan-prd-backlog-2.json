@@ -1,0 +1,430 @@
+{
+  "qaPlanSchemaVersion": "1.0.0",
+  "planId": "cms-backlog-2-e2e",
+  "source": {
+    "path": "tasks/test-plan-prd-backlog-2.md",
+    "generatedAt": "2026-03-19T06:00:00Z"
+  },
+  "execution": {
+    "defaultRetryRule": { "maxRetries": 0, "retryOn": ["flake", "timeout"] }
+  },
+  "tests": [
+    {
+      "id": "TC-001",
+      "source": "US-003, US-009",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Homepage only shows classes with payment URL",
+      "steps": [
+        "Seed DB: Class A (payment_url set, active), Class B (no payment_url, active)",
+        "Navigate to homepage",
+        "Inspect class listing"
+      ],
+      "commands": ["npx playwright test --grep \"TC-001\""],
+      "passFail": [
+        "Only Class A is displayed on homepage",
+        "Class B is absent from homepage"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of homepage class listing showing only classes with payment_url"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-002",
+      "source": "US-009",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Buy Ticket button opens payment_url in new tab",
+      "steps": [
+        "Navigate to homepage with at least one class with payment_url",
+        "Click 'Buy Ticket' button",
+        "Inspect anchor element attributes"
+      ],
+      "commands": ["npx playwright test --grep \"TC-002\""],
+      "passFail": [
+        "New browser tab opens to the class payment_url",
+        "Anchor has target=\"_blank\" and rel=\"noopener noreferrer\""
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": [
+          "Screenshot of new tab URL",
+          "DOM inspection screenshot showing anchor attributes"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-003",
+      "source": "US-003, US-009",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Homepage shows empty state when no classes have payment_url",
+      "steps": [
+        "Ensure no active classes with payment_url exist in DB",
+        "Navigate to homepage"
+      ],
+      "commands": ["npx playwright test --grep \"TC-003\""],
+      "passFail": [
+        "Class listing section shows empty state message (e.g. 'No classes available at this time')",
+        "No class cards are rendered"
+      ],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": {
+        "required": ["Screenshot of homepage empty state"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-004",
+      "source": "US-008",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Super admin sees payment URL field in class edit form",
+      "steps": [
+        "Log in as super_admin",
+        "Navigate to class edit page"
+      ],
+      "commands": ["npx playwright test --grep \"TC-004\""],
+      "passFail": [
+        "Payment URL input field is visible on the class edit form"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of class edit form showing Payment URL field"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-005",
+      "source": "US-008",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Regular admin does NOT see payment URL field",
+      "steps": [
+        "Log in as regular_admin",
+        "Navigate to class edit page"
+      ],
+      "commands": ["npx playwright test --grep \"TC-005\""],
+      "passFail": [
+        "Payment URL input field is absent from the class edit form"
+      ],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": {
+        "required": ["Screenshot of class edit form — Payment URL field absent"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-006",
+      "source": "US-007",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Class listing defaults to Active filter on page load",
+      "steps": [
+        "Seed DB with both active and inactive classes",
+        "Log in as admin",
+        "Navigate to class listing page"
+      ],
+      "commands": ["npx playwright test --grep \"TC-006\""],
+      "passFail": [
+        "Filter dropdown shows 'Active' as selected",
+        "Only active classes are displayed in the listing"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of class listing with Active filter selected and class count"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-007",
+      "source": "US-007",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Class listing filter can switch to Inactive and All",
+      "steps": [
+        "Log in as admin, navigate to class listing",
+        "Select 'Inactive' from filter dropdown",
+        "Select 'All' from filter dropdown"
+      ],
+      "commands": ["npx playwright test --grep \"TC-007\""],
+      "passFail": [
+        "After selecting Inactive: only inactive classes shown",
+        "After selecting All: all classes shown regardless of status",
+        "Filter applies immediately without page reload"
+      ],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": {
+        "required": [
+          "Screenshot of listing with Inactive filter",
+          "Screenshot of listing with All filter"
+        ],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-008",
+      "source": "US-004",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Participant list does NOT show Name column",
+      "steps": [
+        "Log in as admin",
+        "Navigate to a session's participant list"
+      ],
+      "commands": ["npx playwright test --grep \"TC-008\""],
+      "passFail": [
+        "'Name' column header is absent from the participant table",
+        "Name data cells are absent",
+        "All other columns remain intact"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of participant list table — no Name column"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-009",
+      "source": "US-005",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Participant detail does NOT show Name field",
+      "steps": [
+        "Log in as admin",
+        "Navigate to a participant detail page"
+      ],
+      "commands": ["npx playwright test --grep \"TC-009\""],
+      "passFail": [
+        "No 'Name' label or value is rendered on the participant detail page",
+        "All other participant fields are present"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of participant detail page — no Name field"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-010",
+      "source": "US-006",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Super admin sees Change Session button on participant detail",
+      "steps": [
+        "Log in as super_admin",
+        "Navigate to a participant detail page"
+      ],
+      "commands": ["npx playwright test --grep \"TC-010\""],
+      "passFail": [
+        "'Change Session' button is visible on the participant detail page"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of participant detail with Change Session button visible"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-011",
+      "source": "US-006",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Regular admin does NOT see Change Session button",
+      "steps": [
+        "Log in as regular_admin",
+        "Navigate to a participant detail page"
+      ],
+      "commands": ["npx playwright test --grep \"TC-011\""],
+      "passFail": [
+        "'Change Session' button is absent from the participant detail page"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of participant detail — no Change Session button"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-012",
+      "source": "US-006",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Change Session selector shows only eligible sessions (same class, scheduled, quota > 0)",
+      "steps": [
+        "Seed sessions: same class — one scheduled with quota available, one from different class, one inactive",
+        "Log in as super_admin",
+        "Navigate to participant detail",
+        "Click 'Change Session'",
+        "Inspect session selector"
+      ],
+      "commands": ["npx playwright test --grep \"TC-012\""],
+      "passFail": [
+        "Selector lists only sessions of the same class",
+        "Sessions have status 'scheduled' and available quota (quota_used < quota_defined)",
+        "Each session shows date, time, and location"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of Change Session selector with eligible session list"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-013",
+      "source": "US-006",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Change Session selector excludes full sessions (quota = 0)",
+      "steps": [
+        "Seed a session of the same class with quota_used = quota_defined (full)",
+        "Log in as super_admin",
+        "Open Change Session selector for a participant"
+      ],
+      "commands": ["npx playwright test --grep \"TC-013\""],
+      "passFail": [
+        "The full session (quota_used = quota_defined) does NOT appear in the selector",
+        "Only sessions with available quota are listed"
+      ],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": {
+        "required": ["Screenshot of Change Session selector — full session absent"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-014",
+      "source": "US-010",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms page shows instructional wording about QR code WhatsApp",
+      "steps": [
+        "Navigate to terms acceptance page as a participant"
+      ],
+      "commands": ["npx playwright test --grep \"TC-014\""],
+      "passFail": [
+        "Page contains text: 'After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message.'",
+        "Note appears above the submit button"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of terms form with instructional note visible"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-015",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms success state shows green tick and confirmation message",
+      "steps": [
+        "Navigate to terms acceptance page",
+        "Complete and submit the form successfully"
+      ],
+      "commands": ["npx playwright test --grep \"TC-015\""],
+      "passFail": [
+        "Page displays a large green tick icon",
+        "Text 'Your class application is confirmed' is displayed"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of success state showing green tick and confirmation message"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-016",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P0",
+      "title": "Terms success state shows Open your QR Code button",
+      "steps": [
+        "Navigate to terms acceptance page",
+        "Complete and submit the form successfully (mutation returns participant_id)"
+      ],
+      "commands": ["npx playwright test --grep \"TC-016\""],
+      "passFail": [
+        "'Open your QR Code' button is visible on the success state"
+      ],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": {
+        "required": ["Screenshot of success state with Open your QR Code button"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-017",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Open your QR Code links to correct /participant/[participant_id]",
+      "steps": [
+        "Submit terms form successfully",
+        "Inspect 'Open your QR Code' button href",
+        "Verify URL matches participant_id returned by mutation"
+      ],
+      "commands": ["npx playwright test --grep \"TC-017\""],
+      "passFail": [
+        "Button href is /participant/[participant_id]",
+        "participant_id in URL matches the one returned by the submission mutation"
+      ],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": {
+        "required": ["DOM inspection screenshot or navigation log showing correct URL"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-018",
+      "source": "US-011",
+      "level": "e2e",
+      "priority": "P1",
+      "title": "Terms success state removes form fields after submission",
+      "steps": [
+        "Submit terms form successfully",
+        "Inspect page content after submission"
+      ],
+      "commands": ["npx playwright test --grep \"TC-018\""],
+      "passFail": [
+        "All form input fields are absent from the page",
+        "Session and terms detail blocks are absent",
+        "Success state (tick + message + button) is shown in their place",
+        "No full page reload occurred (client-side state change)"
+      ],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": {
+        "required": ["Screenshot showing form absent and success state present"],
+        "artifacts": []
+      }
+    },
+    {
+      "id": "TC-019",
+      "source": "US-006",
+      "level": "integration",
+      "priority": "P2",
+      "title": "Change Session sends WhatsApp notification",
+      "steps": [
+        "Log in as super_admin",
+        "Change a participant's session via the Change Session flow and confirm",
+        "Check Convex function logs or audit record for WhatsApp notification"
+      ],
+      "commands": ["npx playwright test --grep \"TC-019\""],
+      "passFail": [
+        "Convex function log confirms participants:changeParticipantSession was called",
+        "Audit log or function output records a WhatsApp notification event"
+      ],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": {
+        "required": [
+          "Screenshot of Convex dashboard function log showing changeParticipantSession call",
+          "Audit record or log output confirming WhatsApp notification"
+        ],
+        "artifacts": []
+      }
+    }
+  ]
+}
