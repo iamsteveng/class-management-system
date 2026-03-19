@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AddClassModal } from "./add-class-modal";
 import { CancelClassButton } from "./cancel-class-button";
+import { ClassFilterDropdown } from "./class-filter-dropdown";
 import { EditClassModal } from "./edit-class-modal";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
@@ -14,10 +15,11 @@ type ClassRow = {
   description?: string;
   total_sessions: number;
   status: "active" | "inactive";
+  payment_url?: string;
 };
 
 type AdminClassesPageProps = {
-  searchParams: Promise<{ status?: string; error?: string }>;
+  searchParams: Promise<{ status?: string; error?: string; filter?: string }>;
 };
 
 export default async function AdminClassesPage({
@@ -35,8 +37,15 @@ export default async function AdminClassesPage({
   const classCancelled = params.status === "class_cancelled";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
+  const filterParam = params.filter ?? "active";
+  const validFilter = ["active", "inactive", "all"].includes(filterParam) ? filterParam : "active";
 
-  const classes = await loadClassListPageData();
+  const allClasses = await loadClassListPageData();
+  const classes = allClasses.filter((cls) => {
+    if (validFilter === "active") return cls.status === "active";
+    if (validFilter === "inactive") return cls.status === "inactive";
+    return true;
+  });
 
   async function addClassAction(formData: FormData) {
     "use server";
@@ -44,6 +53,8 @@ export default async function AdminClassesPage({
     const name = (formData.get("name") as string | null)?.trim() ?? "";
     const description =
       (formData.get("description") as string | null)?.trim() || undefined;
+    const paymentUrl =
+      (formData.get("payment_url") as string | null)?.trim() || undefined;
 
     if (!name) {
       redirect(
@@ -55,7 +66,7 @@ export default async function AdminClassesPage({
       const client = createConvexHttpClient();
       await client.mutation(
         makeFunctionReference<"mutation">("adminClasses:createClass"),
-        { name, description, admin_username: adminUsername }
+        { name, description, payment_url: paymentUrl, admin_username: adminUsername }
       );
     } catch {
       redirect(
@@ -73,6 +84,8 @@ export default async function AdminClassesPage({
     const name = (formData.get("name") as string | null)?.trim() ?? "";
     const description =
       (formData.get("description") as string | null)?.trim() ?? "";
+    const paymentUrl =
+      (formData.get("payment_url") as string | null)?.trim() || undefined;
 
     if (!classId || !name) {
       redirect(
@@ -88,6 +101,7 @@ export default async function AdminClassesPage({
           class_id: classId,
           name,
           description,
+          payment_url: paymentUrl,
           admin_username: adminUsername,
         }
       );
@@ -167,6 +181,8 @@ export default async function AdminClassesPage({
         </p>
       ) : null}
 
+      <ClassFilterDropdown currentFilter={validFilter} />
+
       {classes.length === 0 ? (
         <p className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
           No classes found.
@@ -221,6 +237,7 @@ export default async function AdminClassesPage({
                           classId={cls.class_id}
                           initialName={cls.class_name}
                           initialDescription={cls.description}
+                          initialPaymentUrl={cls.payment_url}
                           submitAction={editClassAction}
                         />
                         {cls.status === "active" ? (

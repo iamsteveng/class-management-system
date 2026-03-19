@@ -10,6 +10,7 @@ export const getClassListPageData = queryGeneric({
       description: v.optional(v.string()),
       total_sessions: v.number(),
       status: v.union(v.literal("active"), v.literal("inactive")),
+      payment_url: v.optional(v.string()),
     })
   ),
   handler: async (ctx) => {
@@ -28,6 +29,7 @@ export const getClassListPageData = queryGeneric({
       description: cls.description,
       total_sessions: sessionCountByClassId.get(cls.class_id) ?? 0,
       status: cls.status,
+      payment_url: cls.payment_url,
     }));
   },
 });
@@ -36,6 +38,7 @@ export const createClass = mutationGeneric({
   args: {
     name: v.string(),
     description: v.optional(v.string()),
+    payment_url: v.optional(v.string()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -54,6 +57,7 @@ export const createClass = mutationGeneric({
       class_id: classId,
       name: args.name.trim(),
       description: args.description?.trim(),
+      payment_url: args.payment_url?.trim() || undefined,
       status: "active",
       created_at: now,
     });
@@ -79,6 +83,7 @@ export const updateClass = mutationGeneric({
     class_id: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
+    payment_url: v.optional(v.string()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -106,10 +111,12 @@ export const updateClass = mutationGeneric({
     const now = Date.now();
     const nextName = args.name.trim();
     const nextDescription = args.description?.trim() ?? "";
+    const nextPaymentUrl = args.payment_url?.trim() || undefined;
 
     await ctx.db.patch(classRecord._id, {
       name: nextName,
       description: nextDescription,
+      payment_url: nextPaymentUrl,
     });
 
     await ctx.db.insert("audit_logs", {

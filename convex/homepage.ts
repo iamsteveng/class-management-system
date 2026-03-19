@@ -1,6 +1,35 @@
 import { queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
+export const listClassesWithPaymentUrl = queryGeneric({
+  args: {},
+  returns: v.array(
+    v.object({
+      class_id: v.string(),
+      name: v.string(),
+      description: v.optional(v.string()),
+      payment_url: v.string(),
+    })
+  ),
+  handler: async (ctx) => {
+    const classes = await ctx.db.query("classes").collect();
+
+    return classes
+      .filter(
+        (cls) =>
+          cls.status === "active" &&
+          typeof cls.payment_url === "string" &&
+          cls.payment_url.length > 0
+      )
+      .map((cls) => ({
+        class_id: cls.class_id,
+        name: cls.name,
+        description: cls.description,
+        payment_url: cls.payment_url as string,
+      }));
+  },
+});
+
 export const getAvailableClasses = queryGeneric({
   args: {},
   returns: v.array(

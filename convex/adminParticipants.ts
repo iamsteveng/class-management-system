@@ -1,6 +1,44 @@
 import { queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
+export const getAvailableSessionsForClassChange = queryGeneric({
+  args: {
+    class_id: v.string(),
+    current_session_id: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      session_id: v.string(),
+      date: v.string(),
+      time: v.string(),
+      location: v.string(),
+      quota_available: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const sessions = await ctx.db
+      .query("sessions")
+      .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
+      .collect();
+
+    return sessions
+      .filter(
+        (s) =>
+          s.session_id !== args.current_session_id &&
+          s.status === "scheduled" &&
+          s.quota_used < s.quota_defined
+      )
+      .map((s) => ({
+        session_id: s.session_id,
+        date: s.date,
+        time: s.time,
+        location: s.location,
+        quota_available: s.quota_defined - s.quota_used,
+      }))
+      .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
+  },
+});
+
 export const getParticipantAdminDetails = queryGeneric({
   args: {
     participant_id: v.string(),
@@ -12,6 +50,7 @@ export const getParticipantAdminDetails = queryGeneric({
       name: v.optional(v.string()),
       mobile: v.optional(v.string()),
       session_id: v.string(),
+      class_id: v.string(),
       session_location: v.string(),
       session_date: v.string(),
       session_time: v.string(),
@@ -61,6 +100,7 @@ export const getParticipantAdminDetails = queryGeneric({
       name: participant.name,
       mobile: participant.mobile,
       session_id: session.session_id,
+      class_id: session.class_id,
       session_location: session.location,
       session_date: session.date,
       session_time: session.time,

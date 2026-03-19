@@ -178,6 +178,10 @@ export function TermsForm({
         <p className="rounded-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-700">{helperMessage}</p>
       ) : null}
 
+      <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm italic text-blue-800">
+        After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message.
+      </p>
+
       <SubmitButton
         canSubmit={canSubmit}
         disabled={disableForm}

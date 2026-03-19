@@ -44,6 +44,7 @@ export default defineSchema({
     name: v.string(),
     description: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
+    payment_url: v.optional(v.string()),
     created_at: v.number(),
   }).index("by_class_id", ["class_id"]),
 

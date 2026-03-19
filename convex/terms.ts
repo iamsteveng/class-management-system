@@ -139,6 +139,7 @@ export const acceptTermsByToken = mutationGeneric({
   returns: v.object({
     success: v.boolean(),
     error_message: v.optional(v.string()),
+    participant_id: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
     if (!args.accepted) {
@@ -261,6 +262,6 @@ export const acceptTermsByToken = mutationGeneric({
       created_at: acceptedAt,
     });
 
-    return { success: true };
+    return { success: true, participant_id: participantIds[0] };
   },
 });

@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const client = createConvexHttpClient();
     const classes = await client.query(
-      makeFunctionReference<"query">("homepage:getAvailableClasses"),
+      makeFunctionReference<"query">("homepage:listClassesWithPaymentUrl"),
       {}
     );
 
