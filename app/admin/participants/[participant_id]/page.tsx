@@ -62,10 +62,6 @@ export default async function ParticipantDetailPage({ params }: ParticipantDetai
         <h2 className="text-lg font-medium text-zinc-900">Personal Information</h2>
         <dl className="grid gap-3 text-sm">
           <div>
-            <dt className="font-medium text-zinc-600">Name</dt>
-            <dd className="mt-0.5 text-zinc-900">{details.name?.trim() || "—"}</dd>
-          </div>
-          <div>
             <dt className="font-medium text-zinc-600">Mobile</dt>
             <dd className="mt-0.5 text-zinc-900">{details.mobile?.trim() || "—"}</dd>
           </div>
