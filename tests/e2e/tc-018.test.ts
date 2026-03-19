@@ -26,104 +26,98 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-018: Attendance scanning — successful QR scan marks participant attended with green tick', () => {
-  test('TC-018 injecting a valid participant QR code string marks attendance with green tick in the row', async ({ page }) => {
-    const testId = Date.now();
+test.describe('TC-018: Terms success state removes form fields after submission', () => {
+  test('TC-018 after submitting terms form, form fields are absent and success state is shown', async ({ page }) => {
     const screenshotDir = path.join(process.cwd(), 'test-results');
 
-    // Step 1: Create a class via Convex
-    const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC018 Class ${testId}`,
-      description: 'Attendance QR scan test',
-      admin_username: 'admin',
-    }) as { class_id: string };
+    // Step 1: Create a test purchase
+    const purchase = await convexMutation('testPurchase:createTestPurchase', {
+      customer_mobile: '+6599018018',
+      participant_count: 1,
+    }) as { purchase_id: string; token: string };
+    const token = purchase.token;
+    console.log(`TC-018 created test purchase with token: ${token}`);
 
-    // Step 2: Create a session for that class
-    const createdSession = await convexMutation('adminSessions:createSession', {
-      class_id: createdClass.class_id,
-      location: `TC018 Studio ${testId}`,
-      date: '2030-12-25',
-      time: '10:00',
-      quota_defined: 10,
-      admin_username: 'admin',
-    }) as { session_id: string };
+    // Step 2: Get terms page data to find an available session
+    const termsData = await convexQuery('terms:getTermsPageData', { token }) as {
+      sessions: Array<{ session_id: string; class_name: string; location: string; date: string; time: string }>;
+    };
+    if (!termsData || !termsData.sessions || termsData.sessions.length === 0) {
+      throw new Error('TC-018: No available sessions found — cannot submit terms form');
+    }
+    const sessionId = termsData.sessions[0].session_id;
+    console.log(`TC-018 using session_id: ${sessionId}`);
 
-    // Step 3: Create a test participant for that session
-    const createdParticipant = await convexMutation('testPurchase:createTestParticipant', {
-      session_id: createdSession.session_id,
-      name: `TC018 Participant ${testId}`,
-      mobile: `+6018${testId.toString().slice(-7)}`,
-    }) as { participant_id: string };
-
-    console.log(`TC-018 setup: class=${createdClass.class_id} session=${createdSession.session_id} participant=${createdParticipant.participant_id}`);
-
-    // Step 4: Log in as admin
-    await page.goto(`${BASE_URL}/admin/login`);
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
-
-    // Step 5: Navigate to the session participants page
-    await page.goto(`${BASE_URL}/admin/sessions/${createdSession.session_id}/participants`);
+    // Step 3: Navigate to the terms page
+    await page.goto(`${BASE_URL}/terms?token=${token}`);
     await page.waitForLoadState('networkidle', { timeout: 20_000 });
 
-    // Assert the page loaded and participant row is visible
-    const participantRow = page.locator('tbody tr').filter({ hasText: `TC018 Participant ${testId}` });
-    await expect(participantRow).toHaveCount(1, { timeout: 15_000 });
+    // Step 4: Confirm form is visible before submission
+    const sessionSelect = page.locator('select#session_id');
+    await expect(sessionSelect).toBeVisible({ timeout: 15_000 });
 
-    // Confirm attendance is not yet marked
-    const attendanceCellBefore = participantRow.locator('td').nth(5); // Attendance Status column (0-indexed)
-    const statusBefore = await attendanceCellBefore.textContent();
-    console.log(`TC-018 attendance status before: "${statusBefore}"`);
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-018-before-submit.png'), fullPage: true });
 
-    // Screenshot before marking attendance
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-018-before-scan.png'), fullPage: true });
+    // Step 5: Fill out the terms form
+    await sessionSelect.selectOption(sessionId);
 
-    // Step 6: Use the manual entry form to inject the participant QR code string
-    // (The participant ID is the QR code payload — extractParticipantId() returns it as-is when not a URL)
-    const manualInput = page.getByPlaceholder('Paste participant ID');
-    await manualInput.fill(createdParticipant.participant_id);
-    await page.getByRole('button', { name: 'Mark' }).click();
+    // Fill optional participant detail fields if present (feat/backlog-prd)
+    const heightInput = page.locator('input#height');
+    const ageInput = page.locator('input#age');
+    const emergencyNameInput = page.locator('input#emergency_contact_name');
+    const emergencyPhoneInput = page.locator('input#emergency_contact_phone');
 
-    // Step 7: Wait for the attendance status to update in the row (no full page reload)
-    await expect(participantRow.locator('td').nth(5)).toContainText('✓', { timeout: 15_000 });
+    if (await heightInput.isVisible()) await heightInput.fill('170cm');
+    if (await ageInput.isVisible()) await ageInput.fill('30');
+    if (await emergencyNameInput.isVisible()) await emergencyNameInput.fill('Emergency Contact');
+    if (await emergencyPhoneInput.isVisible()) await emergencyPhoneInput.fill('+60123456789');
 
-    // Screenshot showing green tick
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-018-green-tick.png'), fullPage: true });
+    await page.locator('input[name="accepted"]').check();
 
-    const attendanceCellAfter = participantRow.locator('td').nth(5);
-    const statusAfter = await attendanceCellAfter.textContent();
-    console.log(`TC-018 attendance status after: "${statusAfter}"`);
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-018-form-filled.png'), fullPage: true });
 
-    // Step 8: Verify attendance record exists in Convex
-    const attendanceRecords = await convexQuery('adminSessions:getSessionAttendance', {
-      session_id: createdSession.session_id,
-    }) as Array<{
-      attendance_id: string;
-      participant_id: string;
-      session_id: string;
-      admin_username: string;
-      marked_at: number;
-    }>;
+    // Step 6: Submit the form
+    await page.getByRole('button', { name: 'Accept Terms' }).click();
 
-    const record = attendanceRecords.find(r => r.participant_id === createdParticipant.participant_id);
-    expect(record).toBeDefined();
-    expect(record!.participant_id).toBe(createdParticipant.participant_id);
-    expect(record!.session_id).toBe(createdSession.session_id);
-    expect(record!.admin_username).toBe('admin');
-    expect(record!.marked_at).toBeGreaterThan(0);
+    // Step 7: Wait for redirect to success URL
+    await page.waitForURL(/status=success/, { timeout: 30_000 });
+    const successUrl = page.url();
+    console.log(`TC-018 redirected to: ${successUrl}`);
 
-    // Assert the UI shows the unicode check mark (✓ = \u2713)
-    expect(statusAfter).toContain('\u2713');
+    await page.waitForLoadState('networkidle', { timeout: 20_000 });
 
+    // Step 8: Take success screenshot
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-018-success-state.png'), fullPage: true });
+
+    // Step 9: Assert all form input fields are ABSENT
+    await expect(page.locator('select#session_id')).toHaveCount(0);
+    await expect(page.locator('input[name="accepted"]')).toHaveCount(0);
+    await expect(page.locator('input#height')).toHaveCount(0);
+    await expect(page.locator('input#age')).toHaveCount(0);
+    await expect(page.locator('input#emergency_contact_name')).toHaveCount(0);
+    await expect(page.locator('input#emergency_contact_phone')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Accept Terms' })).toHaveCount(0);
+
+    // Step 10: Assert session/terms detail blocks are absent
+    // The form wrapper or terms-form section should not be present
+    await expect(page.locator('form')).toHaveCount(0);
+
+    // Step 11: Assert success state is shown (tick + message + button)
+    await expect(page.getByText('Terms accepted successfully')).toBeVisible({ timeout: 10_000 });
+    const qrButton = page.getByRole('link', { name: 'Open your QR Code' });
+    await expect(qrButton).toBeVisible({ timeout: 10_000 });
+
+    // Step 12: Verify URL contains status=success (client-side redirect, not full reload indicator)
+    expect(page.url()).toContain('status=success');
+
+    const pageContent = await page.textContent('body');
     console.log('TC-018 evidence:', JSON.stringify({
-      participant_id: createdParticipant.participant_id,
-      session_id: createdSession.session_id,
-      attendance_status_before: statusBefore,
-      attendance_status_after: statusAfter,
-      green_tick_visible: statusAfter?.includes('\u2713'),
-      attendance_record: record,
+      token,
+      session_id: sessionId,
+      success_url: successUrl,
+      form_absent: !pageContent?.includes('select') && !pageContent?.includes('Accept Terms'),
+      success_message_present: pageContent?.includes('Terms accepted successfully'),
+      qr_button_visible: true,
     }, null, 2));
   });
 });
