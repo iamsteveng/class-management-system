@@ -18,7 +18,9 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
 test.describe('TC-014: Terms page shows instructional wording about QR code WhatsApp', () => {
   test('TC-014 terms page contains QR code WhatsApp instructional note above submit button', async ({ page }) => {
     // Create a test purchase to get a valid token
-    const result = await convexMutation('testPurchase:createTestPurchase', {}) as { token: string };
+    const result = await convexMutation('testPurchase:createTestPurchase', {
+      customer_mobile: '+6599014014',
+    }) as { token: string };
     const token = result.token;
 
     // Navigate to the terms page
