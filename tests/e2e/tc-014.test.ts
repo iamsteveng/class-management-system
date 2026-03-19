@@ -15,85 +15,43 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-014: Admin cancel session — error displayed inline (not raw browser alert)', () => {
-  test('TC-014 cancel session with enrolled participants shows inline error, not window.alert', async ({ page }) => {
-    const testId = Date.now();
+test.describe('TC-014: Terms page shows instructional wording about QR code WhatsApp', () => {
+  test('TC-014 terms page contains QR code WhatsApp instructional note above submit button', async ({ page }) => {
+    // Create a test purchase to get a valid token
+    const result = await convexMutation('testPurchase:createTestPurchase', {}) as { token: string };
+    const token = result.token;
 
-    // Step 1: Create a class via Convex
-    const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC014 Class ${testId}`,
-      description: 'Cancel session inline error test',
-      admin_username: 'admin',
-    }) as { class_id: string };
-
-    // Step 2: Create a session via Convex
-    const createdSession = await convexMutation('adminSessions:createSession', {
-      class_id: createdClass.class_id,
-      location: `TC014 Studio ${testId}`,
-      date: '2030-12-25',
-      time: '10:00',
-      quota_defined: 10,
-      admin_username: 'admin',
-    }) as { session_id: string };
-
-    // Step 3: Enroll a participant in that session
-    await convexMutation('testPurchase:createTestParticipant', {
-      session_id: createdSession.session_id,
-      name: `TC014 Participant ${testId}`,
-      mobile: '+60100000000',
-    });
-
-    // Step 4: Log in as admin
-    await page.goto(`${BASE_URL}/admin/login`);
-    await page.getByLabel('Username').fill('admin');
-    await page.getByLabel('Password').fill('admin123');
-    await page.getByRole('button', { name: 'Sign In' }).click();
-    await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
-
-    // Step 5: Navigate to the sessions page for the class
-    await page.goto(`${BASE_URL}/admin/classes/${createdClass.class_id}/sessions`);
+    // Navigate to the terms page
+    await page.goto(`${BASE_URL}/terms?token=${token}`);
     await page.waitForLoadState('networkidle');
 
-    // Step 6: Find the session row
-    const sessionRow = page.locator('tbody tr').filter({ hasText: `TC014 Studio ${testId}` });
-    await expect(sessionRow).toHaveCount(1, { timeout: 15_000 });
-
-    // Track if a window.alert dialog fires (it should NOT)
-    let alertFired = false;
-    page.on('dialog', async (dialog) => {
-      if (dialog.type() === 'alert') {
-        alertFired = true;
-        await dialog.accept();
-      } else if (dialog.type() === 'confirm') {
-        // Accept the confirmation prompt to proceed with cancellation
-        await dialog.accept();
-      }
-    });
-
-    // Step 7: Click the Cancel button (will trigger window.confirm, then attempt cancellation)
-    await sessionRow.getByRole('button', { name: 'Cancel' }).click();
-
-    // Step 8: Wait for navigation / page update
-    await page.waitForLoadState('networkidle', { timeout: 30_000 });
-
-    // Screenshot evidence
+    // Screenshot evidence — terms form with instructional note visible
     const screenshotDir = path.join(process.cwd(), 'test-results');
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-014-inline-error.png'), fullPage: true });
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-014-terms-qr-note.png'), fullPage: true });
 
-    // Step 9: Assert NO window.alert was fired
-    expect(alertFired).toBe(false);
+    // Pass criteria: page contains the instructional text
+    const instructionalNote = page.locator('text=After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message.');
+    await expect(instructionalNote).toBeVisible({ timeout: 15_000 });
 
-    // Step 10: Assert the error message is displayed inline in the page (not as window.alert)
-    // The app may show "Failed to cancel session..." or "...enrolled participants..." depending
-    // on how the Convex error propagates — either way it must appear inline in the DOM.
-    const inlineError = page.locator('p.text-red-700').first();
-    await expect(inlineError).toBeVisible({ timeout: 10_000 });
+    // Pass criteria: note appears above the submit button
+    const noteElement = page.locator('p.italic');
+    const submitButton = page.getByRole('button', { name: 'Accept Terms' });
+
+    const noteBox = await noteElement.boundingBox();
+    const buttonBox = await submitButton.boundingBox();
+
+    expect(noteBox).not.toBeNull();
+    expect(buttonBox).not.toBeNull();
+    // Note's bottom edge should be above (or at) the button's top edge
+    expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(buttonBox!.y + 5);
 
     console.log('TC-014 evidence:', JSON.stringify({
-      class_id: createdClass.class_id,
-      session_id: createdSession.session_id,
-      alert_fired: alertFired,
-      inline_error_visible: true,
+      token,
+      note_visible: true,
+      note_y: noteBox!.y,
+      note_bottom: noteBox!.y + noteBox!.height,
+      button_y: buttonBox!.y,
+      note_above_button: (noteBox!.y + noteBox!.height) <= (buttonBox!.y + 5),
     }, null, 2));
   });
 });
