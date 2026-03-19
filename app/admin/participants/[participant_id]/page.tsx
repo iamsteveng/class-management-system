@@ -2,11 +2,13 @@ import { makeFunctionReference } from "convex/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ChangeSessionPanel } from "./change-session-panel";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
 type ParticipantDetailPageProps = {
   params: Promise<{ participant_id: string }>;
+  searchParams: Promise<{ error?: string; status?: string }>;
 };
 
 type ParticipantDetails = {
@@ -14,6 +16,7 @@ type ParticipantDetails = {
   name?: string;
   mobile?: string;
   session_id: string;
+  class_id: string;
   session_location: string;
   session_date: string;
   session_time: string;
@@ -26,13 +29,27 @@ type ParticipantDetails = {
   emergency_contact_phone?: string;
 };
 
-export default async function ParticipantDetailPage({ params }: ParticipantDetailPageProps) {
+type AvailableSession = {
+  session_id: string;
+  date: string;
+  time: string;
+  location: string;
+  quota_available: number;
+};
+
+export default async function ParticipantDetailPage({ params, searchParams }: ParticipantDetailPageProps) {
   const authSession = await getServerAuthSession();
   if (!authSession?.user?.username) {
     redirect("/admin/login?error=Please%20log%20in%20to%20continue.");
   }
 
   const { participant_id: participantId } = await params;
+  const sp = await searchParams;
+  const errorMessage = sp.error ?? undefined;
+  const sessionChanged = sp.status === "session_changed";
+  const isSuperAdmin = authSession.user.role === "super_admin";
+  const adminUsername = authSession.user.username;
+
   const details = await loadParticipantDetails(participantId);
 
   if (!details) {
@@ -51,12 +68,62 @@ export default async function ParticipantDetailPage({ params }: ParticipantDetai
     );
   }
 
+  let availableSessions: AvailableSession[] = [];
+  if (isSuperAdmin) {
+    availableSessions = await loadAvailableSessionsForChange(
+      details.class_id,
+      details.session_id
+    );
+  }
+
+  async function changeSessionAction(formData: FormData) {
+    "use server";
+
+    const pId = (formData.get("participant_id") as string | null)?.trim() ?? "";
+    const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
+
+    if (!pId || !sessionId) {
+      redirect(
+        `/admin/participants/${pId || participantId}?error=${encodeURIComponent("Session selection is required.")}`
+      );
+    }
+
+    try {
+      const client = createConvexHttpClient();
+      const result = await client.mutation(
+        makeFunctionReference<"mutation">("participants:changeParticipantSession"),
+        { participant_id: pId, session_id: sessionId }
+      );
+      if (!result.success) {
+        redirect(
+          `/admin/participants/${pId}?error=${encodeURIComponent(result.error_message ?? "Failed to change session.")}`
+        );
+      }
+    } catch {
+      redirect(
+        `/admin/participants/${pId}?error=${encodeURIComponent("Failed to change session. Please try again.")}`
+      );
+    }
+
+    redirect(`/admin/participants/${pId}?status=session_changed`);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl space-y-6 px-4 py-8">
       <section>
         <h1 className="text-2xl font-semibold text-zinc-900">Participant Details</h1>
         <p className="mt-1 font-mono text-sm text-zinc-500">{details.participant_id}</p>
       </section>
+
+      {errorMessage ? (
+        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>
+      ) : null}
+
+      {sessionChanged ? (
+        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          Session changed successfully.
+        </p>
+      ) : null}
 
       <section className="rounded-xl border border-zinc-200 p-5 space-y-4">
         <h2 className="text-lg font-medium text-zinc-900">Personal Information</h2>
@@ -122,13 +189,21 @@ export default async function ParticipantDetailPage({ params }: ParticipantDetai
         </dl>
       </section>
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Link
           href={`/admin/sessions/${details.session_id}/participants`}
           className="inline-flex rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100"
         >
           Back to Session Participants
         </Link>
+
+        {isSuperAdmin ? (
+          <ChangeSessionPanel
+            participantId={details.participant_id}
+            availableSessions={availableSessions}
+            changeSessionAction={changeSessionAction}
+          />
+        ) : null}
       </div>
     </main>
   );
@@ -148,5 +223,22 @@ async function loadParticipantDetails(
     return result;
   } catch {
     return null;
+  }
+}
+
+async function loadAvailableSessionsForChange(
+  classId: string,
+  currentSessionId: string
+): Promise<AvailableSession[]> {
+  try {
+    const client = createConvexHttpClient();
+    return await client.query(
+      makeFunctionReference<"query">(
+        "adminParticipants:getAvailableSessionsForClassChange"
+      ),
+      { class_id: classId, current_session_id: currentSessionId }
+    );
+  } catch {
+    return [];
   }
 }
