@@ -15,14 +15,14 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-010: Admin session list — "View Participants" button navigates correctly', () => {
-  test('TC-010 clicking View Participants navigates to /admin/sessions/<session_id>/participants', async ({ page }) => {
+test.describe('TC-010: Super admin sees Change Session button on participant detail', () => {
+  test('TC-010 super_admin sees Change Session button on participant detail page', async ({ page }) => {
     const testId = Date.now();
 
     // Step 1: Create a class via Convex
     const createdClass = await convexMutation('adminClasses:createClass', {
       name: `TC010 Class ${testId}`,
-      description: 'View Participants navigation test',
+      description: 'Change Session button visibility test',
       admin_username: 'admin',
     }) as { class_id: string };
 
@@ -36,40 +36,40 @@ test.describe('TC-010: Admin session list — "View Participants" button navigat
       admin_username: 'admin',
     }) as { session_id: string };
 
-    // Step 3: Log in as admin
+    // Step 3: Create a test participant for the session
+    const createdParticipant = await convexMutation('testPurchase:createTestParticipant', {
+      session_id: createdSession.session_id,
+      name: `TC010 Tester ${testId}`,
+      mobile: '+60123456789',
+    }) as { participant_id: string };
+
+    // Step 4: Log in as super_admin (admin/admin123)
     await page.goto(`${BASE_URL}/admin/login`);
     await page.getByLabel('Username').fill('admin');
     await page.getByLabel('Password').fill('admin123');
     await page.getByRole('button', { name: 'Sign In' }).click();
     await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
-    // Step 4: Navigate to the class sessions page (where "View Participants" button lives)
-    await page.goto(`${BASE_URL}/admin/classes/${createdClass.class_id}/sessions`);
+    // Step 5: Navigate directly to the participant detail page
+    await page.goto(`${BASE_URL}/admin/participants/${createdParticipant.participant_id}`);
     await page.waitForLoadState('networkidle');
 
-    // Step 5: Locate the session row and click "View Participants"
-    const sessionRow = page.locator('tbody tr').filter({ hasText: `TC010 Studio ${testId}` });
-    await expect(sessionRow).toHaveCount(1, { timeout: 10_000 });
-    await sessionRow.getByRole('link', { name: 'View Participants' }).click();
+    // Step 6: Assert participant detail heading is visible
+    await expect(page.getByRole('heading', { name: 'Participant Details' })).toBeVisible({ timeout: 15_000 });
 
-    // Step 6: Assert URL navigated to /admin/sessions/<session_id>/participants
-    await page.waitForURL(/\/admin\/sessions\/.*\/participants/, { timeout: 20_000 });
-    const currentUrl = page.url();
-    expect(currentUrl).toContain(`/admin/sessions/${createdSession.session_id}/participants`);
-
-    // Step 7: Assert participant list page heading is visible
-    const heading = page.getByRole('heading', { name: 'Session Participants' });
-    await expect(heading).toBeVisible({ timeout: 15_000 });
+    // Step 7: Assert the "Change Session" button is visible (super_admin only)
+    const changeSessionBtn = page.getByRole('button', { name: 'Change Session' });
+    await expect(changeSessionBtn).toBeVisible({ timeout: 10_000 });
 
     // Screenshot evidence
     const screenshotDir = path.join(process.cwd(), 'test-results');
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-010-participants-page.png'), fullPage: true });
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-010-change-session-button.png'), fullPage: true });
 
     console.log('TC-010 evidence:', JSON.stringify({
       class_id: createdClass.class_id,
       session_id: createdSession.session_id,
-      final_url: currentUrl,
-      heading_visible: true,
+      participant_id: createdParticipant.participant_id,
+      change_session_button_visible: true,
     }, null, 2));
   });
 });
