@@ -324,3 +324,36 @@ export const deleteAllFaqs = mutationGeneric({
     return faqs.length;
   },
 });
+
+export const debugTermsQuery = queryGeneric({
+  args: { token: v.string() },
+  returns: v.any(),
+  handler: async (ctx, args) => {
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+    if (!purchase) return { step: "no_purchase" };
+
+    const currentTerms = await ctx.db
+      .query("terms_versions")
+      .withIndex("by_is_current", (q) => q.eq("is_current", true))
+      .first();
+    if (!currentTerms) return { step: "no_terms" };
+
+    const sessions = await ctx.db.query("sessions").collect();
+    const scheduled = sessions.filter((s) => s.status === "scheduled");
+    const withQuota = scheduled.filter((s) => s.quota_defined - s.quota_used > 0);
+
+    return {
+      step: "ok",
+      purchase_status: purchase.status,
+      class_id: purchase.class_id,
+      terms_version: currentTerms.version,
+      total_sessions: sessions.length,
+      scheduled_count: scheduled.length,
+      with_quota_count: withQuota.length,
+      sample_session: withQuota[0],
+    };
+  },
+});

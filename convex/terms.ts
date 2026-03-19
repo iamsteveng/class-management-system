@@ -32,6 +32,7 @@ export const getTermsPageData = queryGeneric({
           date: v.string(),
           time: v.string(),
           available_quota: v.number(),
+          google_maps_url: v.optional(v.string()),
         })
       ),
     })
@@ -101,6 +102,7 @@ export const getTermsPageData = queryGeneric({
           date: session.date,
           time: session.time,
           available_quota: availableQuota,
+          google_maps_url: session.google_maps_url,
         };
       })
       .filter((session) => session.available_quota > 0)
