@@ -15,81 +15,71 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-006: Admin session edit — update Google Maps URL on existing session', () => {
-  test('TC-006 updates Google Maps URL on an existing session and verifies it is pre-filled on reload', async ({ page }) => {
+test.describe('TC-006: Class listing defaults to Active filter on page load', () => {
+  test('TC-006 filter dropdown shows Active as selected and only active classes are displayed', async ({ page }) => {
     const testId = Date.now();
-    const GOOGLE_MAPS_URL = 'https://maps.google.com/maps?q=tc006+test+location';
 
-    // Step 1: Create a class via Convex
-    const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC006 Class ${testId}`,
-      description: 'Google Maps URL edit test class',
+    // Step 1: Create an active class
+    const activeClass = await convexMutation('adminClasses:createClass', {
+      name: `TC006 Active Class ${testId}`,
+      description: 'TC-006 active class seed',
       admin_username: 'admin',
     }) as { class_id: string };
 
-    // Step 2: Create a session without a Google Maps URL via Convex
-    const createdSession = await convexMutation('adminSessions:createSession', {
-      class_id: createdClass.class_id,
-      location: `TC006 Studio ${testId}`,
-      date: '2030-12-15',
-      time: '10:00',
-      quota_defined: 10,
+    // Step 2: Create a class and then cancel it (making it inactive)
+    const inactiveClass = await convexMutation('adminClasses:createClass', {
+      name: `TC006 Inactive Class ${testId}`,
+      description: 'TC-006 inactive class seed',
       admin_username: 'admin',
-    }) as { session_id: string };
+    }) as { class_id: string };
 
-    // Step 3: Log in as admin on the Vercel app
+    await convexMutation('adminClasses:cancelClass', {
+      class_id: inactiveClass.class_id,
+      admin_username: 'admin',
+    });
+
+    // Step 3: Log in as admin
     await page.goto(`${BASE_URL}/admin/login`);
     await page.getByLabel('Username').fill('admin');
     await page.getByLabel('Password').fill('admin123');
     await page.getByRole('button', { name: 'Sign In' }).click();
     await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
-    // Step 4: Navigate to the class sessions page
-    await page.goto(`${BASE_URL}/admin/classes/${createdClass.class_id}/sessions`);
+    // Step 4: Navigate to class listing without any filter param
+    await page.goto(`${BASE_URL}/admin/classes`);
     await page.waitForLoadState('networkidle');
 
-    // Step 5: Find the session row and click Edit
-    const sessionRow = page.locator('tbody tr').filter({ hasText: `TC006 Studio ${testId}` });
-    await expect(sessionRow).toHaveCount(1, { timeout: 10_000 });
-    await sessionRow.getByRole('button', { name: 'Edit' }).click();
+    // Step 5: Verify the filter dropdown has 'active' selected
+    const filterSelect = page.locator('#class-filter');
+    await expect(filterSelect).toBeVisible({ timeout: 10_000 });
+    await expect(filterSelect).toHaveValue('active');
 
-    // Step 6: Verify the modal is open and Google Maps URL field is empty
-    const mapsUrlInput = page.locator('input[name="google_maps_url"]');
-    await expect(mapsUrlInput).toBeVisible({ timeout: 5_000 });
-    await expect(mapsUrlInput).toHaveValue('');
+    // Step 6: Verify the active class is visible in the listing
+    const tableBody = page.locator('tbody');
+    await expect(tableBody).toBeVisible({ timeout: 10_000 });
 
-    // Step 7: Enter a Google Maps URL
-    await mapsUrlInput.fill(GOOGLE_MAPS_URL);
+    const activeClassRow = tableBody.locator('tr').filter({ hasText: `TC006 Active Class ${testId}` });
+    await expect(activeClassRow).toHaveCount(1, { timeout: 10_000 });
 
-    // Step 8: Save the form
-    await page.getByRole('button', { name: 'Save' }).click();
+    // Step 7: Verify the inactive/cancelled class is NOT visible
+    const inactiveClassRow = tableBody.locator('tr').filter({ hasText: `TC006 Inactive Class ${testId}` });
+    await expect(inactiveClassRow).toHaveCount(0, { timeout: 5_000 });
 
-    // Step 9: Wait for the success redirect
-    await page.waitForURL(/status=session_updated/, { timeout: 20_000 });
-
-    // Step 10: Reload the page to get fresh server-rendered data
-    await page.goto(`${BASE_URL}/admin/classes/${createdClass.class_id}/sessions`);
-    await page.waitForLoadState('networkidle');
-
-    // Step 11: Open the edit modal again for the same session
-    const sessionRowAfterReload = page.locator('tbody tr').filter({ hasText: `TC006 Studio ${testId}` });
-    await expect(sessionRowAfterReload).toHaveCount(1, { timeout: 10_000 });
-    await sessionRowAfterReload.getByRole('button', { name: 'Edit' }).click();
-
-    // Step 12: Verify Google Maps URL is pre-filled with the entered value
-    const mapsUrlInputAfterReload = page.locator('input[name="google_maps_url"]');
-    await expect(mapsUrlInputAfterReload).toBeVisible({ timeout: 5_000 });
-    await expect(mapsUrlInputAfterReload).toHaveValue(GOOGLE_MAPS_URL);
-
-    // Step 13: Take screenshot of pre-filled edit form
+    // Step 8: Take screenshot as evidence
     const screenshotDir = path.join(process.cwd(), 'test-results');
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-006-google-maps-prefilled.png'), fullPage: true });
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-006-active-filter-default.png'), fullPage: true });
+
+    // Count active rows for evidence
+    const allRows = tableBody.locator('tr');
+    const rowCount = await allRows.count();
 
     console.log('TC-006 evidence:', JSON.stringify({
-      class_id: createdClass.class_id,
-      session_id: createdSession.session_id,
-      location: `TC006 Studio ${testId}`,
-      google_maps_url_verified: GOOGLE_MAPS_URL,
+      filter_dropdown_value: 'active',
+      active_class_visible: true,
+      inactive_class_visible: false,
+      total_rows_shown: rowCount,
+      active_class_id: activeClass.class_id,
+      inactive_class_id: inactiveClass.class_id,
     }, null, 2));
   });
 });
