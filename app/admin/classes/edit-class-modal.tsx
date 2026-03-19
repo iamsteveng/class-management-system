@@ -7,6 +7,7 @@ type EditClassModalProps = {
   classId: string;
   initialName: string;
   initialDescription?: string;
+  initialPaymentUrl?: string;
   submitAction: (formData: FormData) => void | Promise<void>;
 };
 
@@ -14,6 +15,7 @@ export function EditClassModal({
   classId,
   initialName,
   initialDescription,
+  initialPaymentUrl,
   submitAction,
 }: EditClassModalProps) {
   const [open, setOpen] = useState(false);
@@ -85,6 +87,23 @@ export function EditClassModal({
                   rows={3}
                   defaultValue={initialDescription ?? ""}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-payment-url-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Payment URL
+                </label>
+                <input
+                  id={`edit-payment-url-${fieldId}`}
+                  name="payment_url"
+                  type="url"
+                  defaultValue={initialPaymentUrl ?? ""}
+                  placeholder="https://..."
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
 
