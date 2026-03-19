@@ -46,20 +46,19 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
       admin_username: 'admin',
     }) as { session_id: string };
 
-    // Step 4: Session A3 in Class A — full (quota_defined=1, enroll filler to fill it) — should NOT appear
+    // Step 4: Session A3 in Class A — full (quota_used = quota_defined) — should NOT appear
     const sessionA3 = await convexMutation('adminSessions:createSession', {
       class_id: classA.class_id,
       location: `TC012-A3-Full-${testId}`,
       date: '2030-12-27',
       time: '11:00',
-      quota_defined: 1,
+      quota_defined: 5,
       admin_username: 'admin',
     }) as { session_id: string };
-    // Fill up session A3
-    await convexMutation('testPurchase:createTestParticipant', {
+    // Fill up session A3 by setting quota_used = quota_defined
+    await convexMutation('testPurchase:setSessionQuotaUsed', {
       session_id: sessionA3.session_id,
-      name: `TC012 Filler ${testId}`,
-      mobile: '+60111111111',
+      quota_used: 5,
     });
 
     // Step 5: Session A4 in Class A — cancelled — should NOT appear
