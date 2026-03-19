@@ -111,33 +111,30 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
     await expect(successBanner).toBeVisible({ timeout: 10_000 });
     console.log('TC-019 session change confirmed on UI');
 
-    // Step 12: Check audit log for participant_session_changed entry
-    const auditLog = await convexQuery('testPurchase:getLatestAuditLogForEntity', {
+    // Step 12: Check all audit logs for this participant
+    const auditLogs = await convexQuery('testPurchase:getAuditLogsForEntity', {
       entity_type: 'participant',
       entity_id: participant.participant_id,
-    }) as { action: string; entity_type: string; entity_id: string; created_at: number } | null;
+    }) as Array<{ action: string; entity_type: string; entity_id: string; created_at: number }>;
 
-    console.log('TC-019 audit log entry:', JSON.stringify(auditLog, null, 2));
+    console.log('TC-019 audit log entries:', JSON.stringify(auditLogs, null, 2));
 
     // Pass criterion 1: participants:changeParticipantSession was called (confirmed via audit log)
-    expect(auditLog).not.toBeNull();
-    expect(auditLog!.action).toBe('participant_session_changed');
+    const sessionChangedEntry = auditLogs.find(e => e.action === 'participant_session_changed');
+    expect(sessionChangedEntry).not.toBeUndefined();
 
     // Pass criterion 2: Audit log records a WhatsApp notification event
-    // The UI states "A WhatsApp notification will be sent." but we check whether
-    // the backend records a WhatsApp notification event in the audit log.
-    // NOTE: As of current implementation, changeParticipantSession does NOT send
-    // a WhatsApp notification — the audit log only contains 'participant_session_changed'.
-    // This assertion verifies whether a WhatsApp notification event is recorded.
-    const whatsappNotificationRecorded = auditLog!.action === 'whatsapp_notification_sent' ||
-      auditLog!.action === 'participant_session_changed_notification_sent';
+    const whatsappNotificationEntry = auditLogs.find(
+      e => e.action === 'whatsapp_notification_sent' || e.action === 'participant_session_changed_notification_sent'
+    );
+    const whatsappNotificationRecorded = whatsappNotificationEntry !== undefined;
 
     console.log('TC-019 evidence:', JSON.stringify({
       participant_id: participant.participant_id,
       session_1_id: session1.session_id,
       session_2_id: session2.session_id,
-      audit_log_action: auditLog?.action ?? 'NOT_FOUND',
-      session_change_recorded: auditLog?.action === 'participant_session_changed',
+      audit_log_actions: auditLogs.map(e => e.action),
+      session_change_recorded: sessionChangedEntry !== undefined,
       whatsapp_notification_recorded: whatsappNotificationRecorded,
       ui_success_banner_shown: true,
     }, null, 2));
@@ -147,7 +144,7 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
       whatsappNotificationRecorded,
       'Expected a WhatsApp notification event in audit log after session change, but none was recorded. ' +
       `The UI states "A WhatsApp notification will be sent." but the backend changeParticipantSession ` +
-      `mutation only records action="${auditLog?.action}" — no WhatsApp notification is sent.`
+      `mutation only records: ${auditLogs.map(e => e.action).join(', ')} — no WhatsApp notification is sent.`
     ).toBe(true);
   });
 });

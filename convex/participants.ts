@@ -1,4 +1,4 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { makeFunctionReference, mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
 export const getParticipantPageData = queryGeneric({
@@ -212,6 +212,31 @@ export const changeParticipantSession = mutationGeneric({
       },
       created_at: changedAt,
     });
+
+    // Look up customer mobile from purchase and schedule WhatsApp notification
+    const purchase = await ctx.db.get(participant.purchase_id);
+    const customerMobile = purchase?.customer_mobile ?? participant.mobile;
+    if (customerMobile) {
+      await ctx.scheduler.runAfter(
+        0,
+        makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
+        {
+          customer_mobile: customerMobile,
+          participant_ids: [participant.participant_id],
+        }
+      );
+      await ctx.db.insert("audit_logs", {
+        action: "whatsapp_notification_sent",
+        entity_type: "participant",
+        entity_id: participant.participant_id,
+        metadata: {
+          customer_mobile: customerMobile,
+          notification_type: "session_changed",
+          session_id: newSession.session_id,
+        },
+        created_at: changedAt + 1,
+      });
+    }
 
     return { success: true };
   },

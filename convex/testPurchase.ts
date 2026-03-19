@@ -313,6 +313,35 @@ export const getLatestAuditLogForEntity = queryGeneric({
   },
 });
 
+export const getAuditLogsForEntity = queryGeneric({
+  args: {
+    entity_type: v.string(),
+    entity_id: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      action: v.string(),
+      entity_type: v.string(),
+      entity_id: v.string(),
+      created_at: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const rows = await ctx.db.query("audit_logs").collect();
+    return rows
+      .filter(
+        (row) => row.entity_type === args.entity_type && row.entity_id === args.entity_id
+      )
+      .sort((a, b) => a.created_at - b.created_at)
+      .map((row) => ({
+        action: row.action,
+        entity_type: row.entity_type,
+        entity_id: row.entity_id,
+        created_at: row.created_at,
+      }));
+  },
+});
+
 export const deleteAllFaqs = mutationGeneric({
   args: {},
   returns: v.number(),
