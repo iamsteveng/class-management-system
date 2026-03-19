@@ -4,15 +4,9 @@ import { useEffect, useState } from "react";
 
 type ClassItem = {
   class_id: string;
-  class_name: string;
-};
-
-type SessionItem = {
-  session_id: string;
-  location: string;
-  date: string;
-  time: string;
-  quota_available: number;
+  name: string;
+  description?: string;
+  payment_url: string;
 };
 
 type FaqItem = {
@@ -24,13 +18,9 @@ type FaqItem = {
 
 export function HomepageClient() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(true);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [classesError, setClassesError] = useState<string | null>(null);
-  const [sessionsError, setSessionsError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -51,7 +41,6 @@ export function HomepageClient() {
         }
 
         setClasses(data.classes);
-        setSelectedClassId(data.classes[0]?.class_id ?? null);
       } catch {
         if (!isMounted) {
           return;
@@ -70,54 +59,6 @@ export function HomepageClient() {
       isMounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadSessions() {
-      if (!selectedClassId) {
-        setSessions([]);
-        return;
-      }
-
-      setIsLoadingSessions(true);
-      setSessionsError(null);
-
-      try {
-        const response = await fetch(
-          `/api/classes/${encodeURIComponent(selectedClassId)}/sessions`
-        );
-        if (!response.ok) {
-          throw new Error("Unable to load sessions.");
-        }
-
-        const data = (await response.json()) as { sessions: SessionItem[] };
-
-        if (!isMounted) {
-          return;
-        }
-
-        setSessions(data.sessions);
-      } catch {
-        if (!isMounted) {
-          return;
-        }
-
-        setSessions([]);
-        setSessionsError("Unable to load sessions right now.");
-      } finally {
-        if (isMounted) {
-          setIsLoadingSessions(false);
-        }
-      }
-    }
-
-    void loadSessions();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedClassId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -149,68 +90,45 @@ export function HomepageClient() {
       <section className="space-y-2">
         <h1 className="text-2xl font-semibold text-zinc-900">Available Classes</h1>
         <p className="text-sm text-zinc-700">
-          Select a class to view its available sessions.
+          Browse our available classes and purchase your ticket below.
         </p>
       </section>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
+      <section className="space-y-4">
         {isLoadingClasses ? (
           <p className="text-sm text-zinc-600">Loading classes...</p>
         ) : classesError ? (
           <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{classesError}</p>
         ) : classes.length === 0 ? (
-          <p className="text-sm text-zinc-600">No classes are currently available.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {classes.map((classItem) => {
-              const isSelected = classItem.class_id === selectedClassId;
-              return (
-                <button
-                  key={classItem.class_id}
-                  type="button"
-                  onClick={() => setSelectedClassId(classItem.class_id)}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                    isSelected
-                      ? "border-zinc-900 bg-zinc-900 text-white"
-                      : "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-100"
-                  }`}
-                  aria-pressed={isSelected}
-                >
-                  {classItem.class_name}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="text-lg font-medium text-zinc-900">Available Sessions</h2>
-
-        {!selectedClassId && !isLoadingClasses ? (
-          <p className="mt-3 text-sm text-zinc-600">
-            Select a class to view sessions.
-          </p>
-        ) : isLoadingSessions ? (
-          <p className="mt-3 text-sm text-zinc-600">Loading sessions...</p>
-        ) : sessionsError ? (
-          <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{sessionsError}</p>
-        ) : sessions.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">
-            No sessions are available for this class.
+          <p className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
+            No classes available at this time.
           </p>
         ) : (
-          <ul className="mt-3 space-y-3">
-            {sessions.map((session) => (
-              <li key={session.session_id} className="rounded-lg border border-zinc-200 p-3 text-sm">
-                <p className="font-medium text-zinc-900">
-                  {session.date} at {session.time}
-                </p>
-                <p className="text-zinc-700">{session.location}</p>
-                <p className="text-zinc-600">Available quota: {session.quota_available}</p>
-              </li>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {classes.map((classItem) => (
+              <div
+                key={classItem.class_id}
+                className="flex flex-col rounded-xl border border-zinc-200 bg-white p-5 shadow-sm"
+              >
+                <h2 className="text-lg font-semibold text-zinc-900">{classItem.name}</h2>
+                {classItem.description ? (
+                  <p className="mt-1 flex-1 text-sm text-zinc-700">{classItem.description}</p>
+                ) : (
+                  <div className="flex-1" />
+                )}
+                <div className="mt-4">
+                  <a
+                    href={classItem.payment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
+                  >
+                    Buy Ticket
+                  </a>
+                </div>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
