@@ -1,3 +1,31 @@
 # Ralph Progress Log
 Started: Thu Mar 19 04:46:35 UTC 2026
 ---
+
+## 2026-03-19 - US-001 through US-011
+- Implemented all 11 user stories in a single session
+- Files changed:
+  - convex/schema.ts — added payment_url to classes table
+  - convex/adminClasses.ts — mutations/queries support payment_url
+  - convex/homepage.ts — added listClassesWithPaymentUrl query
+  - convex/adminParticipants.ts — added class_id to details response, added getAvailableSessionsForClassChange query
+  - convex/terms.ts — acceptTermsByToken now returns participant_id
+  - app/admin/sessions/[session_id]/participants/session-participants-panel.tsx — removed Name column
+  - app/admin/participants/[participant_id]/page.tsx — removed Name field, added Change Session panel
+  - app/admin/participants/[participant_id]/change-session-panel.tsx — new client component for session change modal
+  - app/admin/classes/page.tsx — filter by status, payment_url in actions, pass initialPaymentUrl
+  - app/admin/classes/class-filter-dropdown.tsx — new client component for status filter dropdown
+  - app/admin/classes/add-class-modal.tsx — payment_url field added
+  - app/admin/classes/edit-class-modal.tsx — payment_url field added with initialPaymentUrl prop
+  - app/api/classes/route.ts — switched to listClassesWithPaymentUrl query
+  - app/homepage-client.tsx — redesigned to show class cards with Buy Ticket buttons
+  - app/terms/terms-form.tsx — added instructional note before submit button
+  - app/terms/page.tsx — success state redesign with green tick + QR code button
+
+- **Learnings for future iterations:**
+  - The getParticipantAdminDetails query now returns class_id (added in US-006)
+  - Server actions pattern: defined inline in server components with "use server" directive, passed to client components as submitAction props
+  - Class filter uses `filter` searchParam (not `status` which is used for success messages)
+  - Success redirect for terms: `/terms?token=xxx&status=success&participant_id=yyy`
+  - The `changeParticipantSession` mutation enforces 2-day-ahead constraint; the admin portal surfaces error messages from the mutation via URL params
+---
