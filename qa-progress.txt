@@ -981,3 +981,313 @@ Started: 2026-03-18 11:18:05 UTC
 - **Learnings:**
   - - Convex HTTP API wraps `throw new Error("...")` as generic `"[Request ID: ...] Server Error"` — descriptive messages are server-side only; use `ConvexError` if you need the message client-accessible - `getSessionParticipantsPageData` does NOT include `status` in its return shape; use `getSessionManagementPageData` (takes `class_id`, returns `sessions[]` with `status`) to verify session status - `cancelSession` guard order: session exists → super_admin check → already-cancelled no-op → enrolled participants check; must use `super_admin` role to reach the enrolled-participants guard
 ---
+
+## Run: 20260319T065209Z [2026-03-19 06:52:09 UTC]
+
+### TC-001 [PASS] Homepage only shows classes with payment URL
+- Created Class A (active + payment_url) and Class B (active, no payment_url) via `adminClasses:createClass`
+- Navigated to homepage, waited for loading spinner to hide, then asserted Class A heading visible and Class B heading not visible
+- Cleanup: called `adminClasses:cancelClass` with `admin_username: 'admin'` (super_admin role) in finally block
+- **Learnings:**
+  - `adminClasses:createClass` accepts optional `payment_url`; omitting it creates an active class without a payment URL — perfect for the negative case
+  - `adminClasses:cancelClass` requires super_admin role; seed user `admin` (password `admin123`) has `super_admin` role and works for cleanup
+  - `cancelClass` only requires no active future sessions — freshly created classes with no sessions can be cancelled immediately
+  - Homepage loads via `/api/classes` which calls `homepage:listClassesWithPaymentUrl` — filters by `status === "active"` AND non-empty `payment_url`
+  - `--grep "TC-001"` also matches legacy file `e2e/tc001-005.spec.ts` (TC-001 in test name); those failures are pre-existing and unrelated
+---
+
+### TC-001 [PASS] Homepage only shows classes with payment URL
+- **Evidence:** Test `TC-001: Homepage only shows classes with payment URL` passed in 5.0s. Created Class A (`TC001 With Payment 1773903207629`) with payment_url and Class B (`TC001 No Payment 1773903207629`) without. Homepage showed Class A heading (visible) and Class B heading was absent (not visible). Screenshot saved to `test-results/tc-001-homepage-class-listing.png`. Both test classes cleaned up via `cancelClass`.
+- **Learnings:**
+  - - `adminClasses:createClass` with no `payment_url` arg creates an active class that is filtered OUT by `homepage:listClassesWithPaymentUrl` - `adminClasses:cancelClass` requires `super_admin` role — seed user `admin`/`admin123` works; freshly created classes (no sessions) can be cancelled immediately for cleanup - Homepage uses `/api/classes` → `listClassesWithPaymentUrl` which filters: `status === "active"` AND non-empty string `payment_url` - `--grep "TC-001"` will also match the legacy `e2e/tc001-005.spec.ts` file — those are pre-existing failures unrelated to the new test - Wait for `'Loading classes...'` text to be hidden (not networkidle) is more reliable for the class listing ready-state
+---
+---
+
+### TC-002 [PASS] Buy Ticket button opens payment_url in new tab
+- Seeded a test class with `adminClasses:createClass` using a unique `payment_url`
+- Navigated to homepage, waited for loading to finish, located the Buy Ticket anchor by `href`
+- Verified `target="_blank"` and `rel="noopener noreferrer"` attributes present on the anchor
+- Used `context.waitForEvent('page')` + `click()` to intercept the new tab; confirmed new tab URL matches the `payment_url`
+- Cleanup: cancelled test class in `finally` block
+- **Learnings:**
+  - `Buy Ticket` renders as an `<a>` (not a `<button>`), so locate it by `href` attribute: `page.locator(\`a[href="${paymentUrl}"]\`)`
+  - Use `Promise.all([context.waitForEvent('page'), link.click()])` to intercept the new tab before it opens
+  - `page.waitForLoadState('domcontentloaded')` on the new page is sufficient to read its URL (full load not needed for URL check)
+  - `example.com` URLs used as test payment_url values do actually load a real page — `toContain('example.com/pay-tc002')` is the right assertion (URL is not changed by redirect)
+  - The grep pattern `TC-002` matches both `e2e/tc001-005.spec.ts` (an older test also tagged TC-002) and `tests/e2e/tc-002.test.ts` — both pass; no conflict
+---
+
+### TC-002 [PASS] Buy Ticket button opens payment_url in new tab
+- **Evidence:** ``` ✓ tests/e2e/tc-002.test.ts › TC-002: Buy Ticket button opens payment_url in new tab › TC-002 Buy Ticket anchor has target=_blank, rel=noopener noreferrer, and opens payment_url in new tab (2.5s) TC-002 evidence: { "class_id": "90ea5f43-5f2d-4b8d-98bb-98e27be8fad6", "payment_url": "https://example.com/pay-tc002-1773903324671", "anchor_target": "_blank", "anchor_rel": "noopener noreferrer", "anchor_href": "https://example.com/pay-tc002-1773903324671", "new_tab_url": "https://example.com/pay-tc002-1773903324671" } ``` Screenshots saved: `test-results/tc-002-anchor-attributes.png`, `test-results/tc-002-new-tab.png`
+- **Learnings:**
+  - - `Buy Ticket` is an `<a>` element, so locate by `href`: `page.locator(\`a[href="${paymentUrl}"]\`)` - Use `Promise.all([context.waitForEvent('page'), link.click()])` to intercept the new tab event before the click fires - `page.waitForLoadState('domcontentloaded')` on the new tab is sufficient to read its URL - `--grep "TC-002"` also matches the legacy `e2e/tc001-005.spec.ts` which has a test labelled TC-002 — both tests ran and passed without conflict - The old `tests/e2e/tc-002.test.ts` had the wrong test (terms form height validation) — it was overwritten with the correct Buy Ticket test
+---
+
+### TC-003 [PASS] Homepage shows empty state when no classes have payment_url
+- Used `page.route('**/api/classes', ...)` to intercept the `/api/classes` endpoint and return `{ classes: [] }`, making the test deterministic regardless of production data state.
+- Empty state message "No classes available at this time." appeared correctly.
+- No `Buy Ticket` links rendered (zero `<a role="link" name="Buy Ticket">` elements).
+- Screenshot saved: `test-results/tc-003-homepage-empty-state.png`
+- **Learnings:**
+  - **Route interception is the correct approach** for empty-state tests on the homepage — the prod DB may have active classes, so mocking the API response is the only deterministic way to force an empty state without deleting live data.
+  - **Empty state text is exactly:** `"No classes available at this time."` (period included) — rendered as `<p class="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">`.
+  - **`page.route('**/api/classes', ...)` must be set BEFORE `page.goto()`** — Playwright intercepts are registered before navigation.
+  - **No class cards = no `<a>` with text "Buy Ticket"** — `page.getByRole('link', { name: 'Buy Ticket' })` having count 0 is the correct assertion.
+  - **Previous TC-003 test file** had a completely different test (terms form extra fields) — always check the existing file's content before assuming the test ID matches the scenario.
+---
+
+### TC-003 [PASS] Homepage shows empty state when no classes have payment_url
+- **Evidence:** Test passed in 318ms. Route interception mocked `/api/classes` to return `{ classes: [] }`. Empty state message "No classes available at this time." was visible. Zero `Buy Ticket` links rendered. Screenshot saved to `test-results/tc-003-homepage-empty-state.png`.
+- **Learnings:**
+  - - **Route interception is the only reliable approach** for this test — production DB may have active classes with `payment_url`, so use `page.route('**/api/classes', ...)` returning `{ classes: [] }` to force the empty state deterministically. - **Must register `page.route()` before `page.goto()`** — Playwright intercepts must be in place before navigation fires the request. - **Empty state text is exactly** `"No classes available at this time."` (with period) in a `<p class="rounded-lg bg-zinc-50 ...">`. - **Assert no class cards via** `page.getByRole('link', { name: 'Buy Ticket' }).toHaveCount(0)`. - **Previous TC-003 file** contained a completely different test (terms form validation) — always read the existing file before assuming test ID matches the scenario.
+---
+
+### TC-004 [PASS] Super admin sees payment URL field in class edit form
+- Test created a class via `adminClasses:createClass` Convex mutation, logged in as `admin` (super_admin), navigated to `/admin/classes`, clicked Edit on the new class row, and asserted `input[name="payment_url"]` was visible in the Edit Class modal.
+- **Learnings:**
+  - **Payment URL field is already deployed to production** in `edit-class-modal.tsx` — the field is rendered for all classes in the edit modal without any role-gating at the field level.
+  - **Edit button is only shown to super_admin** — `isSuperAdmin` check in `app/admin/classes/page.tsx` gates the entire Actions column; a regular_admin would not see the Edit button at all.
+  - **Class row locator uses class_id** — filtering by `createdClass.class_id` (UUID) is more reliable than class name when multiple rows may share similar names.
+  - **Previous tc-004.test.ts** tested a different scenario (Google Maps URL on session create from `feat/backlog-prd`) — always check whether an existing test file matches the current test plan before running.
+---
+
+### TC-004 [PASS] Super admin sees payment URL field in class edit form
+- **Evidence:** Test `TC-004 payment URL input is visible in class edit form for super_admin` passed in 7.3s. Console evidence: `{ "class_id": "48b7aaaf-af08-4519-96ab-9e4476240160", "edit_modal_opened": true, "payment_url_field_visible": true }`. Screenshot saved to `test-results/tc-004-payment-url-field-visible.png`.
+- **Learnings:**
+  - - **Payment URL field is already in production** (`edit-class-modal.tsx` line 100, `name="payment_url"`) — no deployment gap, unlike Google Maps URL. - **Edit button is gated to super_admin** via `isSuperAdmin` check in the classes page; the field itself is not role-gated inside the modal. - **Previous tc-004.test.ts was wrong** — it tested session Google Maps URL (feat/backlog-prd only) under the TC-004 ID. Always verify file contents match the current test plan before deciding whether to rewrite. - **Class row locator via class_id UUID** is more reliable than class name for filtering table rows in the admin classes table.
+---
+
+### TC-005 [PASS] Regular admin does NOT see payment URL field
+- Logged in as `staff` (regular_admin, password: staff123). Navigated to `/admin/classes`.
+- Confirmed: zero "Edit" buttons rendered in the classes table — the entire Edit column is hidden for regular_admin via the `isSuperAdmin` conditional in `app/admin/classes/page.tsx`.
+- Confirmed: `input[name="payment_url"]` has count 0 — field is not accessible to regular_admin at all.
+- Screenshot saved: `test-results/tc-005-regular-admin-classes.png`
+- **Learnings:**
+  - **Role-based visibility pattern**: The classes page checks `session.user.role === "super_admin"` and conditionally renders the entire Edit button column. Regular admins never see the Edit button or the Edit Class modal (which contains `payment_url`).
+  - **Credentials**: `admin`/`admin123` = super_admin, `staff`/`staff123` = regular_admin.
+  - **Correct assertion for "field absent"**: Use `toHaveCount(0)` (not `not.toBeVisible()`) — the field is never added to the DOM, not just hidden.
+  - **TC-004 counterpart**: TC-004 (super_admin sees payment_url) passes with `admin`/`admin123`; TC-005 (regular_admin does NOT see it) passes with `staff`/`staff123`. Both tests use `input[name="payment_url"]` as the locator — positive assertion for TC-004, count=0 for TC-005.
+  - **Grep collision**: `--grep "TC-005"` also matches `e2e/tc003-class-edit.spec.ts` (BUG-TC-005) and `e2e/tc005-session-edit.spec.ts` (BUG-TC-005). These are pre-existing unrelated failures. Our new test passes cleanly.
+---
+
+### TC-005 [PASS] Regular admin does NOT see payment URL field
+- **Evidence:** Test `tests/e2e/tc-005.test.ts › TC-005: Regular admin does NOT see payment URL field` passed in 6.9s. Logged in as `staff`/`staff123` (regular_admin), navigated to `/admin/classes` — zero Edit buttons rendered, `input[name="payment_url"]` has count 0. Console evidence: `{"logged_in_as":"staff (regular_admin)","edit_buttons_count":0,"payment_url_field_present":false}`. Screenshot saved at `test-results/tc-005-regular-admin-classes.png`.
+- **Learnings:**
+  - - **Credentials**: `admin`/`admin123` = super_admin, `staff`/`staff123` = regular_admin (from `convex/seed.ts`) - **Role gate pattern**: `app/admin/classes/page.tsx` checks `session.user.role === "super_admin"` → conditionally renders the entire Edit column. Regular admins never see Edit button or the modal containing `payment_url`. - **Correct assertion for absent fields**: Use `toHaveCount(0)` rather than `not.toBeVisible()` — the field is never added to the DOM. - **TC-004/TC-005 pairing**: TC-004 asserts `payment_url` IS visible (super_admin), TC-005 asserts it is NOT (regular_admin). Same locator `input[name="payment_url"]`, opposite assertions. - **Grep collision**: `--grep "TC-005"` matches pre-existing `BUG-TC-005` tests in `e2e/` directory. These are pre-existing unrelated failures — our new test in `tests/e2e/` passes cleanly.
+---
+
+### TC-006 [PASS] Class listing defaults to Active filter on page load
+- Seeded production Convex with one active class and one cancelled (inactive) class via `adminClasses:createClass` + `adminClasses:cancelClass`.
+- Logged in as `admin`/`admin123`, navigated to `/admin/classes` (no filter query param).
+- Filter dropdown (`#class-filter`) had value `active` (server default: `filterParam = params.filter ?? "active"`).
+- Active class row was visible in tbody; inactive/cancelled class row had count 0.
+- Total rows shown: 54 (all active classes in production DB).
+- Screenshot saved: `test-results/tc-006-active-filter-default.png`
+- **Learnings:**
+  - **Default filter logic**: `app/admin/classes/page.tsx` line 40 — `filterParam = params.filter ?? "active"`. No URL param = Active filter applied server-side.
+  - **Filter dropdown locator**: `#class-filter` (select with id "class-filter") in `ClassFilterDropdown` component. Use `toHaveValue('active')` to assert selected option.
+  - **Inactive class creation**: Create a class then call `adminClasses:cancelClass` to make it inactive. Cancelled classes have status "inactive" in DB and are filtered out by the default "active" filter.
+  - **Grep collision**: `--grep "TC-006"` matches 3 pre-existing tests in `e2e/` directory (BUG-TC-006 tagged tests and `e2e/tc006.spec.ts`). These pre-existing failures are unrelated to our new test. Our `tests/e2e/tc-006.test.ts` passes cleanly.
+  - **Old tc-006.test.ts**: The file existed but tested a different feature (Google Maps URL). Was replaced with the correct TC-006 implementation.
+---
+
+### TC-006 [PASS] Class listing defaults to Active filter on page load
+- **Evidence:** Test `tests/e2e/tc-006.test.ts › TC-006: Class listing defaults to Active filter on page load` passed in 7.7s. Console output: `{"filter_dropdown_value":"active","active_class_visible":true,"inactive_class_visible":false,"total_rows_shown":54}`. Screenshot saved at `test-results/tc-006-active-filter-default.png`. Filter select (#class-filter) had value "active" by default; active class was visible in table; cancelled/inactive class had row count 0.
+- **Learnings:**
+  - - **Default filter**: `app/admin/classes/page.tsx` uses `params.filter ?? "active"` — no URL param means Active filter is applied server-side automatically. - **Filter dropdown locator**: `#class-filter` select element; assert with `toHaveValue('active')`. - **Creating inactive class**: Create via `adminClasses:createClass` then cancel via `adminClasses:cancelClass`. Cancelled classes are excluded from the default Active filter. - **Grep collision**: `--grep "TC-006"` also matches 3 pre-existing tests tagged BUG-TC-006 in the `e2e/` directory; these fail for unrelated reasons. Our `tests/e2e/tc-006.test.ts` passes cleanly. - **Overwriting old test file**: The tc-006.test.ts existed but tested a different feature (Google Maps URL persistence) — replaced with correct implementation for the Active filter default behavior.
+---
+
+### TC-007 [PASS] Class listing filter can switch to Inactive and All
+- Seeded production Convex with one active class and one cancelled (inactive) class via `adminClasses:createClass` + `adminClasses:cancelClass`.
+- Logged in as `admin`/`admin123`, navigated to `/admin/classes` (default active filter).
+- Selected 'Inactive' from `#class-filter` dropdown → URL updated to `?filter=inactive` immediately (Next.js router), inactive class visible, active class hidden (6 rows).
+- Selected 'All' from `#class-filter` dropdown → URL updated to `?filter=all` immediately, both active and inactive classes visible (61 rows).
+- Screenshots saved: `test-results/tc-007-inactive-filter.png`, `test-results/tc-007-all-filter.png`.
+- **Learnings:**
+  - **Filter navigation**: `ClassFilterDropdown` calls `router.push('/admin/classes?filter='+value)` on change — no page reload, URL param changes, server re-renders with new filter. Use `waitForLoadState('networkidle')` after `selectOption`.
+  - **Grep collision**: `--grep "TC-007"` also matches `e2e/tc007.spec.ts` (BUG-TC-007) which fails for unrelated role-based reasons. Our `tests/e2e/tc-007.test.ts` (2 tests) passes cleanly.
+  - **Old tc-007.test.ts**: The file existed but tested Google Maps link on participant page. Was replaced with correct TC-007 implementation for class listing filter switching.
+  - **toHaveURL**: Use `await expect(page).toHaveURL(/filter=inactive/)` to assert URL updated without full page reload.
+---
+
+### TC-007 [PASS] Class listing filter can switch to Inactive and All
+- **Evidence:** Test `tests/e2e/tc-007.test.ts › TC-007: Class listing filter can switch to Inactive and All › TC-007 filter dropdown switches to Inactive then All and updates listing immediately` passed in 8.5s. - **Inactive filter**: Selected `inactive` from `#class-filter` → URL updated to `?filter=inactive`, inactive class row visible (6 total rows), active class row count = 0. Screenshot: `tc-007-inactive-filter.png`. - **All filter**: Selected `all` from `#class-filter` → URL updated to `?filter=all`, both active and inactive test class rows visible (61 total rows). Screenshot: `tc-007-all-filter.png`. The unrelated `e2e/tc007.spec.ts` (BUG-TC-007) failure is a pre-existing issue in the old test directory.
+- **Learnings:**
+  - - `ClassFilterDropdown` uses `router.push('/admin/classes?filter='+value)` on change — no page reload, URL param changes, server re-renders with new filter. Use `waitForLoadState('networkidle')` after `selectOption`. - Use `await expect(page).toHaveURL(/filter=inactive/)` to assert URL updated without full page reload. - `--grep "TC-007"` also matches `e2e/tc007.spec.ts` (BUG-TC-007) which fails for unrelated reasons; our new test at `tests/e2e/tc-007.test.ts` passes cleanly. - The old `tc-007.test.ts` tested Google Maps link on participant page — was replaced with correct implementation.
+---
+
+### TC-008 [PASS] Participant list does NOT show Name column
+- Created a class and session via Convex production mutations, logged in as admin, navigated to `/admin/sessions/{session_id}/participants`.
+- Table headers found: `["Participant ID", "Mobile", "Terms Accepted", "Terms Version", "Attendance Status", "Details"]` — no "Name" column present.
+- All 6 expected columns confirmed present; `name_column_absent: true`.
+- Screenshot saved: `test-results/tc-008-participant-list-no-name-column.png`.
+- **Learnings:**
+  - Participant list table is in `app/admin/sessions/[session_id]/participants/session-participants-panel.tsx`. The `ParticipantRow` type has a `name` field but it is intentionally not rendered in the table.
+  - Navigate to `/admin/sessions/{session_id}/participants` after login to reach participant list.
+  - `--grep "TC-008"` also matches old `e2e/tc008.spec.ts` (submit-button test) which fails for unrelated reasons; our new test at `tests/e2e/tc-008.test.ts` passes cleanly.
+  - Old `tc-008.test.ts` tested "no Maps link on participant page" — was replaced with correct TC-008 implementation for participant list no-name-column.
+---
+
+### TC-008 [PASS] Participant list does NOT show Name column
+- **Evidence:** Test `tests/e2e/tc-008.test.ts › TC-008: Participant list does NOT show Name column › TC-008 participant list table has no Name column header and no name data cells` passed in 5.8s. Headers found: `["Participant ID", "Mobile", "Terms Accepted", "Terms Version", "Attendance Status", "Details"]`. `name_column_absent: true`. All 6 expected columns confirmed present. Screenshot saved: `test-results/tc-008-participant-list-no-name-column.png`. (The unrelated `e2e/tc008.spec.ts` failure is a pre-existing issue in the old test directory.)
+- **Learnings:**
+  - - Participant list table is in `app/admin/sessions/[session_id]/participants/session-participants-panel.tsx`. The `ParticipantRow` type has a `name` field but it is intentionally not rendered — the table only shows: Participant ID, Mobile, Terms Accepted, Terms Version, Attendance Status, Details. - Navigate to `/admin/sessions/{session_id}/participants` after login to reach the participant list. - The old `tests/e2e/tc-008.test.ts` was testing a different scenario ("no Maps link on participant page") — was replaced with the correct TC-008 implementation. - `--grep "TC-008"` also matches old `e2e/tc008.spec.ts` (submit-button disabled test) which fails for unrelated reasons; the new test in `tests/e2e/` passes cleanly. - Use `allTextContents()` on `thead th` to get all column headers, then assert no entry matches `"name"` (case-insensitive).
+---
+
+### TC-009 [PASS] Participant detail does NOT show Name field
+- Created a class, session, and participant via Convex production mutations. Logged in as admin, navigated to `/admin/participants/{participant_id}`.
+- Personal Information section labels found: `["Mobile", "Height", "Age"]` — no "Name" label present.
+- Emergency Contact section IS present (with its own "Name" for emergency contact — distinct from participant Name).
+- Session section confirmed: Class, Location, Date & Time, Terms Accepted, Terms Version all present.
+- Screenshot saved: `test-results/tc-009-participant-detail-no-name-field.png`.
+- **Learnings:**
+  - Participant detail page is at `app/admin/participants/[participant_id]/page.tsx`. The `ParticipantDetails` type has a `name?: string` field but it is intentionally not rendered — the Personal Information section shows only Mobile, Height, Age.
+  - The Emergency Contact section DOES have a "Name" label — but this is the emergency contact's name, not the participant's name. Assertions must scope to the Personal Information section to avoid false failures.
+  - Scope dt locators to a specific section using `.filter({ hasText: 'Section Heading' })` on the parent `section` element.
+  - `--grep "TC-009"` also matches old `e2e/tc009.spec.ts` ("Terms acceptance saves session and timestamp") which fails for unrelated reasons (feat/backlog-prd not deployed); our new test at `tests/e2e/tc-009.test.ts` passes cleanly.
+  - feat/backlog-prd fields (Height, Age, Emergency Contact) ARE deployed on main/production — the CLAUDE.md notes are outdated on this point.
+---
+
+### TC-009 [PASS] Participant detail does NOT show Name field
+- **Evidence:** Test `tests/e2e/tc-009.test.ts › TC-009: Participant detail does NOT show Name field › TC-009 participant detail page has no Name field in Personal Information section` passed in 6.3s. Personal Information labels found: `["Mobile", "Height", "Age"]` — no "Name" label present. Session labels confirmed: Class, Location, Date & Time, Terms Accepted, Terms Version. Emergency Contact section present with its own "Name" (emergency contact name — distinct from participant name). Screenshot: `test-results/tc-009-participant-detail-no-name-field.png` — confirms page shows Mobile/Height/Age in Personal Information, no participant Name field. (Unrelated failure from old `e2e/tc009.spec.ts` for Terms acceptance test — pre-existing, different test.)
+- **Learnings:**
+  - - **Personal Information section has no Name**: `app/admin/participants/[participant_id]/page.tsx` renders Mobile, Height, Age in Personal Information — `name` field exists in the type but is intentionally not displayed. - **Emergency Contact "Name" is distinct**: The page has an Emergency Contact section with a "Name" dt — this is the emergency contact's name, not the participant's. Test assertions must scope to the Personal Information section using `.filter({ hasText: 'Personal Information' })` on the parent `section` to avoid false failure. - **feat/backlog-prd fields ARE deployed**: Height, Age, Emergency Contact fields are present in production (the CLAUDE.md warning about them not being deployed is outdated). - **Grep collision**: `--grep "TC-009"` matches old `e2e/tc009.spec.ts` (Terms acceptance test) which fails for unrelated reasons; our new `tests/e2e/tc-009.test.ts` passes cleanly.
+---
+
+### TC-010 [PASS] Super admin sees Change Session button on participant detail
+- Created class, session, and participant via Convex production mutations. Logged in as super_admin (admin/admin123), navigated to `/admin/participants/{participant_id}`. Change Session button was visible.
+- Screenshot saved: `test-results/tc-010-change-session-button.png`.
+- **Learnings:**
+  - `admin`/`admin123` is the `super_admin` account (seeded in `convex/seed.ts`). `staff`/`staff123` is `regular_admin`.
+  - "Change Session" button is rendered by `ChangeSessionPanel` component only when `isSuperAdmin` is true (role check at line 50 of `app/admin/participants/[participant_id]/page.tsx`).
+  - The button is a `<button type="button">` with label "Change Session" — use `getByRole('button', { name: 'Change Session' })`.
+  - `testPurchase:createTestParticipant` creates a participant directly without going through terms acceptance flow — suitable for testing admin detail pages.
+  - `--grep "TC-010"` also matches old `e2e/tc010.spec.ts` (participant records after terms test) which passes too; no collision issue here.
+---
+
+### TC-010 [PASS] Super admin sees Change Session button on participant detail
+- **Evidence:** Test `tests/e2e/tc-010.test.ts › TC-010: Super admin sees Change Session button on participant detail › TC-010 super_admin sees Change Session button on participant detail page` passed in 5.3s. Created class, session, and participant via Convex production mutations, logged in as super_admin (admin/admin123), navigated to `/admin/participants/{participant_id}`. The "Change Session" button was visible. Screenshot saved to `test-results/tc-010-change-session-button.png`. Evidence logged: `{"change_session_button_visible": true}`.
+- **Learnings:**
+  - - `admin`/`admin123` is the `super_admin` account (seeded in `convex/seed.ts`); `staff`/`staff123` is `regular_admin`. - "Change Session" button is rendered by `ChangeSessionPanel` only when `isSuperAdmin` is true — gated at `app/admin/participants/[participant_id]/page.tsx:50` via `authSession.user.role === "super_admin"`. - The button is `<button type="button">Change Session</button>` — locate with `getByRole('button', { name: 'Change Session' })`. - `testPurchase:createTestParticipant` creates a participant directly (no terms flow) — ideal for testing admin detail pages. - `--grep "TC-010"` also matches `e2e/tc010.spec.ts` (old test); both pass cleanly.
+---
+
+### TC-011 [PASS] Regular admin does NOT see Change Session button
+- Logged in as `staff`/`staff123` (regular_admin), navigated to a participant detail page, confirmed "Change Session" button is absent
+- **Learnings:**
+  - Two seeded admin accounts: `admin`/`admin123` (super_admin) and `staff`/`staff123` (regular_admin)
+  - Participant detail page at `/admin/participants/[participant_id]` conditionally renders `<ChangeSessionPanel>` based on `isSuperAdmin` check (`authSession.user.role === "super_admin"`)
+  - Use `not.toBeVisible()` (not `not.toBeAttached()`) — the element is absent from DOM for regular_admin so either works, but `not.toBeVisible` is idiomatic
+  - `testPurchase:createTestParticipant` can be called with `admin_username: 'admin'` for setup even when testing as a different user
+---
+
+### TC-011 [PASS] Regular admin does NOT see Change Session button
+- **Evidence:** Test ran in 5.3s. Logged in as staff/staff123 (regular_admin), navigated to /admin/participants/{id} — "Change Session" button was absent. Screenshot saved to test-results/tc-011-no-change-session-button.png. Console output confirmed change_session_button_visible: false.
+- **Learnings:**
+  - - Two seeded admin accounts: `admin`/`admin123` (super_admin) and `staff`/`staff123` (regular_admin) - Participant detail page conditionally renders `<ChangeSessionPanel>` only when `authSession.user.role === "super_admin"` - `not.toBeVisible()` is correct for asserting button absence when the element is not in the DOM at all - Setup mutations (create class/session/participant) can be done with `admin_username: 'admin'` regardless of which user you're testing
+---
+
+### TC-012 [PASS] Change Session selector shows only eligible sessions (same class, scheduled, quota > 0)
+- Test created Class A with 4 sessions (current, eligible, full, cancelled) and Class B with 1 session. Participant enrolled in A1 (current). Verified Change Session modal only shows A2 (eligible session from same class). Sessions A3 (full), A4 (cancelled), B1 (different class), and A1 (current) all excluded.
+- **Learnings:**
+  - `testPurchase:createTestParticipant` does NOT increment `quota_used` on the session — to create a "full" session, use `testPurchase:setSessionQuotaUsed` to set `quota_used = quota_defined` directly
+  - `adminSessions:cancelSession` can be called during test setup to cancel a session (works when no participants enrolled)
+  - Change Session modal uses `<fieldset>` with `<label>` radio options — count via `page.locator('fieldset label')`
+  - Each session label shows `{date} {time}` on one line and `{location}` on the next — all three fields must be present
+  - The Convex query `adminParticipants:getAvailableSessionsForClassChange` correctly excludes: current session, non-scheduled sessions, full sessions (quota_used >= quota_defined), and sessions from different classes
+---
+
+### TC-012 [PASS] Change Session selector shows only eligible sessions (same class, scheduled, quota > 0)
+- **Evidence:** Test passed in 9.3s. Created Class A with 4 sessions (A1=current, A2=eligible/scheduled/quota-available, A3=full via setSessionQuotaUsed, A4=cancelled) and Class B with B1 (different class). Participant enrolled in A1. Change Session modal showed exactly 1 session (A2) with date 2030-12-25, time 10:00, and location TC012-A2-Eligible-{testId}. All ineligible sessions (A1/current, A3/full, A4/cancelled, B1/different-class) were absent from the selector. Screenshot saved to test-results/tc-012-change-session-selector.png.
+- **Learnings:**
+  - - `testPurchase:createTestParticipant` does NOT increment `quota_used` on the session — use `testPurchase:setSessionQuotaUsed` to directly set quota_used = quota_defined when simulating a full session - `adminSessions:cancelSession` works in test setup (no participants enrolled needed to cancel) - Change Session modal renders sessions as `<fieldset><label>` radio items — count eligible options with `page.locator('fieldset label').count()` - The Convex query `adminParticipants:getAvailableSessionsForClassChange` correctly filters by same class_id, status=scheduled, and quota_used < quota_defined — all exclusion logic works correctly
+---
+
+### TC-013 [PASS] Change Session selector excludes full sessions (quota = 0)
+- Created a class with 3 sessions: current (participant's enrollment), available (5 quota, 0 used), and full (3 quota, quota_used set to 3 via setSessionQuotaUsed). Change Session modal showed exactly 1 session (the available one). Full session was absent from the selector.
+- Screenshot saved: test-results/tc-013-change-session-selector.png
+- **Learnings:**
+  - TC-013 is a focused subset of TC-012: specifically tests that quota_used = quota_defined sessions are excluded
+  - `testPurchase:setSessionQuotaUsed` is the correct mutation to simulate a full session without creating actual participants
+  - The selector label text format is `{date} {time}{location}N spot(s) available` — useful for containment assertions
+  - Old `tests/e2e/tc-013.test.ts` had a different test case (cancel session) — was overwritten with the correct Change Session exclusion test
+---
+
+### TC-013 [PASS] Change Session selector excludes full sessions (quota = 0)
+- **Evidence:** Test passed in 7.2s. Created a class with 3 sessions: current (participant's session), available (TC013-Available-{testId}, 5 quota), and full (TC013-Full-{testId}, quota_used=quota_defined=3 via setSessionQuotaUsed). Change Session modal showed exactly 1 session label. Full session was absent, available session was present. Label text: "2030-11-20 10:00TC013-Available-17739048995065 spot(s) available". Screenshot saved to test-results/tc-013-change-session-selector.png.
+- **Learnings:**
+  - - TC-013 is a focused variant of TC-012, specifically testing that `quota_used = quota_defined` sessions are excluded from Change Session selector - `testPurchase:setSessionQuotaUsed` is the correct way to simulate a full session without enrolling real participants - The Convex query `adminParticipants:getAvailableSessionsForClassChange` correctly filters `quota_used < quota_defined` — the backend logic works as expected - The old `tests/e2e/tc-013.test.ts` contained a different test (cancel session with no participants) — it was overwritten; future TC numbering should verify file content matches the expected test ID before writing - Selector label text format is `{date} {time}{location}N spot(s) available` — useful for combined containment assertions
+---
+
+### TC-014 [PASS] Terms page shows instructional wording about QR code WhatsApp
+- Created test purchase via `testPurchase:createTestPurchase` with `customer_mobile`, navigated to `/terms?token=<token>`. Verified the instructional note "After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message." is visible and positioned above the "Accept Terms" button (note_bottom=1013, button_y=1029).
+- Screenshot saved: test-results/tc-014-terms-qr-note.png
+- **Learnings:**
+  - `testPurchase:createTestPurchase` requires `customer_mobile` argument — passing an empty object `{}` causes a server error
+  - The instructional note is rendered as `<p class="... italic ...">` — use `page.locator('p.italic')` or text locator to find it
+  - Position check (note above button) uses `boundingBox()` — note_bottom <= button_y + 5 (small tolerance for rounding)
+  - The existing `tests/e2e/tc-014.test.ts` had an unrelated test (admin cancel session) — was overwritten with the correct QR code WhatsApp note test; always verify file content matches expected test ID before implementation
+---
+
+### TC-014 [PASS] Terms page shows instructional wording about QR code WhatsApp
+- **Evidence:** Test passed in 1.9s. Created a test purchase via `testPurchase:createTestPurchase` (customer_mobile: '+6599014014'), navigated to `/terms?token=<uuid>`. The instructional note "After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message." was visible (note_y=957, note_bottom=1013) and positioned above the "Accept Terms" submit button (button_y=1029). Screenshot saved to test-results/tc-014-terms-qr-note.png.
+- **Learnings:**
+  - - `testPurchase:createTestPurchase` requires a `customer_mobile` argument; passing `{}` causes a server error - The QR code instructional note is rendered as `<p class="... italic ...">` — locatable via `page.locator('p.italic')` or text locator - Position assertion: `noteBox.y + noteBox.height <= buttonBox.y + 5` (small tolerance for sub-pixel rounding) reliably validates "above submit button" requirement - The existing `tc-014.test.ts` contained a different test (admin cancel session inline error) — was overwritten; always verify file content matches expected test ID before assuming it's implemented
+---
+
+### TC-015 [PASS] Terms success state shows green tick and confirmation message
+- Created test purchase via `testPurchase:createTestPurchase`, navigated directly to `/terms?token=<uuid>&status=success`. Green tick (SVG inside `div.rounded-full.bg-emerald-100`) was visible and "Your class application is confirmed" h1 text was present. Screenshot saved: test-results/tc-015-success-state.png.
+- **Learnings:**
+  - Success state is triggered by `?status=success` query param — no need to submit the form, can navigate directly to the success URL with a valid token
+  - Green tick is rendered as an SVG inside `div.rounded-full.bg-emerald-100.text-emerald-600` — locate via `page.locator('div.rounded-full.bg-emerald-100')` then assert child SVG is visible
+  - Confirmation text is an `<h1>` with text "Your class application is confirmed" — use `page.getByText(...)` directly
+  - The existing `tc-015.test.ts` had an unrelated admin nav test — was overwritten with the correct success state test; always verify file content matches expected test ID
+---
+
+### TC-015 [PASS] Terms success state shows green tick and confirmation message
+- **Evidence:** Test passed in 1.6s. Created test purchase via `testPurchase:createTestPurchase` (customer_mobile: '+6599015015'), navigated to `/terms?token=faabdae0-5c24-4e8e-a75b-8800d9157e2d&status=success`. Green tick icon (`div.rounded-full.bg-emerald-100` containing SVG) was visible. Text "Your class application is confirmed" was visible. Screenshot saved to test-results/tc-015-success-state.png.
+- **Learnings:**
+  - - Success state is triggered by `?status=success` query param with a valid token — no form submission needed; navigate directly to the success URL - Green tick locator: `div.rounded-full.bg-emerald-100` (the emerald circle container), then assert child SVG visibility - Confirmation text is an `<h1>` — `page.getByText('Your class application is confirmed')` works directly - The pre-existing `tc-015.test.ts` had an unrelated admin nav test — was overwritten; always verify file content matches the expected test ID before assuming it's already implemented
+---
+
+### TC-016 [PASS] Terms success state shows Open your QR Code button
+- Created test purchase via `testPurchase:createTestPurchase` (customer_mobile: '+6599016016'), navigated to `/terms?token=<uuid>&status=success&participant_id=tc016-test-participant`. "Open your QR Code" link was visible and href pointed to `/participant/tc016-test-participant`. Screenshot saved to test-results/tc-016-success-state.png.
+- **Learnings:**
+  - "Open your QR Code" button only appears when `participant_id` is in the URL query params — must include `&participant_id=<value>` in the success URL
+  - The page renders the button based purely on URL param presence; a fake/synthetic participant_id is sufficient for the UI test
+  - The button is an `<a>` (link) not a `<button>` — use `page.getByRole('link', { name: 'Open your QR Code' })` not `getByRole('button', ...)`
+  - Old `e2e/tc016.spec.ts` also matches the `TC-016` grep pattern — `npx playwright test --grep "TC-016"` runs both files; the old test failure is unrelated to this test case
+  - The pre-existing `tc-016.test.ts` had a different test (admin terms version creation) — was overwritten with the correct QR Code button test; always verify file content matches expected test ID
+---
+
+### TC-016 [PASS] Terms success state shows Open your QR Code button
+- **Evidence:** TC-016 test passed in 1.6s. Created test purchase via `testPurchase:createTestPurchase` (customer_mobile: '+6599016016'), navigated to `https://class-management-system-teal.vercel.app/terms?token=bcde8c62-a858-47f6-8780-785e2045f5eb&status=success&participant_id=tc016-test-participant`. "Open your QR Code" link was visible with href `/participant/tc016-test-participant`. Screenshot saved to test-results/tc-016-success-state.png. (The exit code 1 was from an unrelated old test `e2e/tc016.spec.ts` matching the same grep pattern.)
+- **Learnings:**
+  - - The "Open your QR Code" button is an `<a>` link, not a `<button>` — use `page.getByRole('link', { name: 'Open your QR Code' })` - The button only renders when `participant_id` is present in URL query params; a fake/synthetic value is sufficient for the UI assertion - Navigate directly to `?status=success&participant_id=<value>` with a valid token — no form submission required - Old `e2e/tc016.spec.ts` also matches `--grep "TC-016"` so both files run; the old test failure is unrelated
+---
+
+### TC-017 [PASS] Open your QR Code links to correct /participant/[participant_id]
+- Created test purchase with `participant_count=1`, fetched available session_id via `terms:getTermsPageData` query, filled the terms form (session, height, age, emergency contact name/phone, accepted checkbox) on the production Vercel app, submitted form, waited for redirect to `?status=success&participant_id=<uuid>`. "Open your QR Code" link href was `/participant/df211243-d553-4ee5-ab36-43276539a15b`, exactly matching the participant_id in the success URL. Test passed in 3.5s.
+- **Learnings:**
+  - `feat/backlog-prd` extra fields (height, age, emergency contact) are now deployed to production on main — the CLAUDE.md codebase pattern note "main branch does NOT have these fields yet" is outdated
+  - Use `terms:getTermsPageData` query to fetch available sessions before navigating — avoids hardcoding session IDs and handles cases when sessions change
+  - All extra fields are required for the submit button to enable — must fill height, age, emergency_contact_name, emergency_contact_phone (check with `isVisible()` for forward-compatibility)
+  - On successful submission, page redirects to `?token=<token>&status=success&participant_id=<uuid>` — extract participant_id from URL via `new URL(page.url()).searchParams.get('participant_id')`
+  - The button href is `/participant/<participant_id>` (relative URL, not absolute) — assert with exact match not `toContain`
+  - Old `e2e/tc017.spec.ts` also matches `--grep "TC-017"` and covers a different (rescheduling) feature — its failure is unrelated to this test
+---
+
+### TC-017 [PASS] Open your QR Code links to correct /participant/[participant_id]
+- **Evidence:** TC-017 test passed in 3.5s. Created test purchase (participant_count=1), fetched available session `session_tour_2026_03_23_1400` via `terms:getTermsPageData`, filled the terms form on production Vercel (session, height, age, emergency contact, accepted checkbox), submitted, and waited for redirect to: `https://class-management-system-teal.vercel.app/terms?token=...&status=success&participant_id=df211243-d553-4ee5-ab36-43276539a15b` The "Open your QR Code" link href was `/participant/df211243-d553-4ee5-ab36-43276539a15b` — exactly matching the participant_id in the success URL. Screenshots saved to test-results/tc-017-*.png.
+- **Learnings:**
+  - - The `feat/backlog-prd` extra fields (height, age, emergency contact) are now deployed to production on main — the CLAUDE.md codebase pattern note saying "main branch does NOT have these fields yet" is outdated - Use `terms:getTermsPageData` query to fetch available sessions before navigating — avoids hardcoding session IDs - All 4 extra fields are required for the submit button to become enabled — must fill height, age, emergency_contact_name, emergency_contact_phone; check with `isVisible()` for forward-compatibility - On success, page redirects to `?token=<token>&status=success&participant_id=<uuid>` — extract participant_id from URL via `new URL(page.url()).searchParams.get('participant_id')` - The button href is a relative URL `/participant/<participant_id>` — assert with exact string equality, not `toContain` - Old `e2e/tc017.spec.ts` matches the same grep pattern and covers a different feature (rescheduling) — its failure is unrelated
+---
+
+### TC-018 [PASS] Terms success state removes form fields after submission
+- Created test purchase, fetched available session via `terms:getTermsPageData`, navigated to terms page on production Vercel, filled and submitted form. After redirect to `?status=success`, confirmed: `select#session_id`, `input[name="accepted"]`, height/age/emergency inputs, `<form>` element, and "Accept Terms" button all have count 0. Success state shows green SVG check, h1 "Your class application is confirmed", and "Open your QR Code" link. Screenshot saved to `test-results/tc-018-success-state.png`.
+- **Learnings:**
+  - The success page heading is "Your class application is confirmed" (NOT "Terms accepted successfully") — check `page.tsx` source before guessing success text
+  - The success state is rendered server-side (Next.js server action redirect) — when `status=success` is in the URL, the page returns a completely different component with no `<form>` at all
+  - Assert form absence using `toHaveCount(0)` on each field selector — more reliable than checking text content for absence
+  - The green tick is an SVG element, not a Unicode character or text — assert by checking for the surrounding `<h1>` or `<a>` elements instead
+  - `feat/backlog-prd` extra fields (height, age, emergency contact) are already deployed to production — use `isVisible()` checks for forward-compatibility
+---

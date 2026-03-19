@@ -102,8 +102,9 @@ test.describe('TC-018: Terms success state removes form fields after submission'
     // The form wrapper or terms-form section should not be present
     await expect(page.locator('form')).toHaveCount(0);
 
-    // Step 11: Assert success state is shown (tick + message + button)
-    await expect(page.getByText('Terms accepted successfully')).toBeVisible({ timeout: 10_000 });
+    // Step 11: Assert success state is shown (SVG tick + message + button)
+    // The page shows: green check SVG + "Your class application is confirmed" h1 + "Open your QR Code" link
+    await expect(page.getByRole('heading', { name: 'Your class application is confirmed' })).toBeVisible({ timeout: 10_000 });
     const qrButton = page.getByRole('link', { name: 'Open your QR Code' });
     await expect(qrButton).toBeVisible({ timeout: 10_000 });
 
@@ -115,8 +116,8 @@ test.describe('TC-018: Terms success state removes form fields after submission'
       token,
       session_id: sessionId,
       success_url: successUrl,
-      form_absent: !pageContent?.includes('select') && !pageContent?.includes('Accept Terms'),
-      success_message_present: pageContent?.includes('Terms accepted successfully'),
+      form_absent: !pageContent?.includes('Accept Terms'),
+      success_message_present: pageContent?.includes('Your class application is confirmed'),
       qr_button_visible: true,
     }, null, 2));
   });
