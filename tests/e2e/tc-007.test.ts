@@ -15,88 +15,104 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-async function convexQuery(fnPath: string, args: Record<string, unknown>) {
-  const res = await fetch(`${CONVEX_URL}/api/query`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
-  });
-  const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
-  if (json.status !== 'success') throw new Error(`Query ${fnPath} failed: ${json.errorMessage}`);
-  return json.value;
-}
-
-test.describe('TC-007: QR code participant page — shows Maps link when URL is set', () => {
-  test('TC-007 shows Get Directions link on participant page when session has google_maps_url', async ({ page }) => {
+test.describe('TC-007: Class listing filter can switch to Inactive and All', () => {
+  test('TC-007 filter dropdown switches to Inactive then All and updates listing immediately', async ({ page }) => {
     const testId = Date.now();
-    const GOOGLE_MAPS_URL = `https://maps.google.com/maps?q=tc007+test+location+${testId}`;
+    const screenshotDir = path.join(process.cwd(), 'test-results');
 
-    // Step 1: Create a class via Convex
-    const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC007 Class ${testId}`,
-      description: 'Maps link participant page test',
+    // Step 1: Create an active class
+    const activeClass = await convexMutation('adminClasses:createClass', {
+      name: `TC007 Active Class ${testId}`,
+      description: 'TC-007 active class seed',
       admin_username: 'admin',
     }) as { class_id: string };
 
-    // Step 2: Create a session WITH a Google Maps URL via Convex
-    const createdSession = await convexMutation('adminSessions:createSession', {
-      class_id: createdClass.class_id,
-      location: `TC007 Studio ${testId}`,
-      date: '2030-12-20',
-      time: '09:00',
-      quota_defined: 10,
+    // Step 2: Create a class and cancel it (making it inactive)
+    const inactiveClass = await convexMutation('adminClasses:createClass', {
+      name: `TC007 Inactive Class ${testId}`,
+      description: 'TC-007 inactive class seed',
       admin_username: 'admin',
-      google_maps_url: GOOGLE_MAPS_URL,
-    }) as { session_id: string };
+    }) as { class_id: string };
 
-    // Step 3: Create a test purchase
-    const purchase = await convexMutation('testPurchase:createTestPurchase', {
-      customer_mobile: '+6599007007',
-      participant_count: 1,
-    }) as { token: string; purchase_id: string };
+    await convexMutation('adminClasses:cancelClass', {
+      class_id: inactiveClass.class_id,
+      admin_username: 'admin',
+    });
 
-    // Step 4: Accept terms via Convex mutation directly (bypasses browser UI)
-    // This creates participant records in the database
-    const acceptResult = await convexMutation('terms:acceptTermsByToken', {
-      token: purchase.token,
-      session_id: createdSession.session_id,
-      accepted: true,
-    }) as { success: boolean; error_message?: string };
+    // Step 3: Log in as admin
+    await page.goto(`${BASE_URL}/admin/login`);
+    await page.getByLabel('Username').fill('admin');
+    await page.getByLabel('Password').fill('admin123');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
-    if (!acceptResult.success) {
-      throw new Error(`acceptTermsByToken failed: ${acceptResult.error_message}`);
-    }
-
-    // Step 5: Retrieve the participant_id created for this purchase
-    const participants = await convexQuery('testPurchase:getParticipantsByToken', {
-      token: purchase.token,
-    }) as Array<{ participant_id: string; session_id: string }>;
-
-    expect(participants.length).toBeGreaterThan(0);
-    const participantId = participants[0].participant_id;
-
-    // Step 6: Navigate to the participant page
-    await page.goto(`${BASE_URL}/participant/${participantId}`);
+    // Step 4: Navigate to class listing (default = active filter)
+    await page.goto(`${BASE_URL}/admin/classes`);
     await page.waitForLoadState('networkidle');
 
-    // Step 7: Verify "Get Directions" link is visible
-    const directionsLink = page.getByRole('link', { name: 'Get Directions' });
-    await expect(directionsLink).toBeVisible({ timeout: 15_000 });
+    const filterSelect = page.locator('#class-filter');
+    await expect(filterSelect).toBeVisible({ timeout: 10_000 });
 
-    // Step 8: Verify the link href matches the stored Google Maps URL
-    const href = await directionsLink.getAttribute('href');
-    expect(href).toBe(GOOGLE_MAPS_URL);
+    // --- Switch to Inactive ---
+    await filterSelect.selectOption('inactive');
+    await page.waitForLoadState('networkidle');
 
-    // Step 9: Take screenshot as evidence
-    const screenshotDir = path.join(process.cwd(), 'test-results');
-    await page.screenshot({ path: path.join(screenshotDir, 'tc-007-participant-directions-link.png'), fullPage: true });
+    // Verify URL updated
+    await expect(page).toHaveURL(/filter=inactive/, { timeout: 10_000 });
 
-    console.log('TC-007 evidence:', JSON.stringify({
-      participant_id: participantId,
-      session_id: createdSession.session_id,
-      google_maps_url: GOOGLE_MAPS_URL,
-      directions_link_visible: true,
-      href_matches: href === GOOGLE_MAPS_URL,
+    // Verify filter dropdown reflects selection
+    await expect(filterSelect).toHaveValue('inactive');
+
+    const tableBody = page.locator('tbody');
+    await expect(tableBody).toBeVisible({ timeout: 10_000 });
+
+    // Inactive class should be visible
+    const inactiveRow = tableBody.locator('tr').filter({ hasText: `TC007 Inactive Class ${testId}` });
+    await expect(inactiveRow).toHaveCount(1, { timeout: 10_000 });
+
+    // Active class should NOT be visible
+    const activeRowUnderInactive = tableBody.locator('tr').filter({ hasText: `TC007 Active Class ${testId}` });
+    await expect(activeRowUnderInactive).toHaveCount(0, { timeout: 5_000 });
+
+    // Screenshot: Inactive filter
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-007-inactive-filter.png'), fullPage: true });
+
+    const inactiveRowCount = await tableBody.locator('tr').count();
+    console.log('TC-007 Inactive filter evidence:', JSON.stringify({
+      filter_value: 'inactive',
+      inactive_class_visible: true,
+      active_class_visible: false,
+      total_rows_shown: inactiveRowCount,
+    }, null, 2));
+
+    // --- Switch to All ---
+    await filterSelect.selectOption('all');
+    await page.waitForLoadState('networkidle');
+
+    // Verify URL updated
+    await expect(page).toHaveURL(/filter=all/, { timeout: 10_000 });
+
+    // Verify filter dropdown reflects selection
+    await expect(filterSelect).toHaveValue('all');
+
+    await expect(tableBody).toBeVisible({ timeout: 10_000 });
+
+    // Both active and inactive classes should be visible
+    const activeRowUnderAll = tableBody.locator('tr').filter({ hasText: `TC007 Active Class ${testId}` });
+    await expect(activeRowUnderAll).toHaveCount(1, { timeout: 10_000 });
+
+    const inactiveRowUnderAll = tableBody.locator('tr').filter({ hasText: `TC007 Inactive Class ${testId}` });
+    await expect(inactiveRowUnderAll).toHaveCount(1, { timeout: 10_000 });
+
+    // Screenshot: All filter
+    await page.screenshot({ path: path.join(screenshotDir, 'tc-007-all-filter.png'), fullPage: true });
+
+    const allRowCount = await tableBody.locator('tr').count();
+    console.log('TC-007 All filter evidence:', JSON.stringify({
+      filter_value: 'all',
+      active_class_visible: true,
+      inactive_class_visible: true,
+      total_rows_shown: allRowCount,
     }, null, 2));
   });
 });
