@@ -30,10 +30,12 @@ export const sendParticipantLinks = actionGeneric({
 
     const message =
       participantLinks.length === 1
-        ? `Your participant QR link: ${baseUrl}/participant/${encodeURIComponent(
+        ? `你的參加者 QR 連結：${baseUrl}/participant/${encodeURIComponent(
+            args.participant_ids[0]
+          )}\nYour participant QR link: ${baseUrl}/participant/${encodeURIComponent(
             args.participant_ids[0]
           )}`
-        : `Your participant QR links:\n${participantLinks.join("\n")}`;
+        : `你的參加者 QR 連結：\n${participantLinks.join("\n")}\nYour participant QR links:\n${participantLinks.join("\n")}`;
 
     const sent = await sendWhatsApp({
       to: args.customer_mobile,

@@ -36,7 +36,7 @@ export const sendPurchaseConfirmation = actionGeneric({
 
     const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
     const termsLink = buildTermsUrl(baseUrl, purchase.token);
-    const message = `Your purchase is confirmed! Please accept terms: ${termsLink}`;
+    const message = `你的訂單已確認！請點擊以下連結接受條款及選擇地點時間：${termsLink}\nYour purchase is confirmed! Please accept terms and select session: ${termsLink}`;
 
     const sent = await sendWhatsApp({
       to: purchase.customer_mobile,
