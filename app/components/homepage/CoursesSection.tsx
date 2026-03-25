@@ -10,14 +10,18 @@ const imgAsset11 = '/images/homepage/dab0f75dd9b9e8607ce30b36e95e0e7b5d3a1a6a.pn
 interface ClassSchedule {
   date: string;
   time: string;
-  location: string;
+  location_zh: string;
+  location_en?: string;
+  end_time?: string;
   isFull: boolean;
 }
 
 interface Course {
   id: string;
-  title: string;
-  description: string;
+  title_zh: string;
+  title_en?: string;
+  description_zh: string;
+  description_en?: string;
   duration: string;
   originalPrice: string;
   discountPrice: string;
@@ -66,14 +70,17 @@ function SkeletonCard() {
 }
 
 function CourseCard({ course }: { course: Course }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isEn = language === 'en';
+  const title = isEn ? (course.title_en ?? course.title_zh) : course.title_zh;
+  const description = isEn ? (course.description_en ?? course.description_zh) : course.description_zh;
 
   return (
     <div className="bg-white rounded-[32px] border border-[#dcdcdc] overflow-hidden flex flex-col lg:flex-row gap-5 p-px">
       {/* Image */}
       <div className="w-full lg:w-[550px] lg:max-w-[550px] h-[300px] lg:h-auto relative flex-shrink-0">
         <img
-          alt={course.title}
+          alt={title}
           className="w-full h-full object-cover"
           src={course.image}
         />
@@ -83,12 +90,12 @@ function CourseCard({ course }: { course: Course }) {
       <div className="flex-1 p-6 lg:p-8 flex flex-col gap-5">
         {/* Title */}
         <h3 className="font-['Comfortaa:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[24px] lg:text-[28px] leading-[32px] lg:leading-[36px] text-[#141414]" style={{ fontVariationSettings: "'wght' 700" }}>
-          {course.title}
+          {title}
         </h3>
 
         {/* Description */}
         <p className="font-['Roboto:Regular','Noto_Sans_JP:Regular','Noto_Sans_SC:Regular',sans-serif] text-[14px] leading-[24px] text-[#292929] tracking-[0.3px]" style={{ fontVariationSettings: "'wdth' 100" }}>
-          {course.description}
+          {description}
         </p>
 
         {/* Duration & Price */}
@@ -153,7 +160,10 @@ function CourseCard({ course }: { course: Course }) {
           {/* Class List or Coming Soon Message */}
           {course.classes.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 min-h-[100px]">
-              {course.classes.slice(0, 8).map((classItem, index) => (
+              {course.classes.slice(0, 8).map((classItem, index) => {
+                const location = isEn ? (classItem.location_en ?? classItem.location_zh) : classItem.location_zh;
+                const timeDisplay = classItem.end_time ? `${classItem.time}–${classItem.end_time}` : classItem.time;
+                return (
                 <div
                   key={index}
                   className={`rounded-[20px] border ${
@@ -193,7 +203,7 @@ function CourseCard({ course }: { course: Course }) {
                         </div>
                       </div>
                       <p className="font-['Roboto:Regular',sans-serif] text-[14px] leading-[20px] text-[#515151] tracking-[0.1px]" style={{ fontVariationSettings: "'wdth' 100" }}>
-                        {classItem.time}
+                        {timeDisplay}
                       </p>
                     </div>
                     <div className="flex gap-[2px] items-center">
@@ -210,12 +220,13 @@ function CourseCard({ course }: { course: Course }) {
                         </div>
                       </div>
                       <p className="font-['Roboto:Regular','Noto_Sans_JP:Regular',sans-serif] text-[14px] leading-[20px] text-[#515151] tracking-[0.1px]" style={{ fontVariationSettings: "'wdth' 100" }}>
-                        {classItem.location}
+                        {location}
                       </p>
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="bg-[#f4fcff] border border-[#44b0e2] rounded-[20px] px-6 py-8 flex items-center justify-center min-h-[100px]">
@@ -284,14 +295,18 @@ export function CoursesSection() {
             const schedules: ClassSchedule[] = sessionsData.sessions.map((s) => ({
               date: s.date,
               time: s.time,
-              location: s.location_zh,
+              location_zh: s.location_zh,
+              location_en: s.location_en,
+              end_time: s.end_time,
               isFull: s.quota_available === 0,
             }));
 
             courseResults.push({
               id: cls.class_id,
-              title: cls.name_zh,
-              description: cls.description ?? '',
+              title_zh: cls.name_zh,
+              title_en: cls.name_en,
+              description_zh: config.description_zh,
+              description_en: config.description_en,
               duration: config.duration,
               originalPrice: config.originalPrice,
               discountPrice: config.discountPrice,
