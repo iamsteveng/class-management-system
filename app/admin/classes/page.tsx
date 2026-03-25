@@ -12,6 +12,7 @@ import { createConvexHttpClient } from "@/lib/convexHttp";
 type ClassRow = {
   class_id: string;
   class_name: string;
+  name_en?: string;
   description?: string;
   total_sessions: number;
   status: "active" | "inactive";
@@ -50,13 +51,13 @@ export default async function AdminClassesPage({
   async function addClassAction(formData: FormData) {
     "use server";
 
-    const name = (formData.get("name") as string | null)?.trim() ?? "";
+    const nameZh = (formData.get("name") as string | null)?.trim() ?? "";
     const description =
       (formData.get("description") as string | null)?.trim() || undefined;
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
 
-    if (!name) {
+    if (!nameZh) {
       redirect(
         `/admin/classes?error=${encodeURIComponent("Class name is required.")}`
       );
@@ -66,7 +67,7 @@ export default async function AdminClassesPage({
       const client = createConvexHttpClient();
       await client.mutation(
         makeFunctionReference<"mutation">("adminClasses:createClass"),
-        { name, description, payment_url: paymentUrl, admin_username: adminUsername }
+        { name_zh: nameZh, description, payment_url: paymentUrl, admin_username: adminUsername }
       );
     } catch {
       redirect(
@@ -81,13 +82,14 @@ export default async function AdminClassesPage({
     "use server";
 
     const classId = (formData.get("class_id") as string | null)?.trim() ?? "";
-    const name = (formData.get("name") as string | null)?.trim() ?? "";
+    const nameZh = (formData.get("name_zh") as string | null)?.trim() ?? "";
+    const nameEn = (formData.get("name_en") as string | null)?.trim() || undefined;
     const description =
       (formData.get("description") as string | null)?.trim() ?? "";
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
 
-    if (!classId || !name) {
+    if (!classId || !nameZh) {
       redirect(
         `/admin/classes?error=${encodeURIComponent("Class ID and name are required.")}`
       );
@@ -99,7 +101,8 @@ export default async function AdminClassesPage({
         makeFunctionReference<"mutation">("adminClasses:updateClass"),
         {
           class_id: classId,
-          name,
+          name_zh: nameZh,
+          name_en: nameEn,
           description,
           payment_url: paymentUrl,
           admin_username: adminUsername,
@@ -213,7 +216,7 @@ export default async function AdminClassesPage({
                       href={`/admin/classes/${cls.class_id}/sessions`}
                       className="hover:underline"
                     >
-                      {cls.class_name}
+                      {cls.class_name}{cls.name_en ? ` (${cls.name_en})` : ""}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-zinc-700">
@@ -236,6 +239,7 @@ export default async function AdminClassesPage({
                         <EditClassModal
                           classId={cls.class_id}
                           initialName={cls.class_name}
+                          initialNameEn={cls.name_en}
                           initialDescription={cls.description}
                           initialPaymentUrl={cls.payment_url}
                           submitAction={editClassAction}

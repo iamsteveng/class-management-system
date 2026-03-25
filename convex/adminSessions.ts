@@ -13,7 +13,9 @@ export const getSessionManagementPageData = queryGeneric({
       sessions: v.array(
         v.object({
           session_id: v.string(),
-          location: v.string(),
+          location_zh: v.string(),
+          location_en: v.optional(v.string()),
+          end_time: v.optional(v.string()),
           date: v.string(),
           time: v.string(),
           quota_defined: v.number(),
@@ -46,7 +48,9 @@ export const getSessionManagementPageData = queryGeneric({
 
     const sessionRows = sessions.map((s) => ({
       session_id: s.session_id,
-      location: s.location,
+      location_zh: s.location_zh ?? "",
+      location_en: s.location_en,
+      end_time: s.end_time,
       date: s.date,
       time: s.time,
       quota_defined: s.quota_defined,
@@ -58,7 +62,7 @@ export const getSessionManagementPageData = queryGeneric({
 
     return {
       class_id: classRecord.class_id,
-      class_name: classRecord.name,
+      class_name: classRecord.name_zh ?? "",
       sessions: sessionRows,
     };
   },
@@ -67,7 +71,9 @@ export const getSessionManagementPageData = queryGeneric({
 export const createSession = mutationGeneric({
   args: {
     class_id: v.string(),
-    location: v.string(),
+    location_zh: v.string(),
+    location_en: v.optional(v.string()),
+    end_time: v.optional(v.string()),
     date: v.string(),
     time: v.string(),
     quota_defined: v.number(),
@@ -89,7 +95,9 @@ export const createSession = mutationGeneric({
     await ctx.db.insert("sessions", {
       session_id: sessionId,
       class_id: args.class_id,
-      location: args.location.trim(),
+      location_zh: args.location_zh.trim(),
+      location_en: args.location_en?.trim() || undefined,
+      end_time: args.end_time?.trim() || undefined,
       date: args.date.trim(),
       time: args.time.trim(),
       quota_defined: args.quota_defined,
@@ -106,7 +114,7 @@ export const createSession = mutationGeneric({
       entity_id: sessionId,
       metadata: {
         class_id: args.class_id,
-        location: args.location.trim(),
+        location_zh: args.location_zh.trim(),
         date: args.date.trim(),
         time: args.time.trim(),
         quota_defined: args.quota_defined,
@@ -121,7 +129,9 @@ export const createSession = mutationGeneric({
 export const updateSession = mutationGeneric({
   args: {
     session_id: v.string(),
-    location: v.string(),
+    location_zh: v.string(),
+    location_en: v.optional(v.string()),
+    end_time: v.optional(v.string()),
     date: v.string(),
     time: v.string(),
     quota_defined: v.number(),
@@ -150,18 +160,22 @@ export const updateSession = mutationGeneric({
       throw new Error("Only super admins can edit sessions.");
     }
 
-    const nextLocation = args.location.trim();
+    const nextLocationZh = args.location_zh.trim();
+    const nextLocationEn = args.location_en?.trim() || undefined;
+    const nextEndTime = args.end_time?.trim() || undefined;
     const nextDate = args.date.trim();
     const nextTime = args.time.trim();
     const nextQuotaDefined = args.quota_defined;
 
-    if (!nextLocation || !nextDate || !nextTime || nextQuotaDefined < 1) {
+    if (!nextLocationZh || !nextDate || !nextTime || nextQuotaDefined < 1) {
       throw new Error("Invalid session details.");
     }
 
     const now = Date.now();
     await ctx.db.patch(sessionRecord._id, {
-      location: nextLocation,
+      location_zh: nextLocationZh,
+      location_en: nextLocationEn,
+      end_time: nextEndTime,
       date: nextDate,
       time: nextTime,
       quota_defined: nextQuotaDefined,
@@ -174,8 +188,8 @@ export const updateSession = mutationGeneric({
       entity_type: "sessions",
       entity_id: sessionRecord.session_id,
       metadata: {
-        previous_location: sessionRecord.location,
-        next_location: nextLocation,
+        previous_location_zh: sessionRecord.location_zh,
+        next_location_zh: nextLocationZh,
         previous_date: sessionRecord.date,
         next_date: nextDate,
         previous_time: sessionRecord.time,
@@ -363,8 +377,8 @@ export const getSessionParticipantsPageData = queryGeneric({
 
     return {
       session_id: session.session_id,
-      class_name: classRecord?.name ?? "Unknown class",
-      session_location: session.location,
+      class_name: classRecord?.name_zh ?? "Unknown class",
+      session_location: session.location_zh ?? "",
       session_date: session.date,
       session_time: session.time,
       participants: participantRows,

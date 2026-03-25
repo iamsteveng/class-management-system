@@ -7,6 +7,7 @@ export const getClassListPageData = queryGeneric({
     v.object({
       class_id: v.string(),
       class_name: v.string(),
+      name_en: v.optional(v.string()),
       description: v.optional(v.string()),
       total_sessions: v.number(),
       status: v.union(v.literal("active"), v.literal("inactive")),
@@ -25,7 +26,8 @@ export const getClassListPageData = queryGeneric({
 
     return classes.map((cls) => ({
       class_id: cls.class_id,
-      class_name: cls.name,
+      class_name: cls.name_zh ?? "",
+      name_en: cls.name_en,
       description: cls.description,
       total_sessions: sessionCountByClassId.get(cls.class_id) ?? 0,
       status: cls.status,
@@ -36,7 +38,8 @@ export const getClassListPageData = queryGeneric({
 
 export const createClass = mutationGeneric({
   args: {
-    name: v.string(),
+    name_zh: v.string(),
+    name_en: v.optional(v.string()),
     description: v.optional(v.string()),
     payment_url: v.optional(v.string()),
     admin_username: v.string(),
@@ -55,7 +58,8 @@ export const createClass = mutationGeneric({
 
     await ctx.db.insert("classes", {
       class_id: classId,
-      name: args.name.trim(),
+      name_zh: args.name_zh.trim(),
+      name_en: args.name_en?.trim() || undefined,
       description: args.description?.trim(),
       payment_url: args.payment_url?.trim() || undefined,
       status: "active",
@@ -68,7 +72,7 @@ export const createClass = mutationGeneric({
       entity_type: "classes",
       entity_id: classId,
       metadata: {
-        name: args.name.trim(),
+        name_zh: args.name_zh.trim(),
         description: args.description?.trim(),
       },
       created_at: now,
@@ -81,7 +85,8 @@ export const createClass = mutationGeneric({
 export const updateClass = mutationGeneric({
   args: {
     class_id: v.string(),
-    name: v.string(),
+    name_zh: v.string(),
+    name_en: v.optional(v.string()),
     description: v.optional(v.string()),
     payment_url: v.optional(v.string()),
     admin_username: v.string(),
@@ -109,12 +114,14 @@ export const updateClass = mutationGeneric({
     }
 
     const now = Date.now();
-    const nextName = args.name.trim();
+    const nextNameZh = args.name_zh.trim();
+    const nextNameEn = args.name_en?.trim() || undefined;
     const nextDescription = args.description?.trim() ?? "";
     const nextPaymentUrl = args.payment_url?.trim() || undefined;
 
     await ctx.db.patch(classRecord._id, {
-      name: nextName,
+      name_zh: nextNameZh,
+      name_en: nextNameEn,
       description: nextDescription,
       payment_url: nextPaymentUrl,
     });
@@ -125,8 +132,8 @@ export const updateClass = mutationGeneric({
       entity_type: "classes",
       entity_id: classRecord.class_id,
       metadata: {
-        previous_name: classRecord.name,
-        next_name: nextName,
+        previous_name_zh: classRecord.name_zh,
+        next_name_zh: nextNameZh,
         previous_description: classRecord.description ?? "",
         next_description: nextDescription,
       },

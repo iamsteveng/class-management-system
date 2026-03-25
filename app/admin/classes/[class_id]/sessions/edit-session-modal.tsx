@@ -6,6 +6,8 @@ import { useFormStatus } from "react-dom";
 type EditSessionModalProps = {
   sessionId: string;
   initialLocation: string;
+  initialLocationEn?: string;
+  initialEndTime?: string;
   initialDate: string;
   initialTime: string;
   initialQuotaDefined: number;
@@ -16,6 +18,8 @@ type EditSessionModalProps = {
 export function EditSessionModal({
   sessionId,
   initialLocation,
+  initialLocationEn,
+  initialEndTime,
   initialDate,
   initialTime,
   initialQuotaDefined,
@@ -66,14 +70,14 @@ export function EditSessionModal({
 
               <div className="space-y-2">
                 <label
-                  htmlFor={`edit-location-${fieldId}`}
+                  htmlFor={`edit-location-zh-${fieldId}`}
                   className="block text-sm font-medium text-zinc-900"
                 >
-                  Location <span className="text-red-600">*</span>
+                  地點（中文）Location (ZH) <span className="text-red-600">*</span>
                 </label>
                 <input
-                  id={`edit-location-${fieldId}`}
-                  name="location"
+                  id={`edit-location-zh-${fieldId}`}
+                  name="location_zh"
                   type="text"
                   required
                   defaultValue={initialLocation}
@@ -81,7 +85,24 @@ export function EditSessionModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-location-en-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Location (EN)
+                </label>
+                <input
+                  id={`edit-location-en-${fieldId}`}
+                  name="location_en"
+                  type="text"
+                  defaultValue={initialLocationEn ?? ""}
+                  placeholder="e.g. Hong Kong Park"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label
                     htmlFor={`edit-date-${fieldId}`}
@@ -113,6 +134,23 @@ export function EditSessionModal({
                     required
                     defaultValue={initialTime}
                     className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor={`edit-end-time-${fieldId}`}
+                    className="block text-sm font-medium text-zinc-900"
+                  >
+                    End Time
+                  </label>
+                  <input
+                    id={`edit-end-time-${fieldId}`}
+                    name="end_time"
+                    type="time"
+                    defaultValue={initialEndTime ?? ""}
+                    placeholder="16:00"
+                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                   />
                 </div>
               </div>

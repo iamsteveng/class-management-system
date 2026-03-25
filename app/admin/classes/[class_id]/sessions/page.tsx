@@ -10,7 +10,9 @@ import { createConvexHttpClient } from "@/lib/convexHttp";
 
 type SessionRow = {
   session_id: string;
-  location: string;
+  location_zh: string;
+  location_en?: string;
+  end_time?: string;
   date: string;
   time: string;
   quota_defined: number;
@@ -70,14 +72,16 @@ export default async function AdminClassSessionsPage({
   async function addSessionAction(formData: FormData) {
     "use server";
 
-    const location = (formData.get("location") as string | null)?.trim() ?? "";
+    const locationZh = (formData.get("location_zh") as string | null)?.trim() ?? "";
+    const locationEn = (formData.get("location_en") as string | null)?.trim() || undefined;
+    const endTime = (formData.get("end_time") as string | null)?.trim() || undefined;
     const date = (formData.get("date") as string | null)?.trim() ?? "";
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
     const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
     const googleMapsUrl = (formData.get("google_maps_url") as string | null)?.trim() || undefined;
 
-    if (!location || !date || !time || isNaN(quotaDefined) || quotaDefined < 1) {
+    if (!locationZh || !date || !time || isNaN(quotaDefined) || quotaDefined < 1) {
       redirect(
         `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
           "All fields are required and quota must be at least 1."
@@ -91,7 +95,9 @@ export default async function AdminClassSessionsPage({
         makeFunctionReference<"mutation">("adminSessions:createSession"),
         {
           class_id: classId,
-          location,
+          location_zh: locationZh,
+          location_en: locationEn,
+          end_time: endTime,
           date,
           time,
           quota_defined: quotaDefined,
@@ -114,7 +120,9 @@ export default async function AdminClassSessionsPage({
     "use server";
 
     const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
-    const location = (formData.get("location") as string | null)?.trim() ?? "";
+    const locationZh = (formData.get("location_zh") as string | null)?.trim() ?? "";
+    const locationEn = (formData.get("location_en") as string | null)?.trim() || undefined;
+    const endTime = (formData.get("end_time") as string | null)?.trim() || undefined;
     const date = (formData.get("date") as string | null)?.trim() ?? "";
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
@@ -123,7 +131,7 @@ export default async function AdminClassSessionsPage({
 
     if (
       !sessionId ||
-      !location ||
+      !locationZh ||
       !date ||
       !time ||
       isNaN(quotaDefined) ||
@@ -142,7 +150,9 @@ export default async function AdminClassSessionsPage({
         makeFunctionReference<"mutation">("adminSessions:updateSession"),
         {
           session_id: sessionId,
-          location,
+          location_zh: locationZh,
+          location_en: locationEn,
+          end_time: endTime,
           date,
           time,
           quota_defined: quotaDefined,
@@ -257,9 +267,13 @@ export default async function AdminClassSessionsPage({
                   key={s.session_id}
                   className={s.status === "cancelled" ? "bg-zinc-50 text-zinc-500" : "hover:bg-zinc-50"}
                 >
-                  <td className="px-4 py-3 text-zinc-900">{s.location}</td>
+                  <td className="px-4 py-3 text-zinc-900">
+                    {s.location_zh}{s.location_en ? ` (${s.location_en})` : ""}
+                  </td>
                   <td className="px-4 py-3 text-zinc-700">{s.date}</td>
-                  <td className="px-4 py-3 text-zinc-700">{s.time}</td>
+                  <td className="px-4 py-3 text-zinc-700">
+                    {s.end_time ? `${s.time}–${s.end_time}` : s.time}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="font-mono">
                       {s.quota_defined} / {s.quota_used} /{" "}
@@ -300,7 +314,9 @@ export default async function AdminClassSessionsPage({
                       <div className="flex items-center gap-2">
                         <EditSessionModal
                           sessionId={s.session_id}
-                          initialLocation={s.location}
+                          initialLocation={s.location_zh}
+                          initialLocationEn={s.location_en}
+                          initialEndTime={s.end_time}
                           initialDate={s.date}
                           initialTime={s.time}
                           initialQuotaDefined={s.quota_defined}

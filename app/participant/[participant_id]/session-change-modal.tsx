@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useLanguage } from "../../contexts/LanguageContext";
 
 type SessionOption = {
   session_id: string;
-  location: string;
+  location_zh: string;
+  location_en?: string;
+  end_time?: string;
   date: string;
   time: string;
   available_quota: number;
@@ -24,6 +27,8 @@ export function SessionChangeModal({
   errorMessage,
   success,
 }: SessionChangeModalProps) {
+  const { language } = useLanguage();
+  const isEn = language === 'en';
   const [open, setOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [showSuccessToast, setShowSuccessToast] = useState(success);
@@ -100,12 +105,16 @@ export function SessionChangeModal({
                   required
                 >
                   <option value="">Choose a session</option>
-                  {sessionOptions.map((option) => (
-                    <option key={option.session_id} value={option.session_id}>
-                      {option.location} ({option.date} {option.time}) | Available:{" "}
-                      {option.available_quota}
-                    </option>
-                  ))}
+                  {sessionOptions.map((option) => {
+                    const loc = isEn ? (option.location_en ?? option.location_zh) : option.location_zh;
+                    const timeDisplay = option.end_time ? `${option.time}–${option.end_time}` : option.time;
+                    return (
+                      <option key={option.session_id} value={option.session_id}>
+                        {loc} ({option.date} {timeDisplay}) | Available:{" "}
+                        {option.available_quota}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

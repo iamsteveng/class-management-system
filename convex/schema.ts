@@ -41,7 +41,8 @@ export default defineSchema({
 
   classes: defineTable({
     class_id: v.string(),
-    name: v.string(),
+    name_zh: v.optional(v.string()),
+    name_en: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     payment_url: v.optional(v.string()),
@@ -51,7 +52,9 @@ export default defineSchema({
   sessions: defineTable({
     session_id: v.string(),
     class_id: v.string(),
-    location: v.string(),
+    location_zh: v.optional(v.string()),
+    location_en: v.optional(v.string()),
+    end_time: v.optional(v.string()),
     date: v.string(),
     time: v.string(),
     quota_defined: v.number(),

@@ -28,7 +28,11 @@ export const getTermsPageData = queryGeneric({
           session_id: v.string(),
           class_id: v.string(),
           class_name: v.string(),
-          location: v.string(),
+          name_zh: v.string(),
+          name_en: v.optional(v.string()),
+          location_zh: v.string(),
+          location_en: v.optional(v.string()),
+          end_time: v.optional(v.string()),
           date: v.string(),
           time: v.string(),
           available_quota: v.number(),
@@ -56,14 +60,18 @@ export const getTermsPageData = queryGeneric({
       return null;
     }
 
-    const classDocs = new Map<string, string>();
+    type ClassInfo = { name_zh: string; name_en?: string };
+    const classDocs = new Map<string, ClassInfo>();
     if (purchase.class_id) {
       const purchaseClass = await ctx.db
         .query("classes")
         .withIndex("by_class_id", (q) => q.eq("class_id", purchase.class_id!))
         .first();
       if (purchaseClass) {
-        classDocs.set(purchaseClass.class_id, purchaseClass.name);
+        classDocs.set(purchaseClass.class_id, {
+          name_zh: purchaseClass.name_zh ?? "",
+          name_en: purchaseClass.name_en,
+        });
       }
     }
 
@@ -82,7 +90,10 @@ export const getTermsPageData = queryGeneric({
           .withIndex("by_class_id", (q) => q.eq("class_id", classId))
           .first();
         if (classRecord) {
-          classDocs.set(classId, classRecord.name);
+          classDocs.set(classId, {
+            name_zh: classRecord.name_zh ?? "",
+            name_en: classRecord.name_en,
+          });
         }
       }
     }
@@ -94,11 +105,16 @@ export const getTermsPageData = queryGeneric({
           session.quota_defined - session.quota_used,
           0
         );
+        const classInfo = classDocs.get(session.class_id);
         return {
           session_id: session.session_id,
           class_id: session.class_id,
-          class_name: classDocs.get(session.class_id) ?? "Unknown class",
-          location: session.location,
+          class_name: classInfo?.name_zh ?? "Unknown class",
+          name_zh: classInfo?.name_zh ?? "Unknown class",
+          name_en: classInfo?.name_en,
+          location_zh: session.location_zh ?? "",
+          location_en: session.location_en,
+          end_time: session.end_time,
           date: session.date,
           time: session.time,
           available_quota: availableQuota,
@@ -117,7 +133,7 @@ export const getTermsPageData = queryGeneric({
       participant_count: purchase.participant_count,
       purchase_status: purchase.status,
       class_name: purchase.class_id
-        ? (classDocs.get(purchase.class_id) ?? undefined)
+        ? (classDocs.get(purchase.class_id)?.name_zh ?? undefined)
         : undefined,
       terms_version: currentTerms.version,
       terms_content: currentTerms.content,

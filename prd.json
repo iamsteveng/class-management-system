@@ -1,100 +1,162 @@
 {
   "project": "class-management-system",
-  "branchName": "ralph/new-homepage-integration",
-  "description": "Integrate NEW_HOMEPAGE landing page into the existing Next.js app, wiring CoursesSection to live Convex backend data with static price/duration/image config",
+  "branchName": "ralph/bilingual-support",
+  "description": "Add ZH/EN bilingual support to classes, sessions, terms page, participant QR page, WhatsApp messages, and admin portal",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Copy homepage components and assets into app structure",
-      "description": "As a developer, I want all NEW_HOMEPAGE components moved into the correct Next.js app directories so they can be used by the app.",
+      "title": "Schema migration — rename name/location to name_zh/location_zh, add name_en/location_en/end_time",
+      "description": "As a developer, I need to migrate the Convex schema so classes have bilingual names and sessions have bilingual locations and end times.",
       "acceptanceCriteria": [
-        "Copy NEW_HOMEPAGE/src/app/components/ → app/components/homepage/ (all files: Header.tsx, HeroSection.tsx, AboutUsSection.tsx, CoursesSection.tsx, Footer.tsx, ResponsiveLanding.tsx, figma/, ui/)",
-        "Copy NEW_HOMEPAGE/src/app/contexts/LanguageContext.tsx → app/contexts/LanguageContext.tsx",
-        "Copy NEW_HOMEPAGE/src/app/i18n/translations.ts → app/i18n/translations.ts",
-        "Copy NEW_HOMEPAGE/src/imports/ (SVG path files) → app/components/homepage/imports/",
-        "Copy NEW_HOMEPAGE/src/assets/*.png → public/images/homepage/",
-        "Replace all 'figma:asset/<hash>.png' import paths in components with '/images/homepage/<hash>.png' (use direct URL strings, not imports)",
-        "Update all import paths inside the copied components to use the new relative paths",
+        "In convex/schema.ts: rename classes.name → name_zh (string required), add name_en (optional string)",
+        "In convex/schema.ts: rename sessions.location → location_zh (string required), add location_en (optional string), add end_time (optional string)",
+        "Write a Convex migration mutation in convex/migrations.ts (or similar) that copies existing name → name_zh and location → location_zh for all records",
+        "Update all Convex query/mutation files that read or write name or location: convex/adminClasses.ts, convex/adminSessions.ts, convex/homepage.ts, convex/participants.ts, convex/purchaseConfirmation.ts, convex/participantLinks.ts, convex/seed.ts, convex/csvImport.ts, convex/adminParticipants.ts — replace name with name_zh, location with location_zh throughout",
+        "Update all return type validators (v.object) in Convex files to use name_zh/location_zh instead of name/location",
+        "npx convex deploy --yes runs without errors (test with dry-run if needed)",
         "Typecheck passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Source is NEW_HOMEPAGE/ directory at repo root. Target is the existing Next.js app. The figma:asset imports like 'figma:asset/30c657383d224670b9671a2f703069965543dc7c.png' should become src='/images/homepage/30c657383d224670b9671a2f703069965543dc7c.png' as img src attributes or Next.js Image src props. The ImageWithFallback component in figma/ subfolder handles this. Update it to use a standard img tag or next/image with a string path."
+      "notes": "IMPORTANT: This is a schema rename, not an add. Use Convex's patching approach: add new fields alongside old fields first, then remove old. Since this is a breaking rename, the safest approach is: (1) add name_zh as optional with default = name, (2) run migration, (3) make name_zh required and remove name. But in a single migration step: just add name_zh/location_zh as optional fields copying from name/location in the schema, write a migration mutation, and update all code to use new names. The old fields name and location should be removed from schema once migration is written. Files to update: convex/schema.ts, convex/adminClasses.ts, convex/adminSessions.ts, convex/homepage.ts, convex/participants.ts, convex/purchaseConfirmation.ts, convex/participantLinks.ts, convex/seed.ts. Also update all Next.js API routes and page data types that reference class_name or location."
     },
     {
       "id": "US-002",
-      "title": "Replace app/page.tsx with new ResponsiveLanding homepage",
-      "description": "As a developer, I want app/page.tsx to render the new landing page and app/homepage-client.tsx to be removed.",
+      "title": "Update courseConfig.ts — add bilingual descriptions, update CoursesSection to use language context",
+      "description": "As a developer, I want courseConfig.ts to include bilingual descriptions and CoursesSection to display language-aware content.",
       "acceptanceCriteria": [
-        "app/page.tsx renders <ResponsiveLanding /> wrapped in <LanguageProvider>",
-        "app/homepage-client.tsx is deleted",
-        "LanguageContext provider wraps the page so useLanguage() works in all child components",
-        "Install any missing npm packages required by the new components (check package.json in NEW_HOMEPAGE/ vs root)",
-        "npm run build passes with no errors",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "app/i18n/courseConfig.ts: add description_zh (string required) and description_en (optional string) to CourseConfig interface",
+        "Populate description_zh and description_en for both class_cycling_fundamentals and class_city_guided_tour",
+        "app/components/homepage/CoursesSection.tsx: use useLanguage() to get current language",
+        "Display name_zh/name_en with fallback: lang=EN → name_en ?? name_zh, lang=ZH → name_zh",
+        "Display description using courseConfig description_en ?? description_zh for EN, description_zh for ZH",
+        "Display session location_zh/location_en with same fallback logic",
+        "Display session time as start_time–end_time when end_time exists (e.g. '14:00–16:00'), else just start_time",
+        "Update /api/classes route to return name_zh and name_en fields",
+        "Update /api/classes/[classId]/sessions route to return location_zh, location_en, end_time fields",
+        "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Check NEW_HOMEPAGE/package.json for dependencies not in root package.json. Key ones likely needed: class-variance-authority, clsx, tailwind-merge, lucide-react, @radix-ui/* (many). Add them to root package.json and run npm install. The LanguageProvider is exported from app/contexts/LanguageContext.tsx."
+      "notes": "The CoursesSection already uses useLanguage(). The API routes are at app/api/classes/route.ts and app/api/classes/[classId]/sessions/route.ts. Update the response shape to include bilingual fields. The CourseConfig interface is in app/i18n/courseConfig.ts. Descriptions from courseConfig: class_cycling_fundamentals zh='教你由零出發學識踩單車（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）' en='Learn to ride a bike from scratch (includes: bike inspection, handling skills, safety rules, simulation practice)'. class_city_guided_tour zh='帶你探索香港各區美景，享受單車樂趣。導賞團包括：路線規劃、安全講解、景點介紹等' en='Explore Hong Kong scenic districts by bike. Tours include route planning, safety briefing, and sightseeing'."
     },
     {
       "id": "US-003",
-      "title": "Create courseConfig.ts with static price/duration/image per class_id",
-      "description": "As a developer, I want a typed config file that maps class_id to static display fields so CoursesSection can look up price, duration, and image without hitting the DB.",
+      "title": "WhatsApp messages — bilingual ZH+EN templates",
+      "description": "As a user, I want WhatsApp messages to contain both ZH and EN text so all customers can understand them.",
       "acceptanceCriteria": [
-        "Create app/i18n/courseConfig.ts",
-        "Export COURSE_CONFIG: Record<string, { duration: string; originalPrice: string; discountPrice: string; image: string; }> where image is a path under /images/homepage/",
-        "Include entries for class_id 'class_cycling_fundamentals' (duration: '2 hours', originalPrice: 'HK$560', discountPrice: 'HK$400', image matching the cycling beginner image)",
-        "Include entries for class_id 'class_city_guided_tour' (duration: '3 hours', originalPrice: 'HK$650', discountPrice: 'HK$550', image matching the tours image)",
-        "Export a helper getCourseConfig(class_id: string) that returns the config or undefined if not found",
+        "convex/purchaseConfirmation.ts: message = '你的訂單已確認！請點擊以下連結接受條款及選擇地點時間：{link}\\nYour purchase is confirmed! Please accept terms and select session: {link}'",
+        "convex/participantLinks.ts single participant: message = '你的參加者 QR 連結：{link}\\nYour participant QR link: {link}'",
+        "convex/participantLinks.ts multiple participants: ZH list first then EN list, format: '你的參加者 QR 連結：\\n1. {link1}\\n2. {link2}\\nYour participant QR links:\\n1. {link1}\\n2. {link2}'",
         "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "The class_id values come from convex/seed.ts: 'class_cycling_fundamentals' and 'class_city_guided_tour'. Images are the .png files copied to public/images/homepage/. Match them by looking at the CoursesSection hardcoded order: course1=beginner, course2=improvement, course3=tours. Use the actual hash filenames from NEW_HOMEPAGE/src/assets/."
+      "notes": "Files: convex/purchaseConfirmation.ts and convex/participantLinks.ts. Simple string template changes. Keep existing logic, just update the message string."
     },
     {
       "id": "US-004",
-      "title": "Wire CoursesSection to live backend data via /api/classes and /api/sessions",
-      "description": "As a visitor, I want to see real classes and their upcoming sessions on the homepage so I can find and enroll in a class.",
+      "title": "Create shared LanguageToggleHeader component for terms and participant pages",
+      "description": "As a developer, I want a reusable language toggle header that terms and participant pages can use.",
       "acceptanceCriteria": [
-        "CoursesSection fetches active classes from GET /api/classes on mount",
-        "For each class, fetches sessions from GET /api/sessions?class_id=<id>",
-        "Maps quota_available === 0 to isFull: true on each session",
-        "Maps session fields: date, time, location, isFull → ClassSchedule interface",
-        "Looks up static config from getCourseConfig(class_id) for duration, originalPrice, discountPrice, image",
-        "Skips classes with no entry in courseConfig (getCourseConfig returns undefined)",
-        "Course title and description come from the backend (class.name and class.description), not translations",
-        "Shows a loading skeleton while fetching (at least 2 placeholder cards)",
-        "Shows 'No upcoming classes' message if classes array is empty after fetch",
-        "Enroll button/link uses payment_url from the backend for each class",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Create app/components/LanguageToggleHeader.tsx: renders a minimal header with ZH and EN toggle buttons",
+        "Active language button is visually highlighted (e.g. font-bold or underline)",
+        "Uses useLanguage() from app/contexts/LanguageContext.tsx",
+        "Create app/components/LanguageProvider.tsx: a simple client wrapper that provides LanguageContext — useful for wrapping individual pages",
+        "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": "The existing API routes are at app/api/classes/route.ts and app/api/sessions/route.ts. Check they return the right shape. CoursesSection is now at app/components/homepage/CoursesSection.tsx. Use React useState + useEffect or SWR for data fetching — keep it simple, no server components needed here. The ClassSchedule interface is already defined in CoursesSection.tsx."
+      "notes": "The LanguageContext already exists at app/contexts/LanguageContext.tsx. This story just creates the UI toggle component and a convenient provider wrapper. Keep it simple — just two buttons styled minimally."
     },
     {
       "id": "US-005",
-      "title": "Add unit and integration tests for CoursesSection and courseConfig",
-      "description": "As a developer, I want tests covering the course config lookup and CoursesSection rendering so regressions are caught.",
+      "title": "Terms acceptance page — bilingual UI",
+      "description": "As a user, I want the terms acceptance page to be in ZH by default and switchable to EN.",
       "acceptanceCriteria": [
-        "Unit test: getCourseConfig('class_cycling_fundamentals') returns correct duration, price, image",
-        "Unit test: getCourseConfig('unknown_class') returns undefined",
-        "Unit test: session with quota_available=0 maps to isFull=true",
-        "Unit test: session with quota_available=3 maps to isFull=false",
-        "Integration test: CoursesSection renders course cards when API returns data (mock fetch)",
-        "Integration test: CoursesSection shows 'FULL' badge on sessions with quota_available=0",
-        "Integration test: CoursesSection shows loading state while fetch is pending",
-        "Integration test: CoursesSection skips classes not in courseConfig",
-        "All tests pass",
-        "Typecheck passes"
+        "Create app/i18n/termsTranslations.ts with ZH and EN strings for all UI text on the terms page",
+        "Include: page title, all form labels (session selector, name, height, age, emergency contact name, emergency contact phone), placeholder text, submit button, success message, error messages, helper text, terms checkbox label",
+        "Wrap app/terms/page.tsx with LanguageProvider and add LanguageToggleHeader at top",
+        "app/terms/terms-form.tsx: use useLanguage() to display all labels and text in selected language",
+        "Session selector options display class name and location using language fallback (name_en??name_zh, location_en??location_zh)",
+        "Session option format: '{class_name} — {location} ({date} {time}–{end_time})' using language-aware fields",
+        "Update the sessions type in TermsFormProps to include name_zh, name_en, location_zh, location_en, end_time",
+        "Update the Convex query/API that loads sessions for the terms page to return bilingual fields",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
       "passes": true,
-      "notes": "Use the existing test framework in the project (check package.json for jest/vitest/playwright). Tests go in tests/ directory following existing pattern. For CoursesSection integration tests, use React Testing Library with mocked fetch. For unit tests, import getCourseConfig and test directly."
+      "notes": "The terms page is at app/terms/page.tsx and app/terms/terms-form.tsx. The page is a server component, the form is a client component. LanguageProvider needs to wrap the client part. The sessions come from a Convex query via the API — update that query to return name_zh, name_en, location_zh, location_en, end_time."
+    },
+    {
+      "id": "US-006",
+      "title": "Participant QR code page — bilingual UI",
+      "description": "As a user, I want the participant QR code page to be in ZH by default and switchable to EN.",
+      "acceptanceCriteria": [
+        "Create app/i18n/participantTranslations.ts with ZH and EN strings for all UI text",
+        "Include: page title ('參加者通行證 / Participant Pass'), section headings, all field labels (participant name, participant ID, class, session, location, date, time), 'Change session' button text, error messages",
+        "Wrap app/participant/[participant_id]/page.tsx with LanguageProvider and add LanguageToggleHeader",
+        "Display class name using language fallback (name_en??name_zh for EN, name_zh for ZH)",
+        "Display session location using language fallback (location_en??location_zh for EN, location_zh for ZH)",
+        "Display session time as start–end_time when end_time available",
+        "Update the Convex query that loads participant page data to return name_zh, name_en, location_zh, location_en, end_time",
+        "Update ParticipantPageData type to include bilingual fields",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "The participant page is at app/participant/[participant_id]/page.tsx. It loads data via a Convex HTTP client call. Update the underlying Convex query (likely in convex/participants.ts or convex/adminParticipants.ts) to return name_zh, name_en, location_zh, location_en, end_time."
+    },
+    {
+      "id": "US-007",
+      "title": "Admin portal — edit class name_zh and name_en",
+      "description": "As an admin, I want to set both ZH and EN class names in the admin portal.",
+      "acceptanceCriteria": [
+        "app/admin/classes/edit-class-modal.tsx: replace single Name field with two fields — '班級名稱（中文）Class Name (ZH)' (required) and 'Class Name (EN)' (optional)",
+        "Update the server action that calls adminClasses:updateClass to pass name_zh and name_en",
+        "Update convex/adminClasses.ts updateClass mutation args to accept name_zh (required) and name_en (optional)",
+        "Admin class list table shows name_zh and name_en (e.g. '單車新手速成班 (Cycling Crash Course)')",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "The edit modal is at app/admin/classes/edit-class-modal.tsx. The server action is likely in app/admin/classes/actions.ts or similar. The adminClasses.ts mutation needs to be updated to accept name_zh and name_en instead of name."
+    },
+    {
+      "id": "US-008",
+      "title": "Admin portal — edit session location_zh, location_en, and end_time",
+      "description": "As an admin, I want to set bilingual session locations and end times in the admin portal.",
+      "acceptanceCriteria": [
+        "Session create and edit forms: replace single Location field with '地點（中文）Location (ZH)' (required) and 'Location (EN)' (optional)",
+        "Add 'End Time' field (optional, HH:MM format, placeholder '16:00')",
+        "Update adminSessions.ts createSession and updateSession mutations to accept location_zh, location_en (optional), end_time (optional)",
+        "Session list in admin shows location_zh (location_en if set) and time–end_time range",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Session forms are in app/admin/sessions/ directory. The mutations are in convex/adminSessions.ts. Update both create and update flows."
+    },
+    {
+      "id": "US-009",
+      "title": "Tests — bilingual fallback, WhatsApp messages, page language toggle",
+      "description": "As a developer, I want tests covering the bilingual fallback logic and key bilingual features.",
+      "acceptanceCriteria": [
+        "Unit test: language fallback function — getLocalizedText(zh, en, 'zh') returns zh, getLocalizedText(zh, undefined, 'en') returns zh (fallback), getLocalizedText(zh, en, 'en') returns en",
+        "Unit test: bilingual WhatsApp purchase confirmation message contains both ZH and EN text",
+        "Unit test: bilingual WhatsApp participant links message (single and multiple) contains both ZH and EN",
+        "Unit test: courseConfig description fallback — EN returns description_en when set, falls back to description_zh",
+        "All new tests pass",
+        "Existing tests still pass",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Tests go in tests/unit/. Use the existing vitest setup. A helper function getLocalizedText(zh: string, en: string | undefined, lang: 'zh' | 'en'): string may be worth extracting to app/lib/i18n.ts and testing directly."
     }
   ]
 }

@@ -7,7 +7,8 @@ type AvailableSession = {
   session_id: string;
   date: string;
   time: string;
-  location: string;
+  location_zh: string;
+  location_en?: string;
   quota_available: number;
 };
 
@@ -67,7 +68,7 @@ export function ChangeSessionPanel({
                         <p className="font-medium text-zinc-900">
                           {session.date} {session.time}
                         </p>
-                        <p className="text-zinc-600">{session.location}</p>
+                        <p className="text-zinc-600">{session.location_zh}</p>
                         <p className="text-zinc-500">{session.quota_available} spot(s) available</p>
                       </div>
                     </label>

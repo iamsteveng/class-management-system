@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 
 import { TermsForm } from "./terms-form";
 import { createConvexHttpClient } from "@/lib/convexHttp";
+import { LanguageProvider } from "../components/LanguageProvider";
+import { LanguageToggleHeader } from "../components/LanguageToggleHeader";
 
 type SearchParamValue = string | string[] | undefined;
 
@@ -21,7 +23,11 @@ type TermsPageData = {
     session_id: string;
     class_id: string;
     class_name: string;
-    location: string;
+    name_zh: string;
+    name_en?: string;
+    location_zh: string;
+    location_en?: string;
+    end_time?: string;
     date: string;
     time: string;
     available_quota: number;
@@ -36,11 +42,15 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
 
   if (!token) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
-        <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
-          Missing purchase token. Please use the full link from your WhatsApp confirmation message.
-        </p>
-      </main>
+      <LanguageProvider>
+        <LanguageToggleHeader />
+        <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
+          <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+            缺少購買 token。請使用 WhatsApp 確認訊息中的完整連結。<br />
+            Missing purchase token. Please use the full link from your WhatsApp confirmation message.
+          </p>
+        </main>
+      </LanguageProvider>
     );
   }
   const tokenValue = token;
@@ -48,11 +58,15 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
   const pageData = await loadTermsData(token);
   if (!pageData) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
-        <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
-          We could not find a valid purchase for this token.
-        </p>
-      </main>
+      <LanguageProvider>
+        <LanguageToggleHeader />
+        <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
+          <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+            找不到此 token 對應的有效訂單。<br />
+            We could not find a valid purchase for this token.
+          </p>
+        </main>
+      </LanguageProvider>
     );
   }
 
@@ -114,6 +128,8 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
 
   if (submissionSucceeded) {
     return (
+      <LanguageProvider>
+        <LanguageToggleHeader />
       <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center space-y-6 px-4 py-8 text-center">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
           <svg
@@ -140,53 +156,50 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
           </a>
         ) : null}
       </main>
+      </LanguageProvider>
     );
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl space-y-6 px-4 py-8">
-      <section className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900">Terms Acceptance</h1>
-        <p className="text-sm text-zinc-700">
-          Confirm your class session and accept the terms to complete your registration.
-        </p>
-      </section>
+    <LanguageProvider>
+      <LanguageToggleHeader />
+      <main className="mx-auto min-h-screen w-full max-w-3xl space-y-6 px-4 py-8">
+        <section className="rounded-xl border border-zinc-200 p-5">
+          <h2 className="text-lg font-medium text-zinc-900">購買詳情 / Purchase details</h2>
+          <dl className="mt-3 grid gap-2 text-sm text-zinc-700">
+            <div>
+              <dt className="font-medium text-zinc-900">客戶手機 / Customer mobile</dt>
+              <dd>{pageData.customer_mobile}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-zinc-900">參加者人數 / Participants</dt>
+              <dd>{pageData.participant_count}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-zinc-900">課程 / Class</dt>
+              <dd>{pageData.class_name ?? "將根據所選時段確定 / Will be selected based on your chosen session"}</dd>
+            </div>
+          </dl>
+        </section>
 
-      <section className="rounded-xl border border-zinc-200 p-5">
-        <h2 className="text-lg font-medium text-zinc-900">Purchase details</h2>
-        <dl className="mt-3 grid gap-2 text-sm text-zinc-700">
-          <div>
-            <dt className="font-medium text-zinc-900">Customer mobile</dt>
-            <dd>{pageData.customer_mobile}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-zinc-900">Participants</dt>
-            <dd>{pageData.participant_count}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-zinc-900">Class</dt>
-            <dd>{pageData.class_name ?? "Will be selected based on your chosen session"}</dd>
-          </div>
-        </dl>
-      </section>
+        <section className="rounded-xl border border-zinc-200 p-5">
+          <h2 className="text-lg font-medium text-zinc-900">
+            條款 / Terms ({pageData.terms_version})
+          </h2>
+          <p className="mt-3 whitespace-pre-line text-sm leading-6 text-zinc-700">
+            {pageData.terms_content}
+          </p>
+        </section>
 
-      <section className="rounded-xl border border-zinc-200 p-5">
-        <h2 className="text-lg font-medium text-zinc-900">
-          Terms ({pageData.terms_version})
-        </h2>
-        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-zinc-700">
-          {pageData.terms_content}
-        </p>
-      </section>
-
-      <TermsForm
-        sessions={pageData.sessions}
-        submitAction={submitTerms}
-        locked={alreadyAccepted}
-        success={submissionSucceeded}
-        errorMessage={errorMessage}
-      />
-    </main>
+        <TermsForm
+          sessions={pageData.sessions}
+          submitAction={submitTerms}
+          locked={alreadyAccepted}
+          success={submissionSucceeded}
+          errorMessage={errorMessage}
+        />
+      </main>
+    </LanguageProvider>
   );
 }
 

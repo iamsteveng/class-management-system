@@ -33,7 +33,8 @@ type AvailableSession = {
   session_id: string;
   date: string;
   time: string;
-  location: string;
+  location_zh: string;
+  location_en?: string;
   quota_available: number;
 };
 

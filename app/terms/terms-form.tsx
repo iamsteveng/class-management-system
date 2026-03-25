@@ -2,11 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { useLanguage } from "../contexts/LanguageContext";
+import { termsTranslations } from "../i18n/termsTranslations";
 
 type SessionOption = {
   session_id: string;
   class_name: string;
-  location: string;
+  name_zh: string;
+  name_en?: string;
+  location_zh: string;
+  location_en?: string;
+  end_time?: string;
   date: string;
   time: string;
   available_quota: number;
@@ -27,6 +33,10 @@ export function TermsForm({
   errorMessage,
   success,
 }: TermsFormProps) {
+  const { language } = useLanguage();
+  const tr = termsTranslations[language];
+  const isEn = language === 'en';
+
   const [sessionId, setSessionId] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [height, setHeight] = useState("");
@@ -47,25 +57,37 @@ export function TermsForm({
 
   const helperMessage = useMemo(() => {
     if (success) {
-      return "Terms accepted successfully.";
+      return tr.successHelper;
     }
 
     if (locked) {
-      return "Terms have already been accepted for this purchase.";
+      return tr.lockedHelper;
     }
 
     if (noAvailableSessions) {
-      return "No sessions currently have available quota.";
+      return tr.noSessionsHelper;
     }
 
     return undefined;
-  }, [locked, noAvailableSessions, success]);
+  }, [locked, noAvailableSessions, success, tr]);
+
+  function formatSessionOption(session: SessionOption): string {
+    const className = isEn ? (session.name_en ?? session.name_zh) : session.name_zh;
+    const location = isEn ? (session.location_en ?? session.location_zh) : session.location_zh;
+    const timeDisplay = session.end_time
+      ? `${session.time}–${session.end_time}`
+      : session.time;
+    return `${className} — ${location} (${session.date} ${timeDisplay})`;
+  }
 
   return (
     <form action={submitAction} className="space-y-4 rounded-xl border border-zinc-200 p-5">
+      <h2 className="text-lg font-semibold text-zinc-900">{tr.pageTitle}</h2>
+      <p className="text-sm text-zinc-600">{tr.pageSubtitle}</p>
+
       <div className="space-y-2">
         <label htmlFor="session_id" className="block text-sm font-medium text-zinc-900">
-          Select session
+          {tr.selectSession}
         </label>
         <select
           id="session_id"
@@ -76,22 +98,21 @@ export function TermsForm({
           className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
           required
         >
-          <option value="">Choose a session</option>
+          <option value="">{tr.chooseSession}</option>
           {sessions.map((session) => (
             <option key={session.session_id} value={session.session_id}>
-              {session.class_name} - {session.location} ({session.date} {session.time}) | Available:{" "}
-              {session.available_quota}
+              {formatSessionOption(session)}
             </option>
           ))}
         </select>
       </div>
 
       <div className="space-y-3">
-        <h3 className="text-sm font-medium text-zinc-900">Participant details</h3>
+        <h3 className="text-sm font-medium text-zinc-900">{tr.participantDetails}</h3>
 
         <div className="space-y-1">
           <label htmlFor="height" className="block text-sm font-medium text-zinc-900">
-            Height
+            {tr.heightLabel}
           </label>
           <input
             id="height"
@@ -100,7 +121,7 @@ export function TermsForm({
             value={height}
             onChange={(e) => setHeight(e.target.value)}
             disabled={disableForm}
-            placeholder="e.g. 170cm"
+            placeholder={tr.heightPlaceholder}
             required
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
           />
@@ -108,7 +129,7 @@ export function TermsForm({
 
         <div className="space-y-1">
           <label htmlFor="age" className="block text-sm font-medium text-zinc-900">
-            Age (years)
+            {tr.ageLabel}
           </label>
           <input
             id="age"
@@ -117,7 +138,7 @@ export function TermsForm({
             value={age}
             onChange={(e) => setAge(e.target.value)}
             disabled={disableForm}
-            placeholder="e.g. 30"
+            placeholder={tr.agePlaceholder}
             min={1}
             required
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
@@ -126,7 +147,7 @@ export function TermsForm({
 
         <div className="space-y-1">
           <label htmlFor="emergency_contact_name" className="block text-sm font-medium text-zinc-900">
-            Emergency Contact Name
+            {tr.emergencyContactNameLabel}
           </label>
           <input
             id="emergency_contact_name"
@@ -135,7 +156,7 @@ export function TermsForm({
             value={emergencyContactName}
             onChange={(e) => setEmergencyContactName(e.target.value)}
             disabled={disableForm}
-            placeholder="Full name"
+            placeholder={tr.emergencyContactNamePlaceholder}
             required
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
           />
@@ -143,7 +164,7 @@ export function TermsForm({
 
         <div className="space-y-1">
           <label htmlFor="emergency_contact_phone" className="block text-sm font-medium text-zinc-900">
-            Emergency Contact Phone
+            {tr.emergencyContactPhoneLabel}
           </label>
           <input
             id="emergency_contact_phone"
@@ -152,7 +173,7 @@ export function TermsForm({
             value={emergencyContactPhone}
             onChange={(e) => setEmergencyContactPhone(e.target.value)}
             disabled={disableForm}
-            placeholder="Phone number"
+            placeholder={tr.emergencyContactPhonePlaceholder}
             required
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
           />
@@ -168,7 +189,7 @@ export function TermsForm({
           disabled={disableForm}
           className="mt-0.5 h-4 w-4 rounded border-zinc-300"
         />
-        <span>I have read and accept the terms</span>
+        <span>{tr.checkboxLabel}</span>
       </label>
 
       {errorMessage ? (
@@ -179,12 +200,14 @@ export function TermsForm({
       ) : null}
 
       <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm italic text-blue-800">
-        After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message.
+        {tr.qrCodeNote}
       </p>
 
       <SubmitButton
         canSubmit={canSubmit}
         disabled={disableForm}
+        submitLabel={tr.submitButton}
+        submittingLabel={tr.submittingButton}
       />
     </form>
   );
@@ -193,9 +216,13 @@ export function TermsForm({
 function SubmitButton({
   canSubmit,
   disabled,
+  submitLabel,
+  submittingLabel,
 }: {
   canSubmit: boolean;
   disabled: boolean;
+  submitLabel: string;
+  submittingLabel: string;
 }) {
   const { pending } = useFormStatus();
   const isDisabled = pending || disabled || !canSubmit;
@@ -206,7 +233,7 @@ function SubmitButton({
       disabled={isDisabled}
       className="w-full rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
     >
-      {pending ? "Submitting..." : "Accept Terms"}
+      {pending ? submittingLabel : submitLabel}
     </button>
   );
 }

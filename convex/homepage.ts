@@ -6,7 +6,8 @@ export const listClassesWithPaymentUrl = queryGeneric({
   returns: v.array(
     v.object({
       class_id: v.string(),
-      name: v.string(),
+      name_zh: v.string(),
+      name_en: v.optional(v.string()),
       description: v.optional(v.string()),
       payment_url: v.string(),
     })
@@ -23,7 +24,8 @@ export const listClassesWithPaymentUrl = queryGeneric({
       )
       .map((cls) => ({
         class_id: cls.class_id,
-        name: cls.name,
+        name_zh: cls.name_zh ?? "",
+        name_en: cls.name_en,
         description: cls.description,
         payment_url: cls.payment_url as string,
       }));
@@ -45,7 +47,7 @@ export const getAvailableClasses = queryGeneric({
       .filter((cls) => cls.status === "active")
       .map((cls) => ({
         class_id: cls.class_id,
-        class_name: cls.name,
+        class_name: cls.name_zh ?? "",
       }))
       .sort((left, right) =>
         left.class_name.localeCompare(right.class_name, undefined, {
@@ -62,7 +64,9 @@ export const getAvailableSessionsByClass = queryGeneric({
   returns: v.array(
     v.object({
       session_id: v.string(),
-      location: v.string(),
+      location_zh: v.string(),
+      location_en: v.optional(v.string()),
+      end_time: v.optional(v.string()),
       date: v.string(),
       time: v.string(),
       quota_available: v.number(),
@@ -78,7 +82,9 @@ export const getAvailableSessionsByClass = queryGeneric({
       .filter((session) => session.status === "scheduled")
       .map((session) => ({
         session_id: session.session_id,
-        location: session.location,
+        location_zh: session.location_zh ?? "",
+        location_en: session.location_en,
+        end_time: session.end_time,
         date: session.date,
         time: session.time,
         quota_available: Math.max(0, session.quota_defined - session.quota_used),

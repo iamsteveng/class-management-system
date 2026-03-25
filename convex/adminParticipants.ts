@@ -11,7 +11,8 @@ export const getAvailableSessionsForClassChange = queryGeneric({
       session_id: v.string(),
       date: v.string(),
       time: v.string(),
-      location: v.string(),
+      location_zh: v.string(),
+      location_en: v.optional(v.string()),
       quota_available: v.number(),
     })
   ),
@@ -32,7 +33,8 @@ export const getAvailableSessionsForClassChange = queryGeneric({
         session_id: s.session_id,
         date: s.date,
         time: s.time,
-        location: s.location,
+        location_zh: s.location_zh ?? "",
+        location_en: s.location_en,
         quota_available: s.quota_defined - s.quota_used,
       }))
       .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
@@ -101,10 +103,10 @@ export const getParticipantAdminDetails = queryGeneric({
       mobile: participant.mobile,
       session_id: session.session_id,
       class_id: session.class_id,
-      session_location: session.location,
+      session_location: session.location_zh ?? "",
       session_date: session.date,
       session_time: session.time,
-      class_name: classRecord?.name ?? "Unknown class",
+      class_name: classRecord?.name_zh ?? "Unknown class",
       terms_accepted_at: participant.terms_accepted_at,
       terms_version: termsVersion,
       height: participant.height,
