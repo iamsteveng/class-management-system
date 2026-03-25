@@ -70,3 +70,17 @@ Started: Thu Mar 19 04:46:35 UTC 2026
   - shadcn/ui UI components (calendar, chart, resizable) may have version compatibility issues with latest packages — use `// @ts-nocheck`
   - Sessions API route is at /api/classes/[classId]/sessions (not /api/sessions?class_id=<id>)
 ---
+
+## 2026-03-25 - US-001 (ralph/bilingual-support)
+- Renamed `classes.name` → `classes.name_zh` (optional), added `name_en` (optional)
+- Renamed `sessions.location` → `sessions.location_zh` (optional), added `location_en` (optional), `end_time` (optional)
+- Files changed: convex/schema.ts, convex/migrations.ts (new), convex/adminClasses.ts, convex/adminSessions.ts, convex/homepage.ts, convex/participants.ts, convex/terms.ts, convex/adminParticipants.ts, convex/seed.ts
+- Updated Next.js types/actions: app/admin/classes/page.tsx, sessions/page.tsx, participants pages, terms pages, CoursesSection.tsx
+- Created convex/migrations.ts with `migrateToNameZhLocationZh` mutation
+- **Learnings for future iterations:**
+  - In Convex, removing `name`/`location` from schema and adding optional `name_zh`/`location_zh` works because existing docs with extra fields are not rejected
+  - `(record as any).fieldName` pattern needed in migration to access old un-schema'd fields
+  - Server actions in admin pages read formData with old field names (e.g. `formData.get("name")`) but pass to Convex as `name_zh` — form UI label changes come in US-007/008
+  - All Convex return type validators must be updated alongside schema changes
+  - CoursesSection.tsx has `ApiClass` and `ApiSession` interfaces that mirror the API response shape — must update these too
+---
