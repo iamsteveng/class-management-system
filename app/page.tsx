@@ -1,5 +1,10 @@
-import { HomepageClient } from "./homepage-client";
+import { LanguageProvider } from './contexts/LanguageContext';
+import { ResponsiveLanding } from './components/homepage/ResponsiveLanding';
 
 export default function Home() {
-  return <HomepageClient />;
+  return (
+    <LanguageProvider>
+      <ResponsiveLanding />
+    </LanguageProvider>
+  );
 }
