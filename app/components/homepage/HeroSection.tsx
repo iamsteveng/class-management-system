@@ -42,10 +42,10 @@ type FeatureCardProps = {
 
 function FeatureCard({ title, description, icon }: FeatureCardProps) {
   return (
-    <div className="backdrop-blur-[2px] bg-[rgba(255,255,255,0.5)] md:flex-none flex-[1_0_0] min-h-px min-w-px relative rounded-[14px] w-full md:w-auto">
+    <div className="backdrop-blur-[2px] bg-[rgba(255,255,255,0.5)] flex-1 relative rounded-[14px] w-full overflow-hidden">
       <div aria-hidden="true" className="absolute border border-[rgba(255,255,255,0.7)] border-solid inset-0 pointer-events-none rounded-[14px]" />
       <div className="flex flex-row items-center size-full">
-        <div className="content-stretch flex gap-[16px] items-center px-[17px] py-px relative size-full">
+        <div className="content-stretch flex gap-[16px] items-center px-[17px] py-[12px] relative w-full">
           <FeatureIcon>
             <div className="h-[24px] overflow-clip relative shrink-0 w-full">
               {icon === 'instructor' && (
@@ -171,7 +171,7 @@ export function HeroSection() {
             </div>
           </div>
         </div>
-        <div className="gap-x-[24px] gap-y-[24px] grid-cols-[repeat(3,fit-content(100%))] grid-rows-[repeat(1,minmax(0,1fr))] h-[98px] inline-grid relative shrink-0">
+        <div className="flex flex-row gap-[24px] relative shrink-0 w-full">
           <FeatureCard title={t.hero.feature1Title} description={t.hero.feature1Desc} icon="instructor" />
           <FeatureCard title={t.hero.feature2Title} description={t.hero.feature2Desc} icon="safety" />
           <FeatureCard title={t.hero.feature3Title} description={t.hero.feature3Desc} icon="tour" />
