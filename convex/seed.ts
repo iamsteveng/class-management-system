@@ -20,12 +20,12 @@ export const seedInitialData = mutationGeneric({
     const classSeeds = [
       {
         class_id: "class_cycling_fundamentals",
-        name: "Cycling Fundamentals",
+        name_zh: "單車基礎班",
         description: "Beginner-friendly coached cycling class.",
       },
       {
         class_id: "class_city_guided_tour",
-        name: "City Guided Tour",
+        name_zh: "城市導賞單車遊",
         description: "Guided outdoor city tour with curated stops.",
       },
     ] as const;
@@ -50,7 +50,7 @@ export const seedInitialData = mutationGeneric({
       {
         session_id: "session_cycling_2026_03_15_0900",
         class_id: "class_cycling_fundamentals",
-        location: "Downtown Studio A",
+        location_zh: "市中心 A 室",
         date: "2026-03-15",
         time: "09:00",
         quota_defined: 20,
@@ -58,7 +58,7 @@ export const seedInitialData = mutationGeneric({
       {
         session_id: "session_cycling_2026_03_22_0900",
         class_id: "class_cycling_fundamentals",
-        location: "Downtown Studio A",
+        location_zh: "市中心 A 室",
         date: "2026-03-22",
         time: "09:00",
         quota_defined: 20,
@@ -66,7 +66,7 @@ export const seedInitialData = mutationGeneric({
       {
         session_id: "session_tour_2026_03_16_1400",
         class_id: "class_city_guided_tour",
-        location: "City Hall Entrance",
+        location_zh: "市政廳入口",
         date: "2026-03-16",
         time: "14:00",
         quota_defined: 15,
@@ -74,7 +74,7 @@ export const seedInitialData = mutationGeneric({
       {
         session_id: "session_tour_2026_03_23_1400",
         class_id: "class_city_guided_tour",
-        location: "City Hall Entrance",
+        location_zh: "市政廳入口",
         date: "2026-03-23",
         time: "14:00",
         quota_defined: 15,

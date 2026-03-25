@@ -28,7 +28,9 @@ export const getTermsPageData = queryGeneric({
           session_id: v.string(),
           class_id: v.string(),
           class_name: v.string(),
-          location: v.string(),
+          location_zh: v.string(),
+          location_en: v.optional(v.string()),
+          end_time: v.optional(v.string()),
           date: v.string(),
           time: v.string(),
           available_quota: v.number(),
@@ -63,7 +65,7 @@ export const getTermsPageData = queryGeneric({
         .withIndex("by_class_id", (q) => q.eq("class_id", purchase.class_id!))
         .first();
       if (purchaseClass) {
-        classDocs.set(purchaseClass.class_id, purchaseClass.name);
+        classDocs.set(purchaseClass.class_id, purchaseClass.name_zh ?? "");
       }
     }
 
@@ -82,7 +84,7 @@ export const getTermsPageData = queryGeneric({
           .withIndex("by_class_id", (q) => q.eq("class_id", classId))
           .first();
         if (classRecord) {
-          classDocs.set(classId, classRecord.name);
+          classDocs.set(classId, classRecord.name_zh ?? "");
         }
       }
     }
@@ -98,7 +100,9 @@ export const getTermsPageData = queryGeneric({
           session_id: session.session_id,
           class_id: session.class_id,
           class_name: classDocs.get(session.class_id) ?? "Unknown class",
-          location: session.location,
+          location_zh: session.location_zh ?? "",
+          location_en: session.location_en,
+          end_time: session.end_time,
           date: session.date,
           time: session.time,
           available_quota: availableQuota,

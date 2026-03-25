@@ -21,7 +21,9 @@ type TermsPageData = {
     session_id: string;
     class_id: string;
     class_name: string;
-    location: string;
+    location_zh: string;
+    location_en?: string;
+    end_time?: string;
     date: string;
     time: string;
     available_quota: number;

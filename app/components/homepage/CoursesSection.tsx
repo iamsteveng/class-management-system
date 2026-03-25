@@ -28,14 +28,17 @@ interface Course {
 
 interface ApiClass {
   class_id: string;
-  name: string;
+  name_zh: string;
+  name_en?: string;
   description?: string;
   payment_url: string;
 }
 
 interface ApiSession {
   session_id: string;
-  location: string;
+  location_zh: string;
+  location_en?: string;
+  end_time?: string;
   date: string;
   time: string;
   quota_available: number;
@@ -281,13 +284,13 @@ export function CoursesSection() {
             const schedules: ClassSchedule[] = sessionsData.sessions.map((s) => ({
               date: s.date,
               time: s.time,
-              location: s.location,
+              location: s.location_zh,
               isFull: s.quota_available === 0,
             }));
 
             courseResults.push({
               id: cls.class_id,
-              title: cls.name,
+              title: cls.name_zh,
               description: cls.description ?? '',
               duration: config.duration,
               originalPrice: config.originalPrice,

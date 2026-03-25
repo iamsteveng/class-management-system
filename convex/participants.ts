@@ -25,7 +25,7 @@ export const getParticipantPageData = queryGeneric({
       session_options: v.array(
         v.object({
           session_id: v.string(),
-          location: v.string(),
+          location_zh: v.string(),
           date: v.string(),
           time: v.string(),
           available_quota: v.number(),
@@ -83,7 +83,7 @@ export const getParticipantPageData = queryGeneric({
           })
           .map((candidateSession) => ({
             session_id: candidateSession.session_id,
-            location: candidateSession.location,
+            location_zh: candidateSession.location_zh ?? "",
             date: candidateSession.date,
             time: candidateSession.time,
             available_quota:
@@ -98,11 +98,11 @@ export const getParticipantPageData = queryGeneric({
       participant_id: participant.participant_id,
       participant_name: participant.name?.trim() || "Participant",
       session_id: session.session_id,
-      session_location: session.location,
+      session_location: session.location_zh ?? "",
       session_date: session.date,
       session_time: session.time,
       session_google_maps_url: session.google_maps_url,
-      class_name: classRecord.name,
+      class_name: classRecord.name_zh ?? "",
       qr_code_data: participant.qr_code_data ?? participant.participant_id,
       can_change_session: canChangeSession,
       height: participant.height,

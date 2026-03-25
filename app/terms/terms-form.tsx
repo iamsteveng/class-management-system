@@ -6,7 +6,9 @@ import { useFormStatus } from "react-dom";
 type SessionOption = {
   session_id: string;
   class_name: string;
-  location: string;
+  location_zh: string;
+  location_en?: string;
+  end_time?: string;
   date: string;
   time: string;
   available_quota: number;
@@ -79,7 +81,7 @@ export function TermsForm({
           <option value="">Choose a session</option>
           {sessions.map((session) => (
             <option key={session.session_id} value={session.session_id}>
-              {session.class_name} - {session.location} ({session.date} {session.time}) | Available:{" "}
+              {session.class_name} - {session.location_zh} ({session.date} {session.time}) | Available:{" "}
               {session.available_quota}
             </option>
           ))}

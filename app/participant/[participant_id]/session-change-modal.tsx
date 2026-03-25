@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 
 type SessionOption = {
   session_id: string;
-  location: string;
+  location_zh: string;
   date: string;
   time: string;
   available_quota: number;
@@ -102,7 +102,7 @@ export function SessionChangeModal({
                   <option value="">Choose a session</option>
                   {sessionOptions.map((option) => (
                     <option key={option.session_id} value={option.session_id}>
-                      {option.location} ({option.date} {option.time}) | Available:{" "}
+                      {option.location_zh} ({option.date} {option.time}) | Available:{" "}
                       {option.available_quota}
                     </option>
                   ))}

@@ -28,7 +28,7 @@ type ParticipantPageData = {
   can_change_session: boolean;
   session_options: Array<{
     session_id: string;
-    location: string;
+    location_zh: string;
     date: string;
     time: string;
     available_quota: number;
