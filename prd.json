@@ -51,7 +51,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Files: convex/purchaseConfirmation.ts and convex/participantLinks.ts. Simple string template changes. Keep existing logic, just update the message string."
     },
     {
@@ -66,7 +66,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "The LanguageContext already exists at app/contexts/LanguageContext.tsx. This story just creates the UI toggle component and a convenient provider wrapper. Keep it simple — just two buttons styled minimally."
     },
     {
@@ -86,7 +86,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "The terms page is at app/terms/page.tsx and app/terms/terms-form.tsx. The page is a server component, the form is a client component. LanguageProvider needs to wrap the client part. The sessions come from a Convex query via the API — update that query to return name_zh, name_en, location_zh, location_en, end_time."
     },
     {
@@ -106,7 +106,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "The participant page is at app/participant/[participant_id]/page.tsx. It loads data via a Convex HTTP client call. Update the underlying Convex query (likely in convex/participants.ts or convex/adminParticipants.ts) to return name_zh, name_en, location_zh, location_en, end_time."
     },
     {
@@ -122,7 +122,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "The edit modal is at app/admin/classes/edit-class-modal.tsx. The server action is likely in app/admin/classes/actions.ts or similar. The adminClasses.ts mutation needs to be updated to accept name_zh and name_en instead of name."
     },
     {
@@ -138,7 +138,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "Session forms are in app/admin/sessions/ directory. The mutations are in convex/adminSessions.ts. Update both create and update flows."
     },
     {
@@ -155,7 +155,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Tests go in tests/unit/. Use the existing vitest setup. A helper function getLocalizedText(zh: string, en: string | undefined, lang: 'zh' | 'en'): string may be worth extracting to app/lib/i18n.ts and testing directly."
     }
   ]

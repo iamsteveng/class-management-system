@@ -97,3 +97,54 @@ Started: Thu Mar 19 04:46:35 UTC 2026
   - `language === 'en'` is the correct check (Language type is `'zh-TW' | 'en'`)
   - API routes (`/api/classes` and `/api/classes/[classId]/sessions`) already return bilingual fields — the Convex queries `listClassesWithPaymentUrl` and `getAvailableSessionsByClass` in `homepage.ts` already include `name_zh`, `name_en`, `location_zh`, `location_en`, `end_time`
 ---
+
+## 2026-03-25 - US-003 through US-009 (ralph/bilingual-support)
+
+### US-003: WhatsApp bilingual messages
+- Updated `convex/purchaseConfirmation.ts` and `convex/participantLinks.ts` to include both ZH and EN text
+- Purchase confirmation: `你的訂單已確認！... \nYour purchase is confirmed!...`
+- Single participant: `你的參加者 QR 連結：{link}\nYour participant QR link: {link}`
+- Multiple participants: ZH list then EN list format
+
+### US-004: LanguageToggleHeader and LanguageProvider components
+- Created `app/components/LanguageToggleHeader.tsx`: header with ZH/EN toggle buttons using `useLanguage()`
+- Created `app/components/LanguageProvider.tsx`: re-exports `LanguageProvider` from contexts, for page-level wrapping
+
+### US-005: Terms page bilingual UI
+- Created `app/i18n/termsTranslations.ts` with full ZH and EN strings
+- Updated `convex/terms.ts` `getTermsPageData` to return `name_zh`/`name_en` in sessions (needed for bilingual session selector)
+- Wrapped `app/terms/page.tsx` with `LanguageProvider` + `LanguageToggleHeader`
+- Rewrote `app/terms/terms-form.tsx` to use `useLanguage()` for all form labels
+- Session option format: `{class_name} — {location} ({date} {time}–{end_time})`
+
+### US-006: Participant QR page bilingual UI
+- Created `app/i18n/participantTranslations.ts` with full ZH and EN strings
+- Updated `convex/participants.ts` to return `session_location_en`, `session_end_time`, `class_name_en`, and bilingual `session_options`
+- Created `app/participant/[participant_id]/ParticipantPageContent.tsx` (client component) for language-reactive rendering
+- Updated `session-change-modal.tsx` to use bilingual location display with language fallback
+- Wrapped `page.tsx` with `LanguageProvider` + `LanguageToggleHeader`
+
+### US-007: Admin edit class name_zh/name_en
+- Updated `app/admin/classes/edit-class-modal.tsx`: replaced single Name field with two fields (ZH required, EN optional)
+- Updated `page.tsx` `editClassAction` to read `name_zh` and `name_en` from formData
+- Class list table shows `name_zh (name_en)` format
+
+### US-008: Admin edit session location_zh/location_en/end_time
+- Updated `add-session-modal.tsx` and `edit-session-modal.tsx`: replaced Location with two fields + End Time
+- Updated server actions to pass `location_zh`, `location_en`, `end_time` to Convex mutations
+- Session list shows `location_zh (location_en)` and `start_time–end_time`
+
+### US-009: Bilingual tests
+- Created `app/lib/i18n.ts` with `getLocalizedText(zh, en, lang)` helper
+- Created `tests/unit/bilingual.test.ts`: 21 tests covering getLocalizedText, WhatsApp messages, courseConfig descriptions
+- Updated `tests/unit/CoursesSection.test.tsx` to use new `name_zh`/`location_zh` mock field names
+- All 32 unit tests pass
+
+- **Learnings for future iterations:**
+  - Server component pages can import client components (`LanguageProvider`, `LanguageToggleHeader`) and wrap content — the client components handle state, server component handles data fetching
+  - For bilingual server components: create a client wrapper component that accepts server-fetched data as props
+  - Import paths for components: page.tsx uses relative paths (e.g. `../components/LanguageProvider`) not `@/` alias
+  - `@/` alias maps to project root, NOT `app/` directory — use relative imports for files in `app/`
+  - Convex mutations for `createSession`/`updateSession` already accepted `location_en` and `end_time` — schema work in US-001 was comprehensive
+  - Form fields use `name="location_zh"` not `name="location"` — server actions must use matching `formData.get("location_zh")`
+---
