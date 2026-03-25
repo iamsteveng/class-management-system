@@ -117,9 +117,6 @@ function FeatureCard({ title, description, icon }: FeatureCardProps) {
             <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] relative shrink-0 text-[#225871] text-[16px] tracking-[0.15px] whitespace-normal w-full" style={{ fontVariationSettings: "'wght' 700" }}>
               {title}
             </p>
-            <p className="font-['Roboto:Regular','Noto_Sans_JP:Regular',sans-serif] font-normal w-full relative shrink-0 text-[#141414] text-[14px] tracking-[0.3px]" style={{ fontVariationSettings: "'wdth' 100" }}>
-              {description}
-            </p>
           </FeatureText>
         </div>
       </div>
