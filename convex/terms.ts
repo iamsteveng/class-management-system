@@ -228,6 +228,7 @@ export const acceptTermsByToken = mutationGeneric({
       class_id: session.class_id,
       session_id: session.session_id,
       status: "terms_accepted",
+      customer_email: args.email,
     });
 
     await ctx.db.patch(session._id, {
@@ -251,7 +252,6 @@ export const acceptTermsByToken = mutationGeneric({
         age: args.age,
         emergency_contact_name: args.emergency_contact_name,
         emergency_contact_phone: args.emergency_contact_phone,
-        email: args.email,
         created_at: acceptedAt,
       });
     }
