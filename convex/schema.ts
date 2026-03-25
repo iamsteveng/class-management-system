@@ -16,7 +16,6 @@ export default defineSchema({
     token: v.string(),
     class_id: v.optional(v.string()),
     session_id: v.optional(v.string()),
-    customer_email: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_order_id", ["order_id"])
@@ -35,6 +34,7 @@ export default defineSchema({
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),
+    email: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_participant_id", ["participant_id"])
