@@ -82,7 +82,8 @@ export default async function AdminClassesPage({
     "use server";
 
     const classId = (formData.get("class_id") as string | null)?.trim() ?? "";
-    const nameZh = (formData.get("name") as string | null)?.trim() ?? "";
+    const nameZh = (formData.get("name_zh") as string | null)?.trim() ?? "";
+    const nameEn = (formData.get("name_en") as string | null)?.trim() || undefined;
     const description =
       (formData.get("description") as string | null)?.trim() ?? "";
     const paymentUrl =
@@ -101,6 +102,7 @@ export default async function AdminClassesPage({
         {
           class_id: classId,
           name_zh: nameZh,
+          name_en: nameEn,
           description,
           payment_url: paymentUrl,
           admin_username: adminUsername,
@@ -214,7 +216,7 @@ export default async function AdminClassesPage({
                       href={`/admin/classes/${cls.class_id}/sessions`}
                       className="hover:underline"
                     >
-                      {cls.class_name}
+                      {cls.class_name}{cls.name_en ? ` (${cls.name_en})` : ""}
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-zinc-700">
@@ -237,6 +239,7 @@ export default async function AdminClassesPage({
                         <EditClassModal
                           classId={cls.class_id}
                           initialName={cls.class_name}
+                          initialNameEn={cls.name_en}
                           initialDescription={cls.description}
                           initialPaymentUrl={cls.payment_url}
                           submitAction={editClassAction}

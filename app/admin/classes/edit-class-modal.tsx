@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 type EditClassModalProps = {
   classId: string;
   initialName: string;
+  initialNameEn?: string;
   initialDescription?: string;
   initialPaymentUrl?: string;
   submitAction: (formData: FormData) => void | Promise<void>;
@@ -14,6 +15,7 @@ type EditClassModalProps = {
 export function EditClassModal({
   classId,
   initialName,
+  initialNameEn,
   initialDescription,
   initialPaymentUrl,
   submitAction,
@@ -59,18 +61,35 @@ export function EditClassModal({
 
               <div className="space-y-2">
                 <label
-                  htmlFor={`edit-name-${fieldId}`}
+                  htmlFor={`edit-name-zh-${fieldId}`}
                   className="block text-sm font-medium text-zinc-900"
                 >
-                  Name <span className="text-red-600">*</span>
+                  班級名稱（中文）Class Name (ZH) <span className="text-red-600">*</span>
                 </label>
                 <input
-                  id={`edit-name-${fieldId}`}
-                  name="name"
+                  id={`edit-name-zh-${fieldId}`}
+                  name="name_zh"
                   type="text"
                   required
                   defaultValue={initialName}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-name-en-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Class Name (EN)
+                </label>
+                <input
+                  id={`edit-name-en-${fieldId}`}
+                  name="name_en"
+                  type="text"
+                  defaultValue={initialNameEn ?? ""}
+                  placeholder="e.g. Cycling Crash Course"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
 
