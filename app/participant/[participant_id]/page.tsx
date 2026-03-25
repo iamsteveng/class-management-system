@@ -1,10 +1,11 @@
 import { makeFunctionReference } from "convex/server";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 
-import { SessionChangeModal } from "./session-change-modal";
+import { ParticipantPageContent } from "./ParticipantPageContent";
 import { createConvexHttpClient } from "@/lib/convexHttp";
+import { LanguageProvider } from "../../components/LanguageProvider";
+import { LanguageToggleHeader } from "../../components/LanguageToggleHeader";
 
 type ParticipantPageProps = {
   params: Promise<{
@@ -20,15 +21,20 @@ type ParticipantPageData = {
   participant_name: string;
   session_id: string;
   session_location: string;
+  session_location_en?: string;
+  session_end_time?: string;
   session_date: string;
   session_time: string;
   session_google_maps_url?: string;
   class_name: string;
+  class_name_en?: string;
   qr_code_data: string;
   can_change_session: boolean;
   session_options: Array<{
     session_id: string;
     location_zh: string;
+    location_en?: string;
+    end_time?: string;
     date: string;
     time: string;
     available_quota: number;
@@ -48,11 +54,15 @@ export default async function ParticipantPage({
 
   if (!pageData) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
-        <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
-          We could not find participant details for this link.
-        </p>
-      </main>
+      <LanguageProvider>
+        <LanguageToggleHeader />
+        <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
+          <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+            找不到此連結對應的參加者資料。<br />
+            We could not find participant details for this link.
+          </p>
+        </main>
+      </LanguageProvider>
     );
   }
 
@@ -98,77 +108,16 @@ export default async function ParticipantPage({
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl space-y-6 px-4 py-8">
-      <section className="space-y-2">
-        <h1 className="text-2xl font-semibold text-zinc-900">Participant Pass</h1>
-        <p className="text-sm text-zinc-700">
-          Present this QR code at check-in for attendance.
-        </p>
-      </section>
-
-      <section className="rounded-xl border border-zinc-200 p-5">
-        <h2 className="text-lg font-medium text-zinc-900">Participant details</h2>
-        <dl className="mt-3 grid gap-2 text-sm text-zinc-700">
-          <div>
-            <dt className="font-medium text-zinc-900">Participant name</dt>
-            <dd>{pageData.participant_name}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-zinc-900">Participant ID</dt>
-            <dd className="break-all">{pageData.participant_id}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-zinc-900">Class</dt>
-            <dd>{pageData.class_name}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-zinc-900">Session</dt>
-            <dd>
-              {pageData.session_location} ({pageData.session_date} {pageData.session_time})
-            </dd>
-          </div>
-          {pageData.session_google_maps_url ? (
-            <div>
-              <dt className="font-medium text-zinc-900">Directions</dt>
-              <dd>
-                <a
-                  href={pageData.session_google_maps_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-blue-600 hover:underline"
-                >
-                  Get Directions
-                </a>
-              </dd>
-            </div>
-          ) : null}
-        </dl>
-      </section>
-
-      <section className="rounded-xl border border-zinc-200 p-5">
-        <h2 className="text-lg font-medium text-zinc-900">Check-in QR code</h2>
-        <div className="mt-4 flex justify-center">
-          <Image
-            src={qrCodeDataUrl}
-            alt={`QR code for participant ${pageData.participant_id}`}
-            width={360}
-            height={360}
-            className="h-[min(80vw,360px)] w-[min(80vw,360px)] rounded-lg border border-zinc-300 bg-white p-2"
-          />
-        </div>
-      </section>
-
-      {pageData.can_change_session ? (
-        <section>
-          <SessionChangeModal
-            sessionOptions={pageData.session_options}
-            submitAction={changeSession}
-            errorMessage={errorMessage}
-            success={changeSucceeded}
-          />
-        </section>
-      ) : null}
-    </main>
+    <LanguageProvider>
+      <LanguageToggleHeader />
+      <ParticipantPageContent
+        pageData={pageData}
+        qrCodeDataUrl={qrCodeDataUrl}
+        submitAction={changeSession}
+        errorMessage={errorMessage}
+        changeSucceeded={changeSucceeded}
+      />
+    </LanguageProvider>
   );
 }
 
@@ -181,7 +130,7 @@ async function loadParticipantPageData(
       makeFunctionReference<"query">("participants:getParticipantPageData"),
       { participant_id: participantId }
     );
-    return result;
+    return result as ParticipantPageData | null;
   } catch {
     return null;
   }
