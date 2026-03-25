@@ -78,8 +78,13 @@ export const getAvailableSessionsByClass = queryGeneric({
       .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
       .collect();
 
+    const today = new Date().toISOString().split("T")[0];
+
     return sessions
-      .filter((session) => session.status === "scheduled")
+      .filter(
+        (session) =>
+          session.status === "scheduled" && session.date >= today
+      )
       .map((session) => ({
         session_id: session.session_id,
         location_zh: session.location_zh ?? "",

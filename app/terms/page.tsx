@@ -79,6 +79,7 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
 
     const selectedSessionId = formData.get("session_id");
     const accepted = formData.get("accepted") === "on";
+    const email = formData.get("email");
     const height = formData.get("height");
     const ageRaw = formData.get("age");
     const emergencyContactName = formData.get("emergency_contact_name");
@@ -99,6 +100,7 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
         token: tokenValue,
         session_id: selectedSessionId,
         accepted,
+        email: typeof email === "string" ? email.trim() : "",
         height: typeof height === "string" && height.trim() ? height.trim() : undefined,
         age: ageNumber && !isNaN(ageNumber) ? ageNumber : undefined,
         emergency_contact_name:

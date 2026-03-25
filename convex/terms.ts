@@ -151,6 +151,7 @@ export const acceptTermsByToken = mutationGeneric({
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),
+    email: v.string(),
   },
   returns: v.object({
     success: v.boolean(),
@@ -250,6 +251,7 @@ export const acceptTermsByToken = mutationGeneric({
         age: args.age,
         emergency_contact_name: args.emergency_contact_name,
         emergency_contact_phone: args.emergency_contact_phone,
+        email: args.email,
         created_at: acceptedAt,
       });
     }
