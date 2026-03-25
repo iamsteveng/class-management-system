@@ -225,8 +225,8 @@ export const translations: Record<Language, Translations> = {
     },
     footer: {
       followUs: '關注我們',
-      poweredBy: '由 Loco Mart 提供',
-      copyright: '版權所有 © 2023 Loco Cycling Safety Academy',
+      poweredBy: '由 LocoBike 提供',
+      copyright: '版權所有 © 2026 Loco Cycling Safety Academy',
       privacyPolicy: '隱私政策',
       termsConditions: '使用條款',
       scrollToTop: '返回頂部',
@@ -336,8 +336,8 @@ export const translations: Record<Language, Translations> = {
     },
     footer: {
       followUs: 'Follow Us',
-      poweredBy: 'Powered by Loco Mart',
-      copyright: 'Copyright © 2023 Loco Cycling Safety Academy',
+      poweredBy: 'Powered by LocoBike',
+      copyright: 'Copyright © 2026 Loco Cycling Safety Academy',
       privacyPolicy: 'Privacy Policy',
       termsConditions: 'Terms & Conditions',
       scrollToTop: 'Scroll to Top',
