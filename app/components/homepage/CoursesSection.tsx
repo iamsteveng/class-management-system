@@ -1,9 +1,10 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import svgPaths from './imports/svg-tlbx5elpic';
-const imgImageCyclingCrashCourseForBeginners = '/images/homepage/30c657383d224670b9671a2f703069965543dc7c.png';
-const imgImageCyclingCrashCourseForBeginners1 = '/images/homepage/ae8fc430af09066bfde0c7ffad0be807cd71ce13.png';
-const imgImageCyclingCrashCourseForBeginners2 = '/images/homepage/1b6dde4eac8d4c724b5927af3ad2e95753044659.png';
-const imgImageCyclingCrashCourseForBeginners3 = '/images/homepage/4c5f4761ee4cc0fad74d8d80590fa681ed58cc51.png';
+import { getCourseConfig } from '../../i18n/courseConfig';
+
 const imgAsset11 = '/images/homepage/dab0f75dd9b9e8607ce30b36e95e0e7b5d3a1a6a.png';
 
 interface ClassSchedule {
@@ -22,6 +23,43 @@ interface Course {
   discountPrice: string;
   image: string;
   classes: ClassSchedule[];
+  paymentUrl: string;
+}
+
+interface ApiClass {
+  class_id: string;
+  name: string;
+  description?: string;
+  payment_url: string;
+}
+
+interface ApiSession {
+  session_id: string;
+  location: string;
+  date: string;
+  time: string;
+  quota_available: number;
+}
+
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-[32px] border border-[#dcdcdc] overflow-hidden flex flex-col lg:flex-row gap-5 p-px animate-pulse">
+      <div className="w-full lg:w-[550px] lg:max-w-[550px] h-[300px] lg:h-[400px] bg-gray-200 flex-shrink-0" />
+      <div className="flex-1 p-6 lg:p-8 flex flex-col gap-5">
+        <div className="h-8 bg-gray-200 rounded w-3/4" />
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded" />
+          <div className="h-4 bg-gray-200 rounded w-5/6" />
+        </div>
+        <div className="h-px bg-gray-200" />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="h-20 bg-gray-200 rounded-[20px]" />
+          <div className="h-20 bg-gray-200 rounded-[20px]" />
+        </div>
+        <div className="h-14 bg-gray-200 rounded-[360px]" />
+      </div>
+    </div>
+  );
 }
 
 function CourseCard({ course }: { course: Course }) {
@@ -186,7 +224,12 @@ function CourseCard({ course }: { course: Course }) {
         </div>
 
         {/* Enroll Button */}
-        <div className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full">
+        <a
+          href={course.paymentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
+        >
           <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
             <div className="relative shrink-0 size-[20px]">
               <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
@@ -199,7 +242,7 @@ function CourseCard({ course }: { course: Course }) {
               {t.courses.enrollButton}
             </p>
           </div>
-        </div>
+        </a>
       </div>
     </div>
   );
@@ -207,49 +250,69 @@ function CourseCard({ course }: { course: Course }) {
 
 export function CoursesSection() {
   const { t } = useLanguage();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const courses: Course[] = [
-    {
-      id: '1',
-      title: t.courses.course1.title,
-      description: t.courses.course1.description,
-      duration: t.courses.course1.duration,
-      originalPrice: t.courses.course1.originalPrice,
-      discountPrice: t.courses.course1.discountPrice,
-      image: imgImageCyclingCrashCourseForBeginners,
-      classes: t.courses.course1.classes,
-    },
-    {
-      id: '2',
-      title: t.courses.course2.title,
-      description: t.courses.course2.description,
-      duration: t.courses.course2.duration,
-      originalPrice: t.courses.course2.originalPrice,
-      discountPrice: t.courses.course2.discountPrice,
-      image: imgImageCyclingCrashCourseForBeginners1,
-      classes: t.courses.course2.classes,
-    },
-    {
-      id: '3',
-      title: t.courses.course3.title,
-      description: t.courses.course3.description,
-      duration: t.courses.course3.duration,
-      originalPrice: t.courses.course3.originalPrice,
-      discountPrice: t.courses.course3.discountPrice,
-      image: imgImageCyclingCrashCourseForBeginners2,
-      classes: t.courses.course3.classes,
-    },
-    {
-      id: '4',
-      title: t.courses.course4.title,
-      description: t.courses.course4.description,
-      duration: t.courses.course4.duration,
-      originalPrice: t.courses.course4.originalPrice,
-      discountPrice: t.courses.course4.discountPrice,
-      image: imgImageCyclingCrashCourseForBeginners3,
-      classes: t.courses.course4.classes,
-    },
-  ];
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchCourses() {
+      try {
+        const classesRes = await fetch('/api/classes');
+        if (!classesRes.ok) {
+          if (mounted) setLoading(false);
+          return;
+        }
+        const classesData = (await classesRes.json()) as { classes: ApiClass[] };
+        if (!mounted) return;
+
+        const courseResults: Course[] = [];
+
+        await Promise.all(
+          classesData.classes.map(async (cls) => {
+            const config = getCourseConfig(cls.class_id);
+            if (!config) return;
+
+            const sessionsRes = await fetch(`/api/classes/${cls.class_id}/sessions`);
+            const sessionsData: { sessions: ApiSession[] } = sessionsRes.ok
+              ? ((await sessionsRes.json()) as { sessions: ApiSession[] })
+              : { sessions: [] };
+
+            const schedules: ClassSchedule[] = sessionsData.sessions.map((s) => ({
+              date: s.date,
+              time: s.time,
+              location: s.location,
+              isFull: s.quota_available === 0,
+            }));
+
+            courseResults.push({
+              id: cls.class_id,
+              title: cls.name,
+              description: cls.description ?? '',
+              duration: config.duration,
+              originalPrice: config.originalPrice,
+              discountPrice: config.discountPrice,
+              image: config.image,
+              classes: schedules,
+              paymentUrl: cls.payment_url,
+            });
+          })
+        );
+
+        if (mounted) {
+          setCourses(courseResults);
+          setLoading(false);
+        }
+      } catch {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    void fetchCourses();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <section className="relative w-full py-[60px] lg:py-[80px] px-4 sm:px-6 lg:px-[80px]" data-name="Courses">
@@ -278,9 +341,22 @@ export function CoursesSection() {
 
         {/* Course Cards */}
         <div className="flex flex-col gap-8 lg:gap-12">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
+          {loading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : courses.length === 0 ? (
+            <div className="bg-[#f4fcff] border border-[#44b0e2] rounded-[20px] px-6 py-8 flex items-center justify-center">
+              <p className="font-['Roboto:Regular','Noto_Sans_JP:Regular',sans-serif] text-[16px] leading-[24px] text-[#3384a9] text-center tracking-[0.3px]">
+                No upcoming classes
+              </p>
+            </div>
+          ) : (
+            courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))
+          )}
         </div>
       </div>
     </section>
