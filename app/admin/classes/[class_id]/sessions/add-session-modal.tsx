@@ -65,22 +65,38 @@ export function AddSessionModal({
             <form action={submitAction} className="mt-4 space-y-4">
               <div className="space-y-2">
                 <label
-                  htmlFor="location"
+                  htmlFor="location_zh"
                   className="block text-sm font-medium text-zinc-900"
                 >
-                  Location <span className="text-red-600">*</span>
+                  地點（中文）Location (ZH) <span className="text-red-600">*</span>
                 </label>
                 <input
-                  id="location"
-                  name="location"
+                  id="location_zh"
+                  name="location_zh"
                   type="text"
                   required
-                  placeholder="e.g. Studio A, East Wing"
+                  placeholder="例如：香港公園"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="location_en"
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Location (EN)
+                </label>
+                <input
+                  id="location_en"
+                  name="location_en"
+                  type="text"
+                  placeholder="e.g. Hong Kong Park"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label
                     htmlFor="date"
@@ -110,6 +126,22 @@ export function AddSessionModal({
                     type="time"
                     required
                     className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    htmlFor="end_time"
+                    className="block text-sm font-medium text-zinc-900"
+                  >
+                    End Time
+                  </label>
+                  <input
+                    id="end_time"
+                    name="end_time"
+                    type="time"
+                    placeholder="16:00"
+                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                   />
                 </div>
               </div>

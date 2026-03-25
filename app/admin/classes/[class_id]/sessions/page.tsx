@@ -72,7 +72,9 @@ export default async function AdminClassSessionsPage({
   async function addSessionAction(formData: FormData) {
     "use server";
 
-    const locationZh = (formData.get("location") as string | null)?.trim() ?? "";
+    const locationZh = (formData.get("location_zh") as string | null)?.trim() ?? "";
+    const locationEn = (formData.get("location_en") as string | null)?.trim() || undefined;
+    const endTime = (formData.get("end_time") as string | null)?.trim() || undefined;
     const date = (formData.get("date") as string | null)?.trim() ?? "";
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
@@ -94,6 +96,8 @@ export default async function AdminClassSessionsPage({
         {
           class_id: classId,
           location_zh: locationZh,
+          location_en: locationEn,
+          end_time: endTime,
           date,
           time,
           quota_defined: quotaDefined,
@@ -116,7 +120,9 @@ export default async function AdminClassSessionsPage({
     "use server";
 
     const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
-    const locationZh = (formData.get("location") as string | null)?.trim() ?? "";
+    const locationZh = (formData.get("location_zh") as string | null)?.trim() ?? "";
+    const locationEn = (formData.get("location_en") as string | null)?.trim() || undefined;
+    const endTime = (formData.get("end_time") as string | null)?.trim() || undefined;
     const date = (formData.get("date") as string | null)?.trim() ?? "";
     const time = (formData.get("time") as string | null)?.trim() ?? "";
     const quotaRaw = formData.get("quota_defined") as string | null;
@@ -145,6 +151,8 @@ export default async function AdminClassSessionsPage({
         {
           session_id: sessionId,
           location_zh: locationZh,
+          location_en: locationEn,
+          end_time: endTime,
           date,
           time,
           quota_defined: quotaDefined,
@@ -259,9 +267,13 @@ export default async function AdminClassSessionsPage({
                   key={s.session_id}
                   className={s.status === "cancelled" ? "bg-zinc-50 text-zinc-500" : "hover:bg-zinc-50"}
                 >
-                  <td className="px-4 py-3 text-zinc-900">{s.location_zh}</td>
+                  <td className="px-4 py-3 text-zinc-900">
+                    {s.location_zh}{s.location_en ? ` (${s.location_en})` : ""}
+                  </td>
                   <td className="px-4 py-3 text-zinc-700">{s.date}</td>
-                  <td className="px-4 py-3 text-zinc-700">{s.time}</td>
+                  <td className="px-4 py-3 text-zinc-700">
+                    {s.end_time ? `${s.time}–${s.end_time}` : s.time}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="font-mono">
                       {s.quota_defined} / {s.quota_used} /{" "}
@@ -303,6 +315,8 @@ export default async function AdminClassSessionsPage({
                         <EditSessionModal
                           sessionId={s.session_id}
                           initialLocation={s.location_zh}
+                          initialLocationEn={s.location_en}
+                          initialEndTime={s.end_time}
                           initialDate={s.date}
                           initialTime={s.time}
                           initialQuotaDefined={s.quota_defined}
