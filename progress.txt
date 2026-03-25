@@ -84,3 +84,16 @@ Started: Thu Mar 19 04:46:35 UTC 2026
   - All Convex return type validators must be updated alongside schema changes
   - CoursesSection.tsx has `ApiClass` and `ApiSession` interfaces that mirror the API response shape — must update these too
 ---
+
+## 2026-03-25 - US-002 (ralph/bilingual-support)
+- Added `description_zh` (required) and `description_en` (optional) to `CourseConfig` interface in `app/i18n/courseConfig.ts`
+- Populated descriptions for `class_cycling_fundamentals` and `class_city_guided_tour`
+- Updated `CoursesSection.tsx`: `Course` now stores `title_zh/title_en` and `description_zh/description_en`; `ClassSchedule` stores `location_zh/location_en/end_time`
+- `CourseCard` uses `language` from `useLanguage()` to apply fallback logic at render time (EN → en ?? zh, ZH → zh)
+- Time display shows `start_time–end_time` when `end_time` is present
+- API routes already return bilingual fields (from US-001 schema work) — no changes needed there
+- **Learnings for future iterations:**
+  - Store bilingual data in state objects (title_zh/title_en etc.) and compute display strings at render time — this makes language toggle reactive without re-fetching data
+  - `language === 'en'` is the correct check (Language type is `'zh-TW' | 'en'`)
+  - API routes (`/api/classes` and `/api/classes/[classId]/sessions`) already return bilingual fields — the Convex queries `listClassesWithPaymentUrl` and `getAvailableSessionsByClass` in `homepage.ts` already include `name_zh`, `name_en`, `location_zh`, `location_en`, `end_time`
+---

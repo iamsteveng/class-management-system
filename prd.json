@@ -37,7 +37,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "The CoursesSection already uses useLanguage(). The API routes are at app/api/classes/route.ts and app/api/classes/[classId]/sessions/route.ts. Update the response shape to include bilingual fields. The CourseConfig interface is in app/i18n/courseConfig.ts. Descriptions from courseConfig: class_cycling_fundamentals zh='教你由零出發學識踩單車（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）' en='Learn to ride a bike from scratch (includes: bike inspection, handling skills, safety rules, simulation practice)'. class_city_guided_tour zh='帶你探索香港各區美景，享受單車樂趣。導賞團包括：路線規劃、安全講解、景點介紹等' en='Explore Hong Kong scenic districts by bike. Tours include route planning, safety briefing, and sightseeing'."
     },
     {
