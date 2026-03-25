@@ -39,6 +39,7 @@ export function TermsForm({
 
   const [sessionId, setSessionId] = useState("");
   const [accepted, setAccepted] = useState(false);
+  const [email, setEmail] = useState("");
   const [height, setHeight] = useState("");
   const [age, setAge] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
@@ -50,6 +51,7 @@ export function TermsForm({
   const canSubmit =
     sessionId.length > 0 &&
     accepted &&
+    email.trim().length > 0 &&
     height.trim().length > 0 &&
     age.trim().length > 0 &&
     emergencyContactName.trim().length > 0 &&
@@ -109,6 +111,23 @@ export function TermsForm({
 
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-zinc-900">{tr.participantDetails}</h3>
+
+        <div className="space-y-1">
+          <label htmlFor="email" className="block text-sm font-medium text-zinc-900">
+            {tr.email}
+          </label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={disableForm}
+            placeholder={tr.emailPlaceholder}
+            required
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
+          />
+        </div>
 
         <div className="space-y-1">
           <label htmlFor="height" className="block text-sm font-medium text-zinc-900">

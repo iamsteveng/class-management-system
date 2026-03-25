@@ -34,6 +34,7 @@ export default defineSchema({
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),
+    email: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_participant_id", ["participant_id"])

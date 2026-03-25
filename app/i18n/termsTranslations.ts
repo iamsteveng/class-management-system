@@ -18,6 +18,8 @@ export interface TermsTranslations {
   emergencyContactNamePlaceholder: string;
   emergencyContactPhoneLabel: string;
   emergencyContactPhonePlaceholder: string;
+  email: string;
+  emailPlaceholder: string;
   checkboxLabel: string;
   submitButton: string;
   submittingButton: string;
@@ -53,6 +55,8 @@ export const termsTranslations: Record<'zh-TW' | 'en', TermsTranslations> = {
     emergencyContactNamePlaceholder: '全名',
     emergencyContactPhoneLabel: '緊急聯絡人電話',
     emergencyContactPhonePlaceholder: '電話號碼',
+    email: '電子郵件',
+    emailPlaceholder: '請輸入你的電子郵件',
     checkboxLabel: '我已閱讀並接受條款',
     submitButton: '接受條款',
     submittingButton: '提交中...',
@@ -86,6 +90,8 @@ export const termsTranslations: Record<'zh-TW' | 'en', TermsTranslations> = {
     emergencyContactNamePlaceholder: 'Full name',
     emergencyContactPhoneLabel: 'Emergency Contact Phone',
     emergencyContactPhonePlaceholder: 'Phone number',
+    email: 'Email',
+    emailPlaceholder: 'Enter your email address',
     checkboxLabel: 'I have read and accept the terms',
     submitButton: 'Accept Terms',
     submittingButton: 'Submitting...',
