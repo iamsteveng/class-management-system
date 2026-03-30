@@ -28,7 +28,7 @@
         "The polling continues on the next schedule tick (error does not crash the scheduler)",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 2
     },
     {
