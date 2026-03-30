@@ -1,12 +1,19 @@
 "use node";
 
-import { actionGeneric, makeFunctionReference } from "convex/server";
-import { mutationGeneric } from "convex/server";
+import { actionGeneric, makeFunctionReference, mutationGeneric } from "convex/server";
 import { v } from "convex/values";
 import {
   S3Client,
   ListObjectsV2Command,
+  GetObjectCommand,
+  CopyObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { resolveClassId } from "./productMapping";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function createS3Client(): S3Client {
   return new S3Client({
@@ -19,7 +26,9 @@ function createS3Client(): S3Client {
 }
 
 function getBucketName(): string {
-  return process.env.S3_BUCKET_NAME ?? "mart-order-887306483832-ap-southeast-1-an";
+  return (
+    process.env.S3_BUCKET_NAME ?? "mart-order-887306483832-ap-southeast-1-an"
+  );
 }
 
 function getAppEnv(): string {
@@ -27,8 +36,84 @@ function getAppEnv(): string {
 }
 
 /**
- * Mutation: records an ingestion run to the ingestion_runs table.
+ * Parses purchase_datetime from filename.
+ * Format: YYYYMMDDHHmm---<uuid>.csv  →  "2026-03-27T16:22:00"
  */
+function parseDatetimeFromFilename(filename: string): string {
+  // Strip directory prefix if present
+  const base = filename.split("/").pop() ?? filename;
+  // Match 12-digit timestamp at the start: 202603271622
+  const match = base.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/);
+  if (!match) {
+    return new Date().toISOString();
+  }
+  const [, yyyy, mm, dd, hh, min] = match;
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+}
+
+/**
+ * Parsed row from the S3 purchase CSV.
+ * Columns: order_id, product_id, user_phone, qty, unit_price, total
+ */
+type S3CsvRow = {
+  order_id: string;
+  product_id: string;
+  user_phone: string;
+  qty: number;
+  unit_price: number;
+  total: number;
+};
+
+/** Parses the S3 CSV format, trimming whitespace from all values. */
+function parseS3Csv(csvText: string): S3CsvRow[] {
+  const lines = csvText.split(/\r?\n/).filter((l) => l.trim() !== "");
+  if (lines.length === 0) return [];
+
+  const header = lines[0].split(",").map((h) => h.trim());
+  const required = ["order_id", "product_id", "user_phone", "qty", "unit_price", "total"];
+  for (const col of required) {
+    if (!header.includes(col)) {
+      throw new Error(`CSV missing required column: ${col}`);
+    }
+  }
+
+  const idx = (col: string) => header.indexOf(col);
+
+  const rows: S3CsvRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(",").map((c) => c.trim());
+    const order_id = cells[idx("order_id")] ?? "";
+    const product_id = cells[idx("product_id")] ?? "";
+    const user_phone = cells[idx("user_phone")] ?? "";
+    const qtyRaw = cells[idx("qty")] ?? "";
+    const unitPriceRaw = cells[idx("unit_price")] ?? "";
+    const totalRaw = cells[idx("total")] ?? "";
+
+    if (!order_id || !product_id || !user_phone) continue;
+
+    const qty = parseInt(qtyRaw, 10);
+    if (!Number.isInteger(qty) || qty <= 0) {
+      console.warn(`[s3Ingestion] Skipping row ${i + 1}: invalid qty "${qtyRaw}"`);
+      continue;
+    }
+
+    rows.push({
+      order_id,
+      product_id,
+      user_phone,
+      qty,
+      unit_price: parseFloat(unitPriceRaw) || 0,
+      total: parseFloat(totalRaw) || 0,
+    });
+  }
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Mutations (DB writes — run in node runtime because file has "use node")
+// ---------------------------------------------------------------------------
+
+/** Records an ingestion run to the ingestion_runs table (US-008). */
 export const recordIngestionRun = mutationGeneric({
   args: {
     status: v.union(
@@ -55,15 +140,197 @@ export const recordIngestionRun = mutationGeneric({
 });
 
 /**
- * Scheduled action: polls S3 for new CSV purchase files.
- * Registered in crons.ts to run every 5 minutes.
- * Error alerting: on S3 failure, logs full details and writes an error ingestion_run record.
- * Polling continues on next tick regardless of errors (no crash).
+ * Processes parsed CSV rows: creates purchase records and schedules WhatsApp notifications.
+ * Returns counts of inserted and skipped rows.
+ */
+export const applyS3CsvRows = mutationGeneric({
+  args: {
+    rows: v.array(
+      v.object({
+        order_id: v.string(),
+        class_id: v.optional(v.string()),
+        customer_mobile: v.string(),
+        participant_count: v.number(),
+        unit_price: v.number(),
+        total_price: v.number(),
+        purchase_datetime: v.string(),
+      })
+    ),
+  },
+  returns: v.object({
+    rows_inserted: v.number(),
+    rows_skipped: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let inserted = 0;
+    let skipped = 0;
+
+    for (const row of args.rows) {
+      // Duplicate detection: same order_id + class_id
+      const existing = await ctx.db
+        .query("purchases")
+        .withIndex("by_order_id", (q) => q.eq("order_id", row.order_id))
+        .filter((q) =>
+          row.class_id
+            ? q.eq(q.field("class_id"), row.class_id)
+            : q.eq(q.field("class_id"), undefined)
+        )
+        .first();
+
+      if (existing) {
+        skipped += 1;
+        continue;
+      }
+
+      const purchaseId = await ctx.db.insert("purchases", {
+        order_id: row.order_id,
+        customer_mobile: row.customer_mobile,
+        purchase_datetime: row.purchase_datetime,
+        participant_count: row.participant_count,
+        status: "pending_terms",
+        token: crypto.randomUUID(),
+        class_id: row.class_id,
+        source: "s3",
+        unit_price: row.unit_price,
+        total_price: row.total_price,
+        created_at: now,
+      });
+
+      // Schedule WhatsApp term acceptance message (US-007)
+      await ctx.scheduler.runAfter(
+        0,
+        makeFunctionReference<"action">(
+          "purchaseConfirmation:sendPurchaseConfirmation"
+        ),
+        { purchase_id: purchaseId }
+      );
+
+      inserted += 1;
+    }
+
+    return { rows_inserted: inserted, rows_skipped: skipped };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Actions (node runtime, S3 access)
+// ---------------------------------------------------------------------------
+
+/**
+ * Downloads a single CSV file from S3, parses it, inserts purchase rows,
+ * and moves the file to {ENV}/processed/.
+ */
+export const processS3File = actionGeneric({
+  args: {
+    file_key: v.string(),
+    bucket: v.string(),
+    env: v.string(),
+    purchase_datetime: v.string(),
+  },
+  returns: v.object({
+    rows_inserted: v.number(),
+    rows_skipped: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    const s3 = createS3Client();
+
+    // Download the CSV file
+    const getResponse = await s3.send(
+      new GetObjectCommand({ Bucket: args.bucket, Key: args.file_key })
+    );
+    if (!getResponse.Body) {
+      throw new Error(`No body in S3 response for ${args.file_key}`);
+    }
+    const csvText = await getResponse.Body.transformToString("utf-8");
+
+    // Parse CSV rows
+    const rawRows = parseS3Csv(csvText);
+    const filename = args.file_key.split("/").pop() ?? args.file_key;
+
+    // Map product IDs to class IDs
+    const mappedRows: {
+      order_id: string;
+      class_id?: string;
+      customer_mobile: string;
+      participant_count: number;
+      unit_price: number;
+      total_price: number;
+      purchase_datetime: string;
+    }[] = [];
+
+    let skippedUnknownProduct = 0;
+    for (const row of rawRows) {
+      const class_id = resolveClassId(args.env, row.product_id);
+      if (!class_id) {
+        console.warn(
+          `[s3Ingestion] Unknown product_id "${row.product_id}" in file ${filename} — skipping row`
+        );
+        skippedUnknownProduct += 1;
+        continue;
+      }
+      mappedRows.push({
+        order_id: row.order_id,
+        class_id,
+        customer_mobile: row.user_phone,
+        participant_count: row.qty,
+        unit_price: row.unit_price,
+        total_price: row.total,
+        purchase_datetime: args.purchase_datetime,
+      });
+    }
+
+    // Insert rows via mutation
+    let insertResult = { rows_inserted: 0, rows_skipped: skippedUnknownProduct };
+    if (mappedRows.length > 0) {
+      const result = await ctx.runMutation(
+        makeFunctionReference<"mutation">("s3Ingestion:applyS3CsvRows"),
+        { rows: mappedRows }
+      );
+      insertResult = {
+        rows_inserted: result.rows_inserted,
+        rows_skipped: result.rows_skipped + skippedUnknownProduct,
+      };
+    }
+
+    // Move file: copy to {ENV}/processed/, delete from {ENV}/new/ (US-006)
+    const processedKey = `${args.env}/processed/${filename}`;
+    try {
+      await s3.send(
+        new CopyObjectCommand({
+          Bucket: args.bucket,
+          CopySource: `${args.bucket}/${args.file_key}`,
+          Key: processedKey,
+        })
+      );
+      await s3.send(
+        new DeleteObjectCommand({ Bucket: args.bucket, Key: args.file_key })
+      );
+    } catch (moveError) {
+      const msg =
+        moveError instanceof Error ? moveError.message : "Unknown move error";
+      console.error(
+        `[s3Ingestion] Failed to move ${args.file_key} → ${processedKey}: ${msg}`
+      );
+      // Continue — idempotency prevents duplicates on reprocessing
+    }
+
+    return insertResult;
+  },
+});
+
+/**
+ * Scheduled action: polls S3 for new CSV purchase files every 5 minutes.
+ * On S3 error: logs full details and writes an error ingestion_run record (US-002).
+ * Polling continues on next tick regardless of errors (US-002).
  */
 export const pollS3ForNewFiles = actionGeneric({
   args: {},
   returns: v.object({
     files_found: v.number(),
+    files_processed: v.number(),
+    rows_inserted: v.number(),
+    rows_skipped: v.number(),
   }),
   handler: async (ctx) => {
     const s3 = createS3Client();
@@ -71,17 +338,20 @@ export const pollS3ForNewFiles = actionGeneric({
     const env = getAppEnv();
     const prefix = `${env}/new/`;
 
-    let csvFiles: { key: string }[] = [];
+    // List objects in the {ENV}/new/ prefix
+    let csvFiles: { key: string; filename: string }[] = [];
     try {
       const listResponse = await s3.send(
         new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix })
       );
-
       csvFiles = (listResponse.Contents ?? [])
         .filter((obj) => obj.Key && obj.Key.endsWith(".csv"))
-        .map((obj) => ({ key: obj.Key! }));
+        .map((obj) => ({
+          key: obj.Key!,
+          filename: obj.Key!.split("/").pop() ?? obj.Key!,
+        }));
     } catch (error) {
-      // US-002: S3 error alerting — log full details and write error ingestion run
+      // US-002: S3 error alerting — log full details and write error ingestion_run
       const errorMessage =
         error instanceof Error ? error.message : "Unknown S3 error";
       console.error(
@@ -90,7 +360,6 @@ export const pollS3ForNewFiles = actionGeneric({
         `timestamp=${new Date().toISOString()} ` +
         `APP_ENV=${env}`
       );
-
       await ctx.runMutation(
         makeFunctionReference<"mutation">("s3Ingestion:recordIngestionRun"),
         {
@@ -101,26 +370,78 @@ export const pollS3ForNewFiles = actionGeneric({
           error_message: errorMessage,
         }
       );
-
       // Return without throwing — polling continues on next tick
-      return { files_found: 0 };
+      return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0 };
     }
 
     console.log(
       `[s3Ingestion] Polled S3. bucket=${bucket} prefix=${prefix} files_found=${csvFiles.length}`
     );
 
-    // Write a success ingestion run (files will be counted properly in later stories)
+    if (csvFiles.length === 0) {
+      await ctx.runMutation(
+        makeFunctionReference<"mutation">("s3Ingestion:recordIngestionRun"),
+        {
+          status: "success",
+          files_processed: 0,
+          rows_inserted: 0,
+          rows_skipped: 0,
+        }
+      );
+      return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0 };
+    }
+
+    let totalInserted = 0;
+    let totalSkipped = 0;
+    let filesProcessed = 0;
+    let anyError = false;
+
+    for (const obj of csvFiles) {
+      try {
+        const purchaseDatetime = parseDatetimeFromFilename(obj.filename);
+        const result = await ctx.runAction(
+          makeFunctionReference<"action">("s3Ingestion:processS3File"),
+          {
+            file_key: obj.key,
+            bucket,
+            env,
+            purchase_datetime: purchaseDatetime,
+          }
+        );
+        totalInserted += result.rows_inserted;
+        totalSkipped += result.rows_skipped;
+        filesProcessed += 1;
+      } catch (fileError) {
+        anyError = true;
+        const msg =
+          fileError instanceof Error ? fileError.message : "Unknown error";
+        console.error(`[s3Ingestion] Failed to process file ${obj.key}: ${msg}`);
+      }
+    }
+
+    const finalStatus =
+      anyError && filesProcessed === 0
+        ? "error"
+        : anyError || totalSkipped > 0
+        ? "partial"
+        : "success";
+
     await ctx.runMutation(
       makeFunctionReference<"mutation">("s3Ingestion:recordIngestionRun"),
       {
-        status: "success",
-        files_processed: 0,
-        rows_inserted: 0,
-        rows_skipped: 0,
+        status: finalStatus,
+        files_processed: filesProcessed,
+        rows_inserted: totalInserted,
+        rows_skipped: totalSkipped,
+        error_message: anyError ? "Some files failed to process" : undefined,
       }
     );
 
-    return { files_found: csvFiles.length };
+    return {
+      files_found: csvFiles.length,
+      files_processed: filesProcessed,
+      rows_inserted: totalInserted,
+      rows_skipped: totalSkipped,
+    };
   },
 });

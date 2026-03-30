@@ -77,7 +77,7 @@
         "Duplicate detection: if the same order_id + class_id combination already exists, skip and return existing _id (idempotent — safe for reprocessing)",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 5
     },
     {
