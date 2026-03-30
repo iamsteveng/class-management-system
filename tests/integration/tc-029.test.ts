@@ -24,7 +24,7 @@ vi.mock('@aws-sdk/client-s3', () => ({
   ListObjectsV2Command: vi.fn(),
 }));
 
-import { applyS3CsvRows } from '../../convex/s3Ingestion';
+import { applyS3CsvRows } from '../../convex/s3IngestionMutations';
 
 /**
  * Creates a simple in-memory mock of ctx.db that supports the query pattern

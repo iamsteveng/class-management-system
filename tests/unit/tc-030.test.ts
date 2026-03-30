@@ -15,7 +15,7 @@ vi.mock('convex/values', () => {
   return { v };
 });
 
-import { applyS3CsvRows } from '../../convex/s3Ingestion';
+import { applyS3CsvRows } from '../../convex/s3IngestionMutations';
 
 describe('TC-030 sendPurchaseConfirmation called after successful createPurchase', () => {
   let handler: (ctx: any, args: any) => Promise<any>;
