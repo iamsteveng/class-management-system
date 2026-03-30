@@ -131,7 +131,7 @@
         "Page is linked from the admin nav (app/admin/admin-nav.tsx)",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 9
     }
   ]

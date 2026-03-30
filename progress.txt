@@ -1,3 +1,76 @@
 # Ralph Progress Log
 Started: Mon Mar 30 07:50:41 UTC 2026
 ---
+
+## Codebase Patterns
+- "use node" is file-level in Convex — all functions in a file (mutations + actions) run in node runtime if "use node" is present; this is intentional and fine
+- Convex actions call mutations in the same file via `makeFunctionReference<"mutation">("filename:mutationName")`
+- AWS SDK must be installed explicitly: `npm install @aws-sdk/client-s3`; it is not bundled by default
+- Server actions (Next.js) for triggering Convex actions use `client.action(makeFunctionReference<"action">("module:fn"), {})` from `createConvexHttpClient()`
+- Admin page role checks use `session.user.role === "super_admin"` from `getServerAuthSession()` (next-auth)
+- Convex compound index query: use `.withIndex("by_order_id", ...).filter(q => q.eq(q.field("class_id"), value))` for compound lookups when no compound index exists
+
+---
+
+## 2026-03-30 - US-001: S3 polling scheduled action
+- Created convex/s3Ingestion.ts with "use node" directive and pollS3ForNewFiles action
+- Installed @aws-sdk/client-s3 as a project dependency
+- Added cron in convex/crons.ts: every 5 minutes polling for {ENV}/new/ prefix in S3
+- Files changed: convex/s3Ingestion.ts (new), convex/crons.ts, package.json, package-lock.json
+- **Learnings:**
+  - AWS SDK requires npm install — not available by default
+  - S3 bucket and env from Convex env vars (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME, APP_ENV)
+---
+
+## 2026-03-30 - US-002 + US-008 schema: S3 error alerting + ingestion_runs table
+- Added ingestion_runs table to convex/schema.ts with run_at, status, files_processed, rows_inserted, rows_skipped, error_message fields
+- Added recordIngestionRun mutation and error handling in pollS3ForNewFiles action
+- Files changed: convex/s3Ingestion.ts, convex/schema.ts, prd.json
+- **Learnings:**
+  - S3 error alerting logs: error message + timestamp + APP_ENV
+  - Action returns without throwing on S3 error — polling continues on next tick
+---
+
+## 2026-03-30 - US-003: Product-to-class ID mapping config
+- Created convex/productMapping.ts with environment-keyed mapping and resolveClassId() helper
+- Files changed: convex/productMapping.ts (new), prd.json
+- **Learnings:**
+  - productMapping.ts is a plain TS config file (no Convex primitives) — importable from both actions and mutations
+  - Entries are intentionally empty until real product IDs are known
+---
+
+## 2026-03-30 - US-005: Shared createPurchase mutation
+- Added source, unit_price, total_price fields to purchases table in schema.ts
+- Added by_order_class compound index on purchases table
+- Created convex/purchases.ts with createPurchase mutation (duplicate detection by order_id + class_id)
+- Files changed: convex/schema.ts, convex/purchases.ts (new), prd.json
+- **Learnings:**
+  - Duplicate detection for order_id + class_id uses withIndex + filter (not compound index) since Convex doesn't support multi-field equality via compound index efficiently
+  - crypto.randomUUID() available in Convex mutations (no import needed)
+---
+
+## 2026-03-30 - US-004 + US-006 + US-007: CSV parsing, file move, WhatsApp trigger
+- Rewrote convex/s3Ingestion.ts to full implementation:
+  - parseS3Csv(): parses columns order_id, product_id, user_phone, qty, unit_price, total with whitespace trimming
+  - parseDatetimeFromFilename(): extracts YYYYMMDDHHmm from filename → ISO 8601
+  - applyS3CsvRows mutation: duplicate detection, inserts purchases with source='s3', schedules WhatsApp via ctx.scheduler.runAfter
+  - processS3File action: downloads CSV from S3, parses, resolves product→class, inserts, moves file to {ENV}/processed/
+  - pollS3ForNewFiles updated: iterates files, calls processS3File, records ingestion run
+- Files changed: convex/s3Ingestion.ts, prd.json
+- **Learnings:**
+  - Convex "use node" file can have both mutations and actions — mutations run in node runtime (fine)
+  - File move: CopyObject then DeleteObject; errors are caught and logged but don't stop processing (idempotency handles reprocessing)
+  - WhatsApp trigger uses ctx.scheduler.runAfter(0, ...) inside the applyS3CsvRows mutation — same pattern as csvImport.ts
+  - resolveClassId from productMapping.ts is called in the action before passing rows to mutation
+---
+
+## 2026-03-30 - US-009: Admin ingestion monitoring UI
+- Created convex/ingestionQueries.ts with listRecentIngestionRuns query (last 20, ordered by run_at desc)
+- Created app/admin/ingestion/page.tsx: table with colour-coded status badges, Poll Now button (super_admin only)
+- Added "Ingestion" nav item to app/admin/admin-nav.tsx
+- Files changed: convex/ingestionQueries.ts (new), app/admin/ingestion/page.tsx (new), app/admin/admin-nav.tsx, prd.json
+- **Learnings:**
+  - "Poll Now" button uses a Next.js server action that calls client.action() — same pattern as other admin pages using client.mutation()
+  - Role gate on Poll Now: server action re-checks session.user.role before executing (double-check pattern)
+  - Status colour coding: emerald=success, yellow=partial, red=error
+---
