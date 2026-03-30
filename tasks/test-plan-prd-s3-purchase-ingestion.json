@@ -1,0 +1,654 @@
+{
+  "qaPlanSchemaVersion": "1.0.0",
+  "planId": "test-plan-prd-s3-purchase-ingestion",
+  "source": {
+    "path": "tasks/test-plan-prd-s3-purchase-ingestion.md",
+    "generatedAt": "2026-03-30T08:39:00Z"
+  },
+  "execution": {
+    "defaultRetryRule": {
+      "maxRetries": 0,
+      "retryOn": ["flake", "timeout"]
+    }
+  },
+  "tests": [
+    {
+      "id": "TC-001",
+      "source": "All",
+      "level": "unit",
+      "priority": "P0",
+      "title": "TypeScript typecheck passes",
+      "steps": ["Run `npx tsc --noEmit` in project root"],
+      "commands": ["npx tsc --noEmit"],
+      "passFail": ["Exit code 0, no stderr type errors"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Exit code 0, no stderr"], "artifacts": [] }
+    },
+    {
+      "id": "TC-002",
+      "source": "US-001, FR-1",
+      "level": "unit",
+      "priority": "P0",
+      "title": "S3 polling cron registered at 5-minute interval",
+      "steps": ["Inspect convex/crons.ts for interval registration"],
+      "commands": ["grep -n 'minutes.*5\\|5.*minutes\\|pollS3' convex/crons.ts"],
+      "passFail": ["crons.interval call with { minutes: 5 } pointing to s3Ingestion:pollS3ForNewFiles"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Source code assertion showing 5-minute interval"], "artifacts": [] }
+    },
+    {
+      "id": "TC-003",
+      "source": "US-001, FR-2",
+      "level": "unit",
+      "priority": "P0",
+      "title": "S3 client reads credentials from env vars",
+      "steps": [
+        "Write unit test mocking process.env with test credentials",
+        "Call createS3Client() or invoke pollS3ForNewFiles with mocked env",
+        "Assert S3Client is constructed with provided accessKeyId, secretAccessKey, region",
+        "Run: pnpm test -- --grep TC-003"
+      ],
+      "commands": ["pnpm test -- --grep TC-003"],
+      "passFail": ["S3Client constructed with env var credentials; test passes"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-003 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-004",
+      "source": "US-001, FR-3",
+      "level": "unit",
+      "priority": "P0",
+      "title": "File prefix uses {APP_ENV}/new/",
+      "steps": [
+        "Write unit test setting APP_ENV=uat and verifying the S3 list prefix",
+        "Assert prefix equals 'uat/new/'",
+        "Run: pnpm test -- --grep TC-004"
+      ],
+      "commands": ["pnpm test -- --grep TC-004"],
+      "passFail": ["Prefix resolves to {APP_ENV}/new/ based on env var value"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-004 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-005",
+      "source": "US-001",
+      "level": "unit",
+      "priority": "P0",
+      "title": "use node directive present in s3Ingestion.ts",
+      "steps": ["Check first line of convex/s3Ingestion.ts"],
+      "commands": ["head -1 convex/s3Ingestion.ts | grep -q '\"use node\"' && echo PASS || echo FAIL"],
+      "passFail": ["First line is '\"use node\";'"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Command output showing PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-006",
+      "source": "US-002, FR-11",
+      "level": "unit",
+      "priority": "P0",
+      "title": "S3 ListObjectsV2 network failure writes error run record",
+      "steps": [
+        "Write unit test mocking S3 ListObjectsV2 to throw a network error",
+        "Invoke pollS3ForNewFiles action",
+        "Assert ingestion_runs record created with status='error' and error_message containing error text",
+        "Run: pnpm test -- --grep TC-006"
+      ],
+      "commands": ["pnpm test -- --grep TC-006"],
+      "passFail": ["ingestion_runs record has status='error' with error_message; test passes"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-006 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-007",
+      "source": "US-002",
+      "level": "unit",
+      "priority": "P0",
+      "title": "S3 auth failure (403) writes error run record",
+      "steps": [
+        "Write unit test mocking S3 to return AccessDenied error",
+        "Assert ingestion_runs record with status='error'; error_message includes 'AccessDenied'",
+        "Run: pnpm test -- --grep TC-007"
+      ],
+      "commands": ["pnpm test -- --grep TC-007"],
+      "passFail": ["ingestion_runs record has status='error' with AccessDenied in error_message"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-007 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-008",
+      "source": "US-002",
+      "level": "unit",
+      "priority": "P0",
+      "title": "S3 error does not crash scheduler",
+      "steps": [
+        "Write unit test mocking S3 to throw; invoke action",
+        "Assert action resolves without throwing; no unhandled rejection",
+        "Run: pnpm test -- --grep TC-008"
+      ],
+      "commands": ["pnpm test -- --grep TC-008"],
+      "passFail": ["Action resolves cleanly; no exception thrown"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-008 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-009",
+      "source": "US-003, FR-4",
+      "level": "unit",
+      "priority": "P1",
+      "title": "resolveClassId returns correct class_id for known product",
+      "steps": [
+        "Write unit test calling resolveClassId('dev', '3') with dev mapping { '3': 'class_dev_001' }",
+        "Assert return value equals 'class_dev_001'",
+        "Run: pnpm test -- --grep TC-009"
+      ],
+      "commands": ["pnpm test -- --grep TC-009"],
+      "passFail": ["Returns 'class_dev_001' for known product in dev env"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-009 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-010",
+      "source": "US-003",
+      "level": "unit",
+      "priority": "P1",
+      "title": "resolveClassId returns undefined for unknown product",
+      "steps": [
+        "Call resolveClassId('dev', '999') where '999' is not in mapping",
+        "Assert return value is undefined",
+        "Run: pnpm test -- --grep TC-010"
+      ],
+      "commands": ["pnpm test -- --grep TC-010"],
+      "passFail": ["Returns undefined for unmapped product ID"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-010 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-011",
+      "source": "US-003",
+      "level": "unit",
+      "priority": "P1",
+      "title": "resolveClassId returns undefined for unknown environment",
+      "steps": [
+        "Call resolveClassId('staging', '3') where 'staging' is not a valid env",
+        "Assert return value is undefined",
+        "Run: pnpm test -- --grep TC-011"
+      ],
+      "commands": ["pnpm test -- --grep TC-011"],
+      "passFail": ["Returns undefined for unknown environment"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-011 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-012",
+      "source": "US-003",
+      "level": "unit",
+      "priority": "P0",
+      "title": "Unknown product ID causes row skip with warning log",
+      "steps": [
+        "Mock S3 with CSV containing unknown product_id",
+        "Invoke ingestion",
+        "Assert row skipped; console.warn called with product_id; no purchase inserted",
+        "Run: pnpm test -- --grep TC-012"
+      ],
+      "commands": ["pnpm test -- --grep TC-012"],
+      "passFail": ["Warning logged with product_id; zero purchases inserted"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-012 PASS; assert DB insert count = 0"], "artifacts": [] }
+    },
+    {
+      "id": "TC-013",
+      "source": "US-004, FR-8",
+      "level": "unit",
+      "priority": "P0",
+      "title": "CSV values with leading/trailing whitespace are trimmed",
+      "steps": [
+        "Parse CSV row ' 36 , 3 , +85254304789 , 1 , 100.0000 , 100.0000'",
+        "Assert order_id='36', product_id='3', user_phone='+85254304789', qty=1",
+        "Run: pnpm test -- --grep TC-013"
+      ],
+      "commands": ["pnpm test -- --grep TC-013"],
+      "passFail": ["All fields trimmed correctly; no leading/trailing spaces"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-013 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-014",
+      "source": "US-004",
+      "level": "unit",
+      "priority": "P0",
+      "title": "qty is stored as integer participant_count",
+      "steps": [
+        "Parse row with qty='2'; call createPurchase",
+        "Assert participant_count=2 (integer) in DB record",
+        "Run: pnpm test -- --grep TC-014"
+      ],
+      "commands": ["pnpm test -- --grep TC-014"],
+      "passFail": ["participant_count is integer 2, not string '2'"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-014 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-015",
+      "source": "US-004, FR-8",
+      "level": "unit",
+      "priority": "P1",
+      "title": "user_phone stored as-is in E.164 format",
+      "steps": [
+        "Parse row with user_phone='+85254304789'",
+        "Assert customer_mobile='+85254304789' in purchase record",
+        "Run: pnpm test -- --grep TC-015"
+      ],
+      "commands": ["pnpm test -- --grep TC-015"],
+      "passFail": ["customer_mobile stored as '+85254304789' without modification"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-015 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-016",
+      "source": "US-004, FR-5, FR-6",
+      "level": "unit",
+      "priority": "P0",
+      "title": "Two rows with same order_id but different product_id produce two purchase records",
+      "steps": [
+        "Mock CSV with two rows: order_id=36 product_id=3 and order_id=36 product_id=5 (both mapped)",
+        "Process file",
+        "Assert two separate purchase records with different class_id values",
+        "Run: pnpm test -- --grep TC-016"
+      ],
+      "commands": ["pnpm test -- --grep TC-016"],
+      "passFail": ["DB record count = 2; each has distinct class_id"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-016 PASS; DB record count assertion"], "artifacts": [] }
+    },
+    {
+      "id": "TC-017",
+      "source": "US-004",
+      "level": "unit",
+      "priority": "P0",
+      "title": "Filename timestamp parsed correctly",
+      "steps": [
+        "Call parseDatetimeFromFilename('202603271622---abc.csv')",
+        "Assert return value is '2026-03-27T16:22:00'",
+        "Run: pnpm test -- --grep TC-017"
+      ],
+      "commands": ["pnpm test -- --grep TC-017"],
+      "passFail": ["Returns '2026-03-27T16:22:00'"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-017 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-018",
+      "source": "US-004",
+      "level": "unit",
+      "priority": "P1",
+      "title": "Malformed filename falls back to current time",
+      "steps": [
+        "Call parseDatetimeFromFilename('no-timestamp-file.csv')",
+        "Assert no exception thrown; return value matches ISO 8601 pattern",
+        "Run: pnpm test -- --grep TC-018"
+      ],
+      "commands": ["pnpm test -- --grep TC-018"],
+      "passFail": ["No exception; returns valid ISO string"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-018 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-019",
+      "source": "US-004",
+      "level": "unit",
+      "priority": "P1",
+      "title": "Filename with directory prefix still parses correctly",
+      "steps": [
+        "Call parseDatetimeFromFilename('dev/new/202603271622---abc.csv')",
+        "Assert return value is '2026-03-27T16:22:00'",
+        "Run: pnpm test -- --grep TC-019"
+      ],
+      "commands": ["pnpm test -- --grep TC-019"],
+      "passFail": ["Returns '2026-03-27T16:22:00' ignoring directory prefix"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-019 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-020",
+      "source": "US-005, FR-12, FR-13",
+      "level": "unit",
+      "priority": "P0",
+      "title": "createPurchase inserts purchase with correct fields",
+      "steps": [
+        "Call createPurchase mutation with valid args",
+        "Assert DB record has: order_id, customer_mobile, participant_count, class_id, source='s3', status='pending_terms', token (UUID), purchase_datetime",
+        "Run: pnpm test -- --grep TC-020"
+      ],
+      "commands": ["pnpm test -- --grep TC-020"],
+      "passFail": ["All required fields present in DB record with correct values"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-020 PASS; DB record field assertions"], "artifacts": [] }
+    },
+    {
+      "id": "TC-021",
+      "source": "US-005",
+      "level": "unit",
+      "priority": "P0",
+      "title": "createPurchase generates unique UUID token",
+      "steps": [
+        "Call mutation twice with different order_id",
+        "Assert both records have non-empty, distinct token strings matching UUID v4 pattern",
+        "Run: pnpm test -- --grep TC-021"
+      ],
+      "commands": ["pnpm test -- --grep TC-021"],
+      "passFail": ["Tokens are UUID v4 format and distinct across records"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-021 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-022",
+      "source": "US-005, FR-7",
+      "level": "unit",
+      "priority": "P0",
+      "title": "Duplicate order_id + class_id returns existing _id without new record",
+      "steps": [
+        "Insert purchase record",
+        "Call createPurchase again with same order_id + class_id",
+        "Assert return value equals existing _id",
+        "Assert DB still has exactly one record for that combination",
+        "Run: pnpm test -- --grep TC-022"
+      ],
+      "commands": ["pnpm test -- --grep TC-022"],
+      "passFail": ["Returns existing _id; record count remains 1"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-022 PASS; DB record count = 1"], "artifacts": [] }
+    },
+    {
+      "id": "TC-023",
+      "source": "US-005, FR-6, FR-7",
+      "level": "unit",
+      "priority": "P0",
+      "title": "Same order_id with different class_id is NOT a duplicate",
+      "steps": [
+        "Insert purchase for order_id=36 class_id=class_a",
+        "Insert again for order_id=36 class_id=class_b",
+        "Assert two distinct records in DB",
+        "Run: pnpm test -- --grep TC-023"
+      ],
+      "commands": ["pnpm test -- --grep TC-023"],
+      "passFail": ["DB record count = 2; each has different class_id"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-023 PASS; DB record count = 2"], "artifacts": [] }
+    },
+    {
+      "id": "TC-024",
+      "source": "US-005, FR-13",
+      "level": "unit",
+      "priority": "P1",
+      "title": "source field stored correctly for S3 ingestion",
+      "steps": [
+        "Call createPurchase with source='s3'",
+        "Assert DB record has source='s3'",
+        "Run: pnpm test -- --grep TC-024"
+      ],
+      "commands": ["pnpm test -- --grep TC-024"],
+      "passFail": ["DB record source field equals 's3'"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-024 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-025",
+      "source": "US-005",
+      "level": "unit",
+      "priority": "P1",
+      "title": "createPurchase accepts source=payment_gateway",
+      "steps": [
+        "Call mutation with source='payment_gateway'",
+        "Assert insertion succeeds; DB record has source='payment_gateway'",
+        "Run: pnpm test -- --grep TC-025"
+      ],
+      "commands": ["pnpm test -- --grep TC-025"],
+      "passFail": ["No error; DB record source='payment_gateway'"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-025 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-026",
+      "source": "US-006, FR-10",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Processed file copied to {ENV}/processed/",
+      "steps": [
+        "Mock S3; process a file; assert CopyObjectCommand called with destination key {ENV}/processed/{filename}",
+        "Run: pnpm test -- --grep TC-026"
+      ],
+      "commands": ["pnpm test -- --grep TC-026"],
+      "passFail": ["S3 CopyObjectCommand called with correct destination key"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-026 PASS; mock call args assertion"], "artifacts": [] }
+    },
+    {
+      "id": "TC-027",
+      "source": "US-006",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Original file deleted from {ENV}/new/ after copy",
+      "steps": [
+        "Mock S3; process a file; assert DeleteObjectCommand called with source key {ENV}/new/{filename}",
+        "Run: pnpm test -- --grep TC-027"
+      ],
+      "commands": ["pnpm test -- --grep TC-027"],
+      "passFail": ["S3 DeleteObjectCommand called with correct source key"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-027 PASS; mock call args assertion"], "artifacts": [] }
+    },
+    {
+      "id": "TC-028",
+      "source": "US-006",
+      "level": "integration",
+      "priority": "P1",
+      "title": "Copy failure logged but polling continues",
+      "steps": [
+        "Mock CopyObject to throw; process file",
+        "Assert error logged; no exception propagated from pollS3ForNewFiles",
+        "Run: pnpm test -- --grep TC-028"
+      ],
+      "commands": ["pnpm test -- --grep TC-028"],
+      "passFail": ["Warning/error logged; action resolves cleanly"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-028 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-029",
+      "source": "US-006",
+      "level": "integration",
+      "priority": "P0",
+      "title": "Reprocessing same file does not create duplicate purchase records",
+      "steps": [
+        "Process same file twice (simulate failed move — file stays in new/)",
+        "Both rows have same order_id + class_id",
+        "Assert only one purchase record in DB after second run",
+        "Run: pnpm test -- --grep TC-029"
+      ],
+      "commands": ["pnpm test -- --grep TC-029"],
+      "passFail": ["DB record count = 1 after two processing runs"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-029 PASS; DB record count = 1"], "artifacts": [] }
+    },
+    {
+      "id": "TC-030",
+      "source": "US-007, FR-9",
+      "level": "unit",
+      "priority": "P0",
+      "title": "sendPurchaseConfirmation called after successful createPurchase",
+      "steps": [
+        "Mock sendPurchaseConfirmation; process valid CSV row",
+        "Assert mock called once with new purchase_id",
+        "Run: pnpm test -- --grep TC-030"
+      ],
+      "commands": ["pnpm test -- --grep TC-030"],
+      "passFail": ["sendPurchaseConfirmation mock called once with correct purchase_id"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-030 PASS; mock call count = 1"], "artifacts": [] }
+    },
+    {
+      "id": "TC-031",
+      "source": "US-007",
+      "level": "unit",
+      "priority": "P0",
+      "title": "WhatsApp failure does not roll back purchase record",
+      "steps": [
+        "Mock sendPurchaseConfirmation to throw; process valid CSV row",
+        "Assert purchase record exists in DB with status='pending_terms'",
+        "Assert error logged with order_id and error details",
+        "Run: pnpm test -- --grep TC-031"
+      ],
+      "commands": ["pnpm test -- --grep TC-031"],
+      "passFail": ["Purchase record persists; status='pending_terms'; error logged with order_id"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-031 PASS; DB record exists; error log captured"], "artifacts": [] }
+    },
+    {
+      "id": "TC-032",
+      "source": "US-008, FR-11",
+      "level": "unit",
+      "priority": "P0",
+      "title": "Successful poll writes ingestion_runs record with status=success",
+      "steps": [
+        "Process CSV with all valid rows",
+        "Assert ingestion_runs record: status='success', files_processed=1, rows_inserted=N, rows_skipped=0",
+        "Run: pnpm test -- --grep TC-032"
+      ],
+      "commands": ["pnpm test -- --grep TC-032"],
+      "passFail": ["ingestion_runs record has status='success' with correct counts"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-032 PASS; DB record field assertions"], "artifacts": [] }
+    },
+    {
+      "id": "TC-033",
+      "source": "US-008",
+      "level": "unit",
+      "priority": "P1",
+      "title": "Partial poll writes status=partial",
+      "steps": [
+        "Process CSV where one row has unknown product_id",
+        "Assert ingestion_runs record: status='partial', rows_inserted>0, rows_skipped>0",
+        "Run: pnpm test -- --grep TC-033"
+      ],
+      "commands": ["pnpm test -- --grep TC-033"],
+      "passFail": ["ingestion_runs record has status='partial' with non-zero inserted and skipped counts"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Vitest output showing TC-033 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-034",
+      "source": "US-008",
+      "level": "unit",
+      "priority": "P2",
+      "title": "Empty S3 bucket writes status=success with zero counts",
+      "steps": [
+        "Mock ListObjectsV2 to return empty list",
+        "Assert ingestion_runs record: status='success', files_processed=0, rows_inserted=0",
+        "Run: pnpm test -- --grep TC-034"
+      ],
+      "commands": ["pnpm test -- --grep TC-034"],
+      "passFail": ["ingestion_runs record has status='success' with all counts = 0"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": { "required": ["Vitest output showing TC-034 PASS"], "artifacts": [] }
+    },
+    {
+      "id": "TC-035",
+      "source": "US-009",
+      "level": "manual",
+      "priority": "P0",
+      "title": "Admin ingestion page renders without Poll Now for regular_admin",
+      "steps": [
+        "Log in as regular_admin",
+        "Navigate to /admin/ingestion",
+        "Assert page loads; run history table visible",
+        "Assert Poll Now button is NOT present in DOM"
+      ],
+      "commands": [],
+      "passFail": ["Page renders; table visible; Poll Now button absent for regular_admin"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Screenshot showing page without Poll Now button"], "artifacts": [] }
+    },
+    {
+      "id": "TC-036",
+      "source": "US-009",
+      "level": "manual",
+      "priority": "P0",
+      "title": "Admin ingestion page shows Poll Now button for super_admin",
+      "steps": [
+        "Log in as super_admin",
+        "Navigate to /admin/ingestion",
+        "Assert Poll Now button is visible and clickable"
+      ],
+      "commands": [],
+      "passFail": ["Page renders; Poll Now button visible for super_admin"],
+      "retryRules": [{ "maxRetries": 0, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Screenshot showing page with Poll Now button"], "artifacts": [] }
+    },
+    {
+      "id": "TC-037",
+      "source": "US-009",
+      "level": "manual",
+      "priority": "P1",
+      "title": "Run history table shows last 20 runs with correct columns",
+      "steps": [
+        "Seed 25 ingestion_runs records in DB",
+        "Navigate to /admin/ingestion as any admin",
+        "Assert table shows exactly 20 rows",
+        "Assert columns: timestamp, status, files processed, rows inserted, rows skipped, error message"
+      ],
+      "commands": [],
+      "passFail": ["Exactly 20 rows shown; all required columns present"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Screenshot of table showing 20 rows and all column headers"], "artifacts": [] }
+    },
+    {
+      "id": "TC-038",
+      "source": "US-009",
+      "level": "manual",
+      "priority": "P1",
+      "title": "Status badges are colour-coded correctly",
+      "steps": [
+        "Seed ingestion_runs with each status (success, partial, error)",
+        "Open /admin/ingestion",
+        "Assert success=green, partial=yellow, error=red"
+      ],
+      "commands": [],
+      "passFail": ["Each status displays with correct colour badge"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Screenshot showing all three status badge colours"], "artifacts": [] }
+    },
+    {
+      "id": "TC-039",
+      "source": "US-009",
+      "level": "manual",
+      "priority": "P1",
+      "title": "Poll Now triggers immediate ingestion action",
+      "steps": [
+        "Log in as super_admin",
+        "Click Poll Now button",
+        "Wait up to 10 seconds",
+        "Assert new ingestion_runs record appears in table"
+      ],
+      "commands": [],
+      "passFail": ["New ingestion_runs record with recent timestamp appears in table within 10 seconds"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout"] }],
+      "evidence": { "required": ["Screenshot of table showing new run record after clicking Poll Now"], "artifacts": [] }
+    },
+    {
+      "id": "TC-040",
+      "source": "US-009",
+      "level": "manual",
+      "priority": "P2",
+      "title": "Ingestion page linked from admin nav",
+      "steps": [
+        "Log in as any admin",
+        "Inspect admin navigation bar",
+        "Assert link to /admin/ingestion is present"
+      ],
+      "commands": [],
+      "passFail": ["Nav link to /admin/ingestion present and functional"],
+      "retryRules": [{ "maxRetries": 1, "retryOn": ["flake", "timeout", "infra"] }],
+      "evidence": { "required": ["Screenshot of admin nav showing ingestion link"], "artifacts": [] }
+    }
+  ]
+}
