@@ -39,7 +39,7 @@ function getAppEnv(): string {
  * Parses purchase_datetime from filename.
  * Format: YYYYMMDDHHmm---<uuid>.csv  →  "2026-03-27T16:22:00"
  */
-function parseDatetimeFromFilename(filename: string): string {
+export function parseDatetimeFromFilename(filename: string): string {
   // Strip directory prefix if present
   const base = filename.split("/").pop() ?? filename;
   // Match 12-digit timestamp at the start: 202603271622
