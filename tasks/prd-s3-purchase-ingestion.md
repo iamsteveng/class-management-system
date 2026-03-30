@@ -88,10 +88,10 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 **Description:** As a developer, I want a reusable Convex mutation for creating purchases so that both S3 ingestion and the future direct payment gateway share the same logic.
 
 **Acceptance Criteria:**
-- [ ] A Convex mutation `convex/purchases.ts: createPurchase` accepts: `order_id` (string), `customer_mobile` (string), `participant_count` (number), `class_id` (optional string), `source` (`"s3"` | `"payment_gateway"`), `unit_price` (optional number), `total_price` (optional number)
+- [ ] A Convex mutation `convex/purchases.ts: createPurchase` accepts: `order_id` (string), `customer_mobile` (string), `participant_count` (number), `class_id` (optional string), `source` (`"s3"` | `"payment_gateway"`), `unit_price` (optional number), `total_price` (optional number), `purchase_datetime` (string, ISO 8601)
 - [ ] The mutation generates a UUID v4 `token`, sets `status: "pending_terms"`, and inserts the purchase
 - [ ] It returns the new `purchase._id`
-- [ ] `purchase_datetime` is set to the current timestamp at insertion time
+- [ ] `purchase_datetime` is supplied by the caller — for S3 ingestion, it is parsed from the CSV filename (e.g. `202603271622` → `2026-03-27T16:22:00`)
 - [ ] The `source` field is stored in the purchase record for auditing
 - [ ] Duplicate detection: if the same `order_id` + `product_id`/`class_id` combination already exists, skip and return existing `_id` (idempotent — safe for reprocessing)
 - [ ] Typecheck passes
@@ -124,13 +124,14 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] Typecheck passes
 
 ### US-009: Admin ingestion monitoring UI
-**Description:** As an admin, I want to see a log of recent S3 ingestion runs and trigger a manual poll so that I can diagnose issues without waiting for the next scheduled run.
+**Description:** As a super admin, I want to see a log of recent S3 ingestion runs and trigger a manual poll so that I can diagnose issues without waiting for the next scheduled run.
 
 **Acceptance Criteria:**
 - [ ] New admin page at `/admin/ingestion`
 - [ ] Page shows a table of the last 20 ingestion runs with columns: timestamp, status (with colour: green=success, yellow=partial, red=error), files processed, rows inserted, rows skipped, error message
 - [ ] A "Poll Now" button triggers an immediate S3 poll (calls the ingestion action directly)
-- [ ] Page is linked from the admin nav
+- [ ] "Poll Now" button is only visible and accessible to users with `role: "super_admin"` — other admin roles see the page but not the button
+- [ ] Page is linked from the admin nav (visible to all admins)
 - [ ] Typecheck passes
 - [ ] Verify in browser using dev-browser skill
 
@@ -174,6 +175,7 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - **Schema changes:**
   - Add `source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway")))` to `purchases` table (optional for backwards compat)
   - Add new `ingestion_runs` table
+- **Filename timestamp parsing:** The filename format is `YYYYMMDDHHmm---<uuid>.csv`. Parse the first 12 characters as the purchase datetime: `202603271622` → `2026-03-27T16:22:00`. This is passed as `purchase_datetime` to `createPurchase`.
 - **Existing flow reuse:** `sendPurchaseConfirmation` in `convex/purchaseConfirmation.ts` already handles WhatsApp — call it directly after insertion.
 - **Product mapping example:**
   ```ts
@@ -200,5 +202,4 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 
 ## Open Questions
 
-1. Should the `purchase_datetime` use the file creation timestamp (from the filename, e.g. `202603271622`) or the current time at insertion? The filename appears to encode `YYYYMMDDHHM` — if so, this could be parsed as the order time.
-2. For the admin "Poll Now" button — should it be restricted to specific admin roles, or is any logged-in admin allowed?
+1. Does the `super_admin` role already exist in the admin auth system, or does it need to be added as a new role? Please confirm the current role model.
