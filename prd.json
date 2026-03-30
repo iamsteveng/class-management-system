@@ -61,7 +61,7 @@
         "purchase_datetime is parsed from the CSV filename: format is YYYYMMDDHHmm---<uuid>.csv, e.g. 202603271622 → 2026-03-27T16:22:00",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 4
     },
     {
@@ -90,7 +90,7 @@
         "If the copy or delete fails, the error is logged but polling continues (file will be reprocessed next tick — idempotency in US-005 prevents duplicates)",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 6
     },
     {
@@ -103,7 +103,7 @@
         "The WhatsApp failure is logged with order_id and error details",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 7
     },
     {
@@ -116,7 +116,7 @@
         "status: 'partial' is used when some rows failed/were skipped but others succeeded",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 8
     },
     {
