@@ -16,10 +16,14 @@ export default defineSchema({
     token: v.string(),
     class_id: v.optional(v.string()),
     session_id: v.optional(v.string()),
+    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"))),
+    unit_price: v.optional(v.number()),
+    total_price: v.optional(v.number()),
     created_at: v.number(),
   })
     .index("by_order_id", ["order_id"])
-    .index("by_token", ["token"]),
+    .index("by_token", ["token"])
+    .index("by_order_class", ["order_id", "class_id"]),
 
   participants: defineTable({
     participant_id: v.string(),

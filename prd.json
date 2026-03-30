@@ -43,7 +43,7 @@
         "File includes a comment with an example mapping structure for developer reference",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 3
     },
     {
