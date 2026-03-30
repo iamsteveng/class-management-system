@@ -15,7 +15,7 @@
         "The action uses 'use node' directive (required for AWS SDK)",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 1
     },
     {
