@@ -9,4 +9,11 @@ crons.interval(
   {}
 );
 
+crons.interval(
+  "poll S3 for new purchase CSV files",
+  { minutes: 5 },
+  makeFunctionReference<"action">("s3Ingestion:pollS3ForNewFiles"),
+  {}
+);
+
 export default crons;
