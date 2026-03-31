@@ -15,12 +15,12 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     delete process.env.MANYCHAT_API_KEY;
   });
 
-  it('TC-043: calls findBySystemField with whatsapp_phone then sendContent with correct payload', async () => {
+  it('TC-043: calls findBySystemField with phone field then sendContent with correct payload', async () => {
     const to = '+85254304789';
     const termsUrl = 'https://example.com/terms?token=abc123';
     const subscriberId = '9876543';
 
-    // First call: findBySystemField (E.164 with +) → returns subscriber
+    // First call: findBySystemField (phone field, E.164 with +) → returns subscriber
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: { id: subscriberId } }),
@@ -37,13 +37,13 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     expect(result).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
-    // Assert first call: findBySystemField
+    // Assert first call: findBySystemField with phone field (US-020)
     const [findUrl, findOpts] = fetchMock.mock.calls[0];
     expect(findUrl).toContain('/fb/subscriber/findBySystemField');
     expect(findOpts.method).toBe('POST');
     expect(findOpts.headers['Authorization']).toBe('Bearer test-api-key-abc');
     const findBody = JSON.parse(findOpts.body);
-    expect(findBody.field_name).toBe('whatsapp_phone');
+    expect(findBody.field_name).toBe('phone');
     expect(findBody.field_value).toBe(to);
 
     // Assert second call: sendContent
@@ -59,17 +59,12 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
   });
 
   it('TC-043: returns false when all subscriber lookup paths fail', async () => {
-    // 1. findBySystemField with + → not found
+    // 1. findBySystemField(phone, +phone) → not found
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
     });
-    // 2. findBySystemField without + → not found
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: null }),
-    });
-    // 3. createSubscriber → fails (non-already-exists error)
+    // 2. createSubscriber → fails (non-already-exists error)
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 500,
@@ -82,7 +77,43 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     });
 
     expect(result).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('TC-043: createSubscriber includes phone field alongside whatsapp_phone (US-020)', async () => {
+    const to = '+85254304789';
+    const termsUrl = 'https://example.com/terms?token=create-test';
+    const subscriberId = '1234567';
+
+    // 1. findBySystemField(phone) → not found
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: null }),
+    });
+
+    // 2. createSubscriber → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { id: subscriberId } }),
+    });
+
+    // 3. sendContent → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
+
+    expect(result).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    // Verify createSubscriber body includes both phone and whatsapp_phone
+    const createCall = fetchMock.mock.calls[1];
+    expect(createCall[0]).toContain('/fb/subscriber/createSubscriber');
+    const createBody = JSON.parse(createCall[1].body);
+    expect(createBody.whatsapp_phone).toBe(to);
+    expect(createBody.phone).toBe(to);
   });
 
   it('TC-043: returns false when MANYCHAT_API_KEY is missing', async () => {

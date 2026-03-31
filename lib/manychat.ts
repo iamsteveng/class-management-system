@@ -2,12 +2,11 @@
 // sendTermsAcceptanceWhatsApp resolves subscriber ID by phone and sends
 // an approved template message with the terms URL as a custom field.
 //
-// Lookup chain (US-019):
-//   1. findBySystemField(whatsapp_phone, E.164 with +)
-//   2. findBySystemField(whatsapp_phone, digits only, no +)
-//   3. createSubscriber — if 400 "WhatsApp ID already exists":
-//      3a. findBySystemField(wa_id, extracted wa_id)
-//      3b. findBySystemField(whatsapp_phone, digits only, no +) [final fallback]
+// Lookup chain (US-020):
+//   1. findBySystemField(phone, E.164 with +) — phone field reliably set at creation
+//   2. createSubscriber(phone + whatsapp_phone) — if 400 "WhatsApp ID already exists":
+//      2a. findBySystemField(wa_id, extracted wa_id)
+//      2b. findBySystemField(whatsapp_phone, digits only, no +) [final fallback]
 
 const MANYCHAT_API_BASE = "https://api.manychat.com";
 const TERMS_TEMPLATE_NAME = "Terms acceptance";
@@ -115,19 +114,10 @@ export async function sendTermsAcceptanceWhatsApp({
 
   let subscriberId: string | null = null;
 
-  // 1a. findBySystemField with E.164 (with +)
-  subscriberId = await findSubscriberByField("whatsapp_phone", to, headers);
+  // 1. findBySystemField with phone field (US-020: phone is reliably set at creation)
+  subscriberId = await findSubscriberByField("phone", to, headers);
 
-  // 1b. Fallback: findBySystemField without + prefix
-  if (!subscriberId) {
-    subscriberId = await findSubscriberByField(
-      "whatsapp_phone",
-      phoneDigits,
-      headers
-    );
-  }
-
-  // 1c. Still not found — try createSubscriber
+  // 2. Not found — try createSubscriber
   if (!subscriberId) {
     console.log(
       `[manychat] Subscriber not found for phone ${to} — attempting createSubscriber`
@@ -140,6 +130,7 @@ export async function sendTermsAcceptanceWhatsApp({
           headers,
           body: JSON.stringify({
             whatsapp_phone: to,
+            phone: to,
             consent_phrase: "Purchase confirmed",
             has_opt_in_sms: false,
             has_opt_in_email: false,

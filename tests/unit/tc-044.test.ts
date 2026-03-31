@@ -29,19 +29,13 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const subscriberId = '55551234';
     const termsUrl = 'https://example.com/terms?token=us019';
 
-    // 1. findBySystemField(whatsapp_phone, E.164 with +) → not found
+    // 1. findBySystemField(phone, E.164) → not found (US-020: uses phone field)
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
     });
 
-    // 2. findBySystemField(whatsapp_phone, digits only) → not found
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: null }),
-    });
-
-    // 3. createSubscriber → 400 "WhatsApp ID already exists" with wa_id in data
+    // 2. createSubscriber → 400 "WhatsApp ID already exists" with wa_id in data
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 400,
@@ -52,7 +46,69 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       }),
     });
 
-    // 4. findBySystemField(wa_id, waId) → found
+    // 3. findBySystemField(wa_id, waId) → found
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { id: subscriberId } }),
+    });
+
+    // 4. sendContent → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
+
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+
+    // Verify initial lookup used phone field (US-020)
+    const initialCall = fetchMock.mock.calls[0];
+    const initialBody = JSON.parse(initialCall[1].body);
+    expect(initialBody.field_name).toBe('phone');
+
+    // Verify wa_id lookup was attempted
+    const waIdCall = fetchMock.mock.calls[2];
+    const waIdBody = JSON.parse(waIdCall[1].body);
+    expect(waIdBody.field_name).toBe('wa_id');
+    expect(waIdBody.field_value).toBe(phoneDigits); // no + prefix
+
+    // Verify sendContent used the resolved subscriber ID
+    const sendBody = JSON.parse(fetchMock.mock.calls[3][1].body);
+    expect(sendBody.subscriber_id).toBe(subscriberId);
+  });
+
+  it('TC-044: falls back to whatsapp_phone (no +) lookup when wa_id lookup fails', async () => {
+    const to = '+85262875094';
+    const phoneDigits = '85262875094';
+    const subscriberId = '99998888';
+    const termsUrl = 'https://example.com/terms?token=us019-fallback';
+
+    // 1. findBySystemField(phone, +phone) → not found (US-020: uses phone field)
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: null }),
+    });
+
+    // 2. createSubscriber → 400 already-exists, wa_id in details field
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: async () => ({
+        status: 'error',
+        message: 'WhatsApp ID already exists',
+        details: { wa_id: phoneDigits },
+      }),
+    });
+
+    // 3. findBySystemField(wa_id, ...) → not found
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: null }),
+    });
+
+    // 4. findBySystemField(whatsapp_phone, digits) → found (final fallback)
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: { id: subscriberId } }),
@@ -69,71 +125,8 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     expect(result).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(5);
 
-    // Verify wa_id lookup was attempted
-    const waIdCall = fetchMock.mock.calls[3];
-    const waIdBody = JSON.parse(waIdCall[1].body);
-    expect(waIdBody.field_name).toBe('wa_id');
-    expect(waIdBody.field_value).toBe(phoneDigits); // no + prefix
-
-    // Verify sendContent used the resolved subscriber ID
-    const sendBody = JSON.parse(fetchMock.mock.calls[4][1].body);
-    expect(sendBody.subscriber_id).toBe(subscriberId);
-  });
-
-  it('TC-044: falls back to whatsapp_phone (no +) lookup when wa_id lookup fails', async () => {
-    const to = '+85262875094';
-    const phoneDigits = '85262875094';
-    const subscriberId = '99998888';
-    const termsUrl = 'https://example.com/terms?token=us019-fallback';
-
-    // 1. findBySystemField(whatsapp_phone, +phone) → not found
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: null }),
-    });
-
-    // 2. findBySystemField(whatsapp_phone, digits) → not found
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: null }),
-    });
-
-    // 3. createSubscriber → 400 already-exists, wa_id in details field
-    fetchMock.mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({
-        status: 'error',
-        message: 'WhatsApp ID already exists',
-        details: { wa_id: phoneDigits },
-      }),
-    });
-
-    // 4. findBySystemField(wa_id, ...) → not found
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: null }),
-    });
-
-    // 5. findBySystemField(whatsapp_phone, digits) → found (final fallback)
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: { id: subscriberId } }),
-    });
-
-    // 6. sendContent → success
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      text: async () => '{"status":"success"}',
-    });
-
-    const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
-
-    expect(result).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(6);
-
     // Final fallback should be whatsapp_phone with digits only
-    const fallbackBody = JSON.parse(fetchMock.mock.calls[4][1].body);
+    const fallbackBody = JSON.parse(fetchMock.mock.calls[3][1].body);
     expect(fallbackBody.field_name).toBe('whatsapp_phone');
     expect(fallbackBody.field_value).toBe(phoneDigits);
   });
@@ -143,19 +136,13 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const phoneDigits = '85262875094';
     const termsUrl = 'https://example.com/terms?token=us019-allfail';
 
-    // 1. findBySystemField(whatsapp_phone, +phone) → not found
+    // 1. findBySystemField(phone, +phone) → not found (US-020: uses phone field)
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
     });
 
-    // 2. findBySystemField(whatsapp_phone, digits) → not found
-    fetchMock.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: null }),
-    });
-
-    // 3. createSubscriber → 400 already-exists, wa_id extracted from message
+    // 2. createSubscriber → 400 already-exists, wa_id extracted from message
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 400,
@@ -165,13 +152,13 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       }),
     });
 
-    // 4. findBySystemField(wa_id, ...) → not found
+    // 3. findBySystemField(wa_id, ...) → not found
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
     });
 
-    // 5. findBySystemField(whatsapp_phone, digits) → not found
+    // 4. findBySystemField(whatsapp_phone, digits) → not found
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
@@ -180,22 +167,21 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
 
     expect(result).toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
-  it('TC-044: initial fallback (without +) resolves subscriber before createSubscriber is attempted', async () => {
+  it('TC-044: createSubscriber body includes both phone and whatsapp_phone fields (US-020)', async () => {
     const to = '+85262875094';
-    const phoneDigits = '85262875094';
     const subscriberId = '77776666';
-    const termsUrl = 'https://example.com/terms?token=us019-noplusfallback';
+    const termsUrl = 'https://example.com/terms?token=us020-create-fields';
 
-    // 1. findBySystemField(whatsapp_phone, E.164) → not found
+    // 1. findBySystemField(phone, +phone) → not found
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
     });
 
-    // 2. findBySystemField(whatsapp_phone, digits only) → found
+    // 2. createSubscriber → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: { id: subscriberId } }),
@@ -210,11 +196,11 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
 
     expect(result).toBe(true);
-    // Only 3 calls: 2 lookups + 1 sendContent (no createSubscriber needed)
     expect(fetchMock).toHaveBeenCalledTimes(3);
 
-    const fallbackBody = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(fallbackBody.field_name).toBe('whatsapp_phone');
-    expect(fallbackBody.field_value).toBe(phoneDigits);
+    // Verify createSubscriber includes both phone and whatsapp_phone (US-020)
+    const createBody = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(createBody.phone).toBe(to);
+    expect(createBody.whatsapp_phone).toBe(to);
   });
 });
