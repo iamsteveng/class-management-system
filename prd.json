@@ -191,7 +191,7 @@
         "Typecheck passes",
         "Tests pass; add/update test verifying getParticipantPageData returns height as number"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 13
     }
   ]
