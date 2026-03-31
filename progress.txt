@@ -1,14 +1,3 @@
 # Ralph Progress Log
-Started: Tue Mar 31 04:05:34 UTC 2026
----
-
-## 2026-03-31 - US-013
-- Updated `height` return validators from `v.optional(v.string())` to `v.optional(v.float64())` in three Convex files
-- Updated `ParticipantDetails` TypeScript interface in admin participant page from `height?: string` to `height?: number`
-- Added unit test `tests/unit/tc-042.test.ts` verifying `getParticipantPageData` returns height as a number
-- Files changed: convex/participants.ts, convex/adminParticipants.ts, convex/testPurchase.ts, app/admin/participants/[participant_id]/page.tsx, tests/unit/tc-042.test.ts
-- **Learnings for future iterations:**
-  - Convex return validators must exactly match the schema type — using `v.string()` when the DB stores a number causes `ReturnsValidationError` at runtime
-  - Use `v.float64()` (not `v.number()`) for Convex return validators for numeric fields; `v.number()` is an alias but `v.float64()` is the canonical form
-  - When height was changed to number in schema (US-012), three separate return validators and one frontend type each independently needed updating
+Started: Tue Mar 31 05:59:43 UTC 2026
 ---

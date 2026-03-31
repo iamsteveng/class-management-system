@@ -274,3 +274,26 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] `/participant/[participant_id]` page loads without `ReturnsValidationError` for participants with a numeric height
 - [ ] Typecheck passes
 - [ ] Existing tests pass; add/update test verifying `getParticipantPageData` returns height as number
+
+---
+
+## Amendment: Terms page revisit UX + participant pass name removal (2026-03-31)
+
+### US-014: Show success state when user revisits terms page after submission
+**Description:** As a customer, when I revisit the terms acceptance page after already completing my submission, I want to see the success state (with the button to open my participant pass), not the form again.
+
+**Acceptance Criteria:**
+- [ ] In `convex/terms.ts` `getTermsPageData`, when `purchase.status === "terms_accepted"`, include the `participant_id` in the returned data
+- [ ] In `app/terms/page.tsx`, when `pageData.purchase_status === "terms_accepted"`, render the success UI directly (same success screen shown after form submission) without requiring `?status=success` in the URL
+- [ ] The success UI includes the "Open your QR Code" button linking to `/participant/{participant_id}`
+- [ ] If the purchase has multiple participants, link to the first participant's page
+- [ ] Typecheck passes
+
+### US-015: Remove participant name field from participant pass page
+**Description:** As a developer, I want to remove the participant name field from the participant pass page since we don't store participant names in the database.
+
+**Acceptance Criteria:**
+- [ ] In `app/participant/[participant_id]/ParticipantPageContent.tsx`, remove the participant name `<dt>/<dd>` row from the participant details section
+- [ ] Remove or hide any i18n label for `participantNameLabel` that is no longer needed in the participant pass page
+- [ ] The participant details section still renders correctly without the name row
+- [ ] Typecheck passes

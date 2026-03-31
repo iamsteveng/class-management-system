@@ -193,6 +193,33 @@
       ],
       "passes": true,
       "priority": 13
+    },
+    {
+      "id": "US-014",
+      "title": "Show success state when user revisits terms page after submission",
+      "description": "As a customer, when I revisit the terms page after already submitting, I want to see the success state with the Open QR Code button, not the form again.",
+      "acceptanceCriteria": [
+        "In convex/terms.ts getTermsPageData, when purchase.status === \"terms_accepted\", include participant_id in the returned data",
+        "In app/terms/page.tsx, when pageData.purchase_status === \"terms_accepted\", render the success UI directly (without requiring ?status=success in URL)",
+        "Success UI includes Open your QR Code button linking to /participant/{participant_id}",
+        "If multiple participants exist for the purchase, link to the first participant page",
+        "Typecheck passes"
+      ],
+      "passes": false,
+      "priority": 14
+    },
+    {
+      "id": "US-015",
+      "title": "Remove participant name field from participant pass page",
+      "description": "As a developer, I want to remove the participant name field from the participant pass page since participant names are not stored in the database.",
+      "acceptanceCriteria": [
+        "In app/participant/[participant_id]/ParticipantPageContent.tsx, remove the participant name dt/dd row from the participant details section",
+        "Remove or hide the participantNameLabel i18n entry if no longer used",
+        "Participant details section still renders correctly without the name row",
+        "Typecheck passes"
+      ],
+      "passes": false,
+      "priority": 15
     }
   ]
 }
