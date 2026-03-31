@@ -75,12 +75,13 @@ export const getTermsPageData = queryGeneric({
       }
     }
 
-    const rawSessions = purchase.class_id
-      ? await ctx.db
-          .query("sessions")
-          .withIndex("by_class_id", (q) => q.eq("class_id", purchase.class_id!))
-          .collect()
-      : await ctx.db.query("sessions").collect();
+    const rawSessions =
+      purchase.class_id && purchase.class_id.trim() !== ""
+        ? await ctx.db
+            .query("sessions")
+            .withIndex("by_class_id", (q) => q.eq("class_id", purchase.class_id!))
+            .collect()
+        : [];
 
     const classIds = new Set(rawSessions.map((session) => session.class_id));
     for (const classId of classIds) {

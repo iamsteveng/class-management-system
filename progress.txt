@@ -1,3 +1,27 @@
 # Ralph Progress Log
 Started: Tue Mar 31 03:08:15 UTC 2026
 ---
+
+## Codebase Patterns
+- `queryGeneric` in `convex/server` must be mocked as `(def: any) => def` (same as mutationGeneric) for unit tests that import Convex query handlers
+- Unit test pattern for Convex handlers: mock `convex/server` and `convex/values`, then access `(exportedFunction as any).handler` and call it with a mock ctx
+- `vi.useFakeTimers()` + `vi.setSystemTime(date)` is the correct approach to control `new Date()` in Vitest unit tests for date-based filtering
+
+## 2026-03-31 - US-010
+- Added upcoming sessions filter to `convex/terms.ts getTermsPageData`
+- Filter: `new Date(`${session.date}T${session.time}`) > now` applied after available_quota > 0 filter
+- Files changed: `convex/terms.ts`, `tests/unit/tc-035.test.ts` (new)
+- **Learnings for future iterations:**
+  - The `now` value is computed once before the filter chain for consistent behavior
+  - `vi.useFakeTimers()` with `vi.setSystemTime()` controls `new Date()` calls in unit tests
+  - Sessions at exactly `now` are excluded (not strictly greater than)
+---
+
+## 2026-03-31 - US-011
+- Changed `rawSessions` logic in `convex/terms.ts getTermsPageData`: when `purchase.class_id` is null/undefined/empty string, return `[]` immediately instead of querying all sessions
+- Files changed: `convex/terms.ts`, `tests/unit/tc-036.test.ts` (new)
+- **Learnings for future iterations:**
+  - Empty string check uses `purchase.class_id.trim() !== ""` to guard against whitespace-only values
+  - With no class_id, the sessions DB table is never queried (short-circuits to empty array)
+  - Terms form still renders correctly — it handles empty sessions array gracefully
+---
