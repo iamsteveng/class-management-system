@@ -302,6 +302,22 @@
       ],
       "passes": true,
       "priority": 20
+    },
+    {
+      "id": "US-021",
+      "title": "Switch from sendContent to sendFlow for WhatsApp template delivery",
+      "description": "As a developer, I want to send terms acceptance WhatsApp via ManyChat sendFlow (flow NS: content20260331095255_664930) instead of sendContent which does not support WhatsApp templates.",
+      "acceptanceCriteria": [
+        "In lib/manychat.ts, after resolving subscriberId, set custom field cuf_14438749 to termsUrl via POST /fb/subscriber/setCustomFieldByName with { subscriber_id, field_name: \"cuf_14438749\", field_value: termsUrl }",
+        "Replace sendContent call with POST /fb/sending/sendFlow with body { subscriber_id, flow_ns: \"content20260331095255_664930\" }",
+        "Store flow NS as constant TERMS_FLOW_NS in lib/manychat.ts; optionally read from env var MANYCHAT_TERMS_FLOW_NS with fallback to hardcoded value",
+        "Log the sendFlow response for debugging",
+        "Remove old sendContent code and TERMS_TEMPLATE_NAME constant",
+        "Typecheck passes",
+        "Test updated to verify setCustomFieldByName and sendFlow called with correct args"
+      ],
+      "passes": false,
+      "priority": 21
     }
   ]
 }

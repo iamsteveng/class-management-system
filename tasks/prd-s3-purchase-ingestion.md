@@ -434,3 +434,32 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] The "already exists" fallback from US-019 is still kept as a safety net
 - [ ] Typecheck passes
 - [ ] Test updated to reflect new phone field in createSubscriber payload
+
+---
+
+## Amendment: Use ManyChat sendFlow instead of sendContent for WhatsApp templates (2026-03-31)
+
+### US-021: Switch from sendContent to sendFlow for WhatsApp template delivery
+
+**Description:** As a developer, I want to send the terms acceptance WhatsApp message via ManyChat's `sendFlow` API (with the approved flow namespace) instead of `sendContent`, because ManyChat does not support WhatsApp templates in `sendContent`'s DynamicBlock format.
+
+**Root cause:** `sendContent` with `type: "whatsapp_template"` is rejected by ManyChat — WhatsApp templates can only be sent via a published Flow. The flow "Send Terms Acceptance" has been created and published in ManyChat with the approved template and `cuf_14438749` field wired up.
+
+**Flow details:**
+- Flow name: "Send Terms Acceptance"
+- Flow NS: `content20260331095255_664930`
+- The flow uses the "Terms acceptance" WhatsApp template with `terms_url` mapped to custom field `cuf_14438749`
+
+**New send approach:**
+1. Resolve subscriber ID (existing flow — findBySystemField → createSubscriber fallbacks)
+2. Set custom field `cuf_14438749` on the subscriber to the terms URL via `POST /fb/subscriber/setCustomFieldByName`
+3. Call `POST /fb/sending/sendFlow` with `{ subscriber_id, flow_ns: "content20260331095255_664930" }`
+
+**Acceptance Criteria:**
+- [ ] In `lib/manychat.ts`, after resolving `subscriberId`, set `cuf_14438749` to `termsUrl` via `POST /fb/subscriber/setCustomFieldByName` with `{ subscriber_id, field_name: "cuf_14438749", field_value: termsUrl }`
+- [ ] Replace the `sendContent` call with `POST /fb/sending/sendFlow` with body `{ subscriber_id, flow_ns: "content20260331095255_664930" }`
+- [ ] Store the flow NS as a constant `TERMS_FLOW_NS` in `lib/manychat.ts` (read from env var `MANYCHAT_TERMS_FLOW_NS` with fallback to the hardcoded value)
+- [ ] Log the sendFlow response for debugging
+- [ ] Remove the old `sendContent` code and `TERMS_TEMPLATE_NAME` constant
+- [ ] Typecheck passes
+- [ ] Test updated to verify `setCustomFieldByName` and `sendFlow` are called with correct args
