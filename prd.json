@@ -268,7 +268,7 @@
         "Typecheck passes",
         "Test added verifying sendTermsAcceptanceWhatsApp calls correct ManyChat endpoints with correct payload (mock fetch)"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 18
     }
   ]
