@@ -316,7 +316,7 @@
         "Typecheck passes",
         "Test updated to verify setCustomFieldByName and sendFlow called with correct args"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 21
     }
   ]

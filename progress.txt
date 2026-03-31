@@ -1,3 +1,13 @@
 # Ralph Progress Log
 Started: Tue Mar 31 09:58:10 UTC 2026
 ---
+
+## 2026-03-31 - US-021
+- What was implemented: Replaced `sendContent` with `setCustomFieldByName` + `sendFlow` in `lib/manychat.ts`. Added `TERMS_FLOW_NS` constant (`content20260331095255_664930`), optionally overridable via `MANYCHAT_TERMS_FLOW_NS` env var. Removed `TERMS_TEMPLATE_NAME` constant and old `sendContent` call.
+- Files changed: `lib/manychat.ts`, `tests/unit/tc-043.test.ts`, `tests/unit/tc-044.test.ts`
+- **Learnings for future iterations:**
+  - The send flow is now: findBySystemField → (createSubscriber if needed) → setCustomFieldByName → sendFlow
+  - `setCustomFieldByName` uses `{ subscriber_id, field_name, field_value }` — different from the old `sendContent` custom_fields map
+  - `sendFlow` uses `{ subscriber_id, flow_ns }` — simpler than the v2 content structure
+  - tc-043 and tc-044 tests now expect 2 extra fetch calls (setCustomFieldByName + sendFlow) compared to the old single sendContent call
+---
