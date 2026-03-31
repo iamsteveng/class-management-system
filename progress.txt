@@ -1,3 +1,27 @@
 # Ralph Progress Log
 Started: Tue Mar 31 06:16:35 UTC 2026
 ---
+
+## 2026-03-31 - US-016
+- Added `terms_version` and `terms_content` fields to `getParticipantPageData` return validator and handler in `convex/participants.ts`
+- Fetches `terms_versions` doc via `participant.terms_version_id` if present; gracefully omits if absent
+- Added `acceptedTermsSection` translation key to `app/i18n/participantTranslations.ts` (ZH: 已接受條款, EN: Accepted Terms)
+- Added `terms_version` and `terms_content` props to `ParticipantPageData` type in `ParticipantPageContent.tsx`
+- Added a new section below QR code section showing the accepted terms version and full terms text
+- **Learnings for future iterations:**
+  - `terms_versions` table uses Convex `v.id("terms_versions")` so `ctx.db.get(participant.terms_version_id)` works directly (no custom index needed)
+  - Translation files are in `app/i18n/` (not a top-level `i18n/` directory)
+  - The `ParticipantPageData` type in `ParticipantPageContent.tsx` must be kept in sync with the Convex query return validator
+---
+
+## 2026-03-31 - US-017
+- Extracted success state from `app/terms/page.tsx` (server component) into new `app/terms/TermsSuccessContent.tsx` (client component)
+- `TermsSuccessContent` uses `useLanguage()` from LanguageContext and `termsTranslations` for bilingual text
+- Success heading uses `tr.successHeading` (ZH: 你的課程申請已確認, EN: Your class application is confirmed)
+- QR Code button uses `tr.openQrButton` (ZH: 開啟你的 QR 碼, EN: Open your QR Code)
+- Default language is zh-TW from LanguageProvider; language toggle in header works on success state
+- **Learnings for future iterations:**
+  - Server components (Next.js `page.tsx`) cannot use `useLanguage()` — bilingual UI must be extracted into `"use client"` child components
+  - `LanguageProvider` wraps the whole page so client children can access the context
+  - `termsTranslations` already had `successHeading` and `openQrButton` keys — no new keys needed
+---
