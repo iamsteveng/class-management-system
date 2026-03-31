@@ -287,6 +287,21 @@
       ],
       "passes": true,
       "priority": 19
+    },
+    {
+      "id": "US-020",
+      "title": "Set phone field on createSubscriber so findBySystemField works for future lookups",
+      "description": "As a developer, I want the ManyChat subscriber to have the phone field set at creation so findBySystemField can find them on subsequent sends.",
+      "acceptanceCriteria": [
+        "In lib/manychat.ts createSubscriber call, add phone: to alongside whatsapp_phone: to in the request body",
+        "Update the initial findBySystemField call to use field_name: \"phone\" for the lookup (phone field is reliably set)",
+        "Lookup flow: findBySystemField(field_name=phone) \u2192 if not found \u2192 createSubscriber(phone + whatsapp_phone) \u2192 send",
+        "Keep the US-019 already-exists fallback as a safety net",
+        "Typecheck passes",
+        "Test updated to reflect new phone field in createSubscriber payload and findBySystemField using phone field"
+      ],
+      "passes": false,
+      "priority": 20
     }
   ]
 }

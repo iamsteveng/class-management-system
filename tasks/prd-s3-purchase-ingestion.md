@@ -416,3 +416,21 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] If all lookups fail, log error and return `false`
 - [ ] Typecheck passes
 - [ ] Test added covering the "already exists" error path that successfully resolves subscriber ID
+
+---
+
+## Amendment: Set phone field when creating ManyChat subscriber (2026-03-31)
+
+### US-020: Set phone field on createSubscriber so findBySystemField works for future lookups
+
+**Description:** As a developer, I want the ManyChat subscriber to have the `phone` field set (in addition to `whatsapp_phone`) when created, so that `findBySystemField` with `field_name=phone` can find the subscriber on subsequent sends.
+
+**Root cause:** Subscribers created with only `whatsapp_phone` have `phone: null`. ManyChat's `findBySystemField` with `field_name=phone` returns a validation error when the phone field is null. By also setting `phone` at creation time, future lookups succeed.
+
+**Acceptance Criteria:**
+- [ ] In `lib/manychat.ts` `createSubscriber` call, add `phone: to` alongside `whatsapp_phone: to` in the request body
+- [ ] Update the initial `findBySystemField` call to use `field_name: "phone"` (instead of or in addition to `whatsapp_phone`) for the lookup
+- [ ] The lookup flow becomes: `findBySystemField(phone)` → if not found → `createSubscriber(phone + whatsapp_phone)` → send
+- [ ] The "already exists" fallback from US-019 is still kept as a safety net
+- [ ] Typecheck passes
+- [ ] Test updated to reflect new phone field in createSubscriber payload
