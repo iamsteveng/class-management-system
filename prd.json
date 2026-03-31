@@ -53,12 +53,12 @@
       "acceptanceCriteria": [
         "CSV columns parsed: order_id, product_id, user_phone, qty, unit_price, total (with trimming of whitespace around values, as the sample CSV has spaces after commas)",
         "Each row is treated as an independent purchase record (one row = one purchase)",
-        "The same order_id can appear on multiple rows (one per product) — each gets its own purchase record",
+        "The same order_id can appear on multiple rows (one per product) \u2014 each gets its own purchase record",
         "For each valid row, the system calls the shared createPurchase mutation (US-005)",
         "qty is parsed as an integer and stored as participant_count",
         "user_phone is stored as-is (already E.164 format, e.g. +85254304789)",
         "Rows with unknown product IDs are skipped with a warning log (file still continues processing)",
-        "purchase_datetime is parsed from the CSV filename: format is YYYYMMDDHHmm---<uuid>.csv, e.g. 202603271622 → 2026-03-27T16:22:00",
+        "purchase_datetime is parsed from the CSV filename: format is YYYYMMDDHHmm---<uuid>.csv, e.g. 202603271622 \u2192 2026-03-27T16:22:00",
         "Typecheck passes"
       ],
       "passes": true,
@@ -73,8 +73,8 @@
         "The mutation generates a UUID v4 token, sets status: 'pending_terms', and inserts the purchase",
         "It returns the new purchase._id",
         "purchase_datetime is supplied by the caller",
-        "The source field is stored in the purchase record for auditing — add source: v.optional(v.union(v.literal('s3'), v.literal('payment_gateway'))) to the purchases table in convex/schema.ts",
-        "Duplicate detection: if the same order_id + class_id combination already exists, skip and return existing _id (idempotent — safe for reprocessing)",
+        "The source field is stored in the purchase record for auditing \u2014 add source: v.optional(v.union(v.literal('s3'), v.literal('payment_gateway'))) to the purchases table in convex/schema.ts",
+        "Duplicate detection: if the same order_id + class_id combination already exists, skip and return existing _id (idempotent \u2014 safe for reprocessing)",
         "Typecheck passes"
       ],
       "passes": true,
@@ -87,7 +87,7 @@
       "acceptanceCriteria": [
         "After all rows in a file are attempted, the file is copied to {ENV}/processed/{original-filename} in S3",
         "The original file is then deleted from {ENV}/new/",
-        "If the copy or delete fails, the error is logged but polling continues (file will be reprocessed next tick — idempotency in US-005 prevents duplicates)",
+        "If the copy or delete fails, the error is logged but polling continues (file will be reprocessed next tick \u2014 idempotency in US-005 prevents duplicates)",
         "Typecheck passes"
       ],
       "passes": true,
@@ -127,7 +127,7 @@
         "New admin page at /admin/ingestion/page.tsx",
         "Page shows a table of the last 20 ingestion runs with columns: timestamp, status (colour-coded: green=success, yellow=partial, red=error), files processed, rows inserted, rows skipped, error message",
         "A 'Poll Now' button triggers an immediate S3 poll (calls the ingestion action directly)",
-        "The 'Poll Now' button is only visible and functional to users with role: 'super_admin' — determined using the existing admin auth context",
+        "The 'Poll Now' button is only visible and functional to users with role: 'super_admin' \u2014 determined using the existing admin auth context",
         "Page is linked from the admin nav (app/admin/admin-nav.tsx)",
         "Typecheck passes"
       ],
@@ -156,7 +156,7 @@
       "acceptanceCriteria": [
         "In convex/terms.ts getTermsPageData, if purchase.class_id is null/undefined/empty string, return an empty sessions array instead of querying all sessions",
         "No sessions are shown when there is no class mapping on the purchase",
-        "The terms form still renders with a no-available-sessions message — it does not error",
+        "The terms form still renders with a no-available-sessions message \u2014 it does not error",
         "Typecheck passes",
         "Test added verifying empty sessions array returned when purchase has no class_id"
       ],
@@ -171,7 +171,7 @@
         "In convex/schema.ts, change height in the participants table from v.optional(v.string()) to v.optional(v.number())",
         "In convex/terms.ts acceptTermsByToken, parse submitted height as a number (parseFloat) before storing; store undefined if not a valid number",
         "In app/terms/terms-form.tsx, change height input type from text to number with min=0",
-        "Update height field label in i18n translations to display: 身高（厘米） Height (cm) — shown bilingually regardless of selected language",
+        "Update height field label in i18n translations to display: \u8eab\u9ad8\uff08\u5398\u7c73\uff09 Height (cm) \u2014 shown bilingually regardless of selected language",
         "Typecheck passes",
         "Test added/updated to verify height is stored as a number in the purchase record"
       ],
@@ -229,7 +229,7 @@
         "In convex/participants.ts getParticipantPageData, fetch terms_versions document via participant.terms_version_id; include terms_version and terms_content in returned data",
         "If participant has no terms_version_id, omit terms section gracefully (no error)",
         "In app/participant/[participant_id]/ParticipantPageContent.tsx, add a section below the QR code section showing accepted terms",
-        "Section heading is bilingual: ZH: 已接受條款, EN: Accepted Terms, following the existing language toggle",
+        "Section heading is bilingual: ZH: \u5df2\u63a5\u53d7\u689d\u6b3e, EN: Accepted Terms, following the existing language toggle",
         "Terms version string (e.g. v1.0) shown above the full terms text in a readable block",
         "Typecheck passes"
       ],
@@ -244,11 +244,32 @@
         "Success state in app/terms/page.tsx (post-submission and revisit) uses useLanguage context / LanguageProvider to determine active language",
         "All success state text uses existing bilingual termsTranslations (zh-TW / en)",
         "Default language is zh-TW when no language has been selected",
-        "Language toggle in header works on success state — switching language updates all text",
+        "Language toggle in header works on success state \u2014 switching language updates all text",
         "Typecheck passes"
       ],
       "passes": true,
       "priority": 17
+    },
+    {
+      "id": "US-018",
+      "title": "Replace Twilio WhatsApp provider with ManyChat",
+      "description": "As a developer, I want to send WhatsApp messages via ManyChat using an approved template instead of Twilio free-form messages.",
+      "acceptanceCriteria": [
+        "Create lib/manychat.ts with sendTermsAcceptanceWhatsApp({ to, termsUrl }) function",
+        "Function calls POST /fb/subscriber/findBySystemField with field_name=whatsapp_phone to resolve subscriber ID from E.164 phone number",
+        "If subscriber not found, logs warning and returns false",
+        "Function calls POST /fb/sending/sendContent with template name \"Terms acceptance\" and custom field cuf_14438749 set to termsUrl",
+        "Returns true on success, false on any error; reads MANYCHAT_API_KEY from env",
+        "Update convex/purchaseConfirmation.ts to use sendTermsAcceptanceWhatsApp from lib/manychat.ts instead of sendWhatsApp from lib/twilio.ts",
+        "Remove all TWILIO_* credential references from convex/purchaseConfirmation.ts",
+        "convex/participantLinks.ts \u2014 remove WhatsApp sending entirely; keep Convex mutation logic only",
+        "Delete lib/twilio.ts",
+        "Remove twilio npm package from package.json",
+        "Typecheck passes",
+        "Test added verifying sendTermsAcceptanceWhatsApp calls correct ManyChat endpoints with correct payload (mock fetch)"
+      ],
+      "passes": false,
+      "priority": 18
     }
   ]
 }

@@ -322,3 +322,68 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] Default language is Traditional Chinese (`zh-TW`) when no language has been selected
 - [ ] The language toggle (already present in the header) works on the success state page — switching language updates the success state text
 - [ ] Typecheck passes
+
+---
+
+## Amendment: Replace Twilio with ManyChat for WhatsApp sending (2026-03-31)
+
+### US-018: Replace Twilio WhatsApp provider with ManyChat
+
+**Description:** As a developer, I want to send WhatsApp messages via ManyChat instead of Twilio, using an approved WhatsApp template with a `terms_url` parameter.
+
+**Background:**
+- Current implementation: `lib/twilio.ts` wraps the Twilio SDK and sends free-form text messages
+- New implementation: ManyChat API using an approved WhatsApp template named `"Terms acceptance"` with custom field `cuf_14438749` set to the terms URL
+- ManyChat API requires a subscriber ID (not phone number directly) — must first look up subscriber by phone via `POST /fb/subscriber/findBySystemField`
+
+**ManyChat API flow:**
+1. `POST https://api.manychat.com/fb/subscriber/findBySystemField` with `{ field_name: "whatsapp_phone", field_value: "<E.164 phone>" }` → returns `{ data: { id: <subscriber_id> } }`
+2. `POST https://api.manychat.com/fb/sending/sendContent` with subscriber ID and template content including `cuf_14438749` set to the terms URL
+
+**Acceptance Criteria:**
+- [ ] Create `lib/manychat.ts` with a `sendTermsAcceptanceWhatsApp({ to, termsUrl })` function that:
+  - Calls ManyChat `findBySystemField` to resolve subscriber ID from phone number
+  - If subscriber not found, logs warning and returns `false`
+  - Calls ManyChat `sendContent` with the `"Terms acceptance"` template and `cuf_14438749: termsUrl`
+  - Returns `true` on success, `false` on any error
+  - Reads `MANYCHAT_API_KEY` from env
+- [ ] Update `convex/purchaseConfirmation.ts` to import and call `sendTermsAcceptanceWhatsApp` from `lib/manychat.ts` instead of `sendWhatsApp` from `lib/twilio.ts`
+- [ ] Remove all `TWILIO_*` credential references from `convex/purchaseConfirmation.ts`
+- [ ] `convex/participantLinks.ts` — remove WhatsApp sending entirely (drop the second WhatsApp message that sends participant links; keep only the Convex mutation logic)
+- [ ] Delete `lib/twilio.ts`
+- [ ] Remove `twilio` npm package from `package.json`
+- [ ] Add `MANYCHAT_API_KEY` to Convex env vars (documented in README or .env.example)
+- [ ] Typecheck passes
+- [ ] Test added verifying `sendTermsAcceptanceWhatsApp` calls the correct ManyChat endpoints with correct payload (mock fetch)
+
+**Env vars:**
+- Add: `MANYCHAT_API_KEY`
+- Remove: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`
+
+**ManyChat sendContent payload structure:**
+```json
+{
+  "subscriber_id": 12345,
+  "data": {
+    "version": "v2",
+    "content": {
+      "messages": [
+        {
+          "type": "whatsapp_template",
+          "template_name": "Terms acceptance",
+          "language": { "code": "zh_HK" },
+          "components": [
+            {
+              "type": "button",
+              "sub_type": "url",
+              "index": 0,
+              "parameters": [{ "type": "text", "text": "<terms_url>" }]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+*(Exact payload structure should be validated against ManyChat docs / template config — adjust if needed)*
