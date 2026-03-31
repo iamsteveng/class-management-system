@@ -49,11 +49,15 @@ export const getAvailableClasses = queryGeneric({
         class_id: cls.class_id,
         class_name: cls.name_zh ?? "",
       }))
-      .sort((left, right) =>
-        left.class_name.localeCompare(right.class_name, undefined, {
-          sensitivity: "base",
-        })
-      );
+      .sort((left, right) => {
+        const ORDER = ["class_cycling_fundamentals", "class_city_guided_tour"];
+        const li = ORDER.indexOf(left.class_id);
+        const ri = ORDER.indexOf(right.class_id);
+        if (li !== -1 && ri !== -1) return li - ri;
+        if (li !== -1) return -1;
+        if (ri !== -1) return 1;
+        return left.class_name.localeCompare(right.class_name, undefined, { sensitivity: "base" });
+      });
   },
 });
 

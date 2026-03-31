@@ -68,10 +68,6 @@ export function ParticipantPageContent({
         <h2 className="text-lg font-medium text-zinc-900">{tr.participantDetailsSection}</h2>
         <dl className="mt-3 grid gap-2 text-sm text-zinc-700">
           <div>
-            <dt className="font-medium text-zinc-900">{tr.participantNameLabel}</dt>
-            <dd>{pageData.participant_name}</dd>
-          </div>
-          <div>
             <dt className="font-medium text-zinc-900">{tr.participantIdLabel}</dt>
             <dd className="break-all">{pageData.participant_id}</dd>
           </div>
