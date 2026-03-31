@@ -7,6 +7,8 @@ import { sendTermsAcceptanceWhatsApp } from '../../lib/manychat';
  * When createSubscriber returns HTTP 400 "WhatsApp ID already exists",
  * the function must extract wa_id from the error body and retry
  * findBySystemField lookups before giving up.
+ *
+ * US-021: after resolving subscriber ID, sends via setCustomFieldByName + sendFlow.
  */
 describe('TC-044 US-019 ManyChat already-exists error path', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
@@ -52,7 +54,13 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // 4. sendContent → success
+    // 4. setCustomFieldByName → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    // 5. sendFlow → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -61,7 +69,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
 
     expect(result).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
 
     // Verify initial lookup used phone field (US-020)
     const initialCall = fetchMock.mock.calls[0];
@@ -74,9 +82,20 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     expect(waIdBody.field_name).toBe('wa_id');
     expect(waIdBody.field_value).toBe(phoneDigits); // no + prefix
 
-    // Verify sendContent used the resolved subscriber ID
-    const sendBody = JSON.parse(fetchMock.mock.calls[3][1].body);
+    // Verify setCustomFieldByName called with correct args (US-021)
+    const setFieldCall = fetchMock.mock.calls[3];
+    expect(setFieldCall[0]).toContain('/fb/subscriber/setCustomFieldByName');
+    const setFieldBody = JSON.parse(setFieldCall[1].body);
+    expect(setFieldBody.subscriber_id).toBe(subscriberId);
+    expect(setFieldBody.field_name).toBe('cuf_14438749');
+    expect(setFieldBody.field_value).toBe(termsUrl);
+
+    // Verify sendFlow used the resolved subscriber ID (US-021)
+    const sendCall = fetchMock.mock.calls[4];
+    expect(sendCall[0]).toContain('/fb/sending/sendFlow');
+    const sendBody = JSON.parse(sendCall[1].body);
     expect(sendBody.subscriber_id).toBe(subscriberId);
+    expect(sendBody.flow_ns).toBe('content20260331095255_664930');
   });
 
   it('TC-044: falls back to whatsapp_phone (no +) lookup when wa_id lookup fails', async () => {
@@ -114,7 +133,13 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // 5. sendContent → success
+    // 5. setCustomFieldByName → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    // 6. sendFlow → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -123,7 +148,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
 
     expect(result).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
 
     // Final fallback should be whatsapp_phone with digits only
     const fallbackBody = JSON.parse(fetchMock.mock.calls[3][1].body);
@@ -187,7 +212,13 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // 3. sendContent → success
+    // 3. setCustomFieldByName → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    // 4. sendFlow → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -196,7 +227,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
 
     expect(result).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
 
     // Verify createSubscriber includes both phone and whatsapp_phone (US-020)
     const createBody = JSON.parse(fetchMock.mock.calls[1][1].body);

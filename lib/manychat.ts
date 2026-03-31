@@ -1,16 +1,22 @@
 // ManyChat WhatsApp integration
 // sendTermsAcceptanceWhatsApp resolves subscriber ID by phone and sends
-// an approved template message with the terms URL as a custom field.
+// terms acceptance message via sendFlow (US-021).
 //
 // Lookup chain (US-020):
 //   1. findBySystemField(phone, E.164 with +) — phone field reliably set at creation
 //   2. createSubscriber(phone + whatsapp_phone) — if 400 "WhatsApp ID already exists":
 //      2a. findBySystemField(wa_id, extracted wa_id)
 //      2b. findBySystemField(whatsapp_phone, digits only, no +) [final fallback]
+//
+// Sending flow (US-021):
+//   1. setCustomFieldByName (cuf_14438749 = termsUrl)
+//   2. sendFlow with TERMS_FLOW_NS
 
 const MANYCHAT_API_BASE = "https://api.manychat.com";
-const TERMS_TEMPLATE_NAME = "Terms acceptance";
 const TERMS_URL_FIELD = "cuf_14438749";
+// Flow NS for terms acceptance; can be overridden via MANYCHAT_TERMS_FLOW_NS env var
+const TERMS_FLOW_NS =
+  process.env.MANYCHAT_TERMS_FLOW_NS ?? "content20260331095255_664930";
 
 type SendTermsWhatsAppParams = {
   to: string; // E.164 phone number, e.g. +85254304789
@@ -193,40 +199,60 @@ export async function sendTermsAcceptanceWhatsApp({
     }
   }
 
-  // ── Step 2: Send the approved template message ────────────────────────────
+  // ── Step 2: Set custom field (terms URL) ─────────────────────────────────
   try {
-    const sendRes = await fetch(
-      `${MANYCHAT_API_BASE}/fb/sending/sendContent`,
+    const setFieldRes = await fetch(
+      `${MANYCHAT_API_BASE}/fb/subscriber/setCustomFieldByName`,
       {
         method: "POST",
         headers,
         body: JSON.stringify({
           subscriber_id: subscriberId,
-          data: {
-            version: "v2",
-            content: {
-              messages: [
-                {
-                  type: "whatsapp_template",
-                  name: TERMS_TEMPLATE_NAME,
-                },
-              ],
-            },
-          },
-          custom_fields: {
-            [TERMS_URL_FIELD]: termsUrl,
-          },
+          field_name: TERMS_URL_FIELD,
+          field_value: termsUrl,
+        }),
+      }
+    );
+    const setFieldBody = await setFieldRes.text();
+    console.log(
+      `[manychat] setCustomFieldByName response: status=${setFieldRes.status} body=${setFieldBody}`
+    );
+    if (!setFieldRes.ok) {
+      console.error(
+        `[manychat] setCustomFieldByName HTTP ${setFieldRes.status} for subscriber ${subscriberId}: ${setFieldBody}`
+      );
+      return false;
+    }
+  } catch (err) {
+    console.error(
+      `[manychat] Error setting custom field for subscriber ${subscriberId}:`,
+      err
+    );
+    return false;
+  }
+
+  // ── Step 3: Send via sendFlow ─────────────────────────────────────────────
+  try {
+    const flowNs = TERMS_FLOW_NS;
+    const sendRes = await fetch(
+      `${MANYCHAT_API_BASE}/fb/sending/sendFlow`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          subscriber_id: subscriberId,
+          flow_ns: flowNs,
         }),
       }
     );
 
     const responseBody = await sendRes.text();
     console.log(
-      `[manychat] sendContent response: status=${sendRes.status} body=${responseBody}`
+      `[manychat] sendFlow response: status=${sendRes.status} body=${responseBody}`
     );
     if (!sendRes.ok) {
       console.error(
-        `[manychat] sendContent HTTP ${sendRes.status} for subscriber ${subscriberId}: ${responseBody}`
+        `[manychat] sendFlow HTTP ${sendRes.status} for subscriber ${subscriberId}: ${responseBody}`
       );
       return false;
     }
@@ -234,7 +260,7 @@ export async function sendTermsAcceptanceWhatsApp({
     return true;
   } catch (err) {
     console.error(
-      `[manychat] Error sending template to subscriber ${subscriberId}:`,
+      `[manychat] Error sending flow to subscriber ${subscriberId}:`,
       err
     );
     return false;

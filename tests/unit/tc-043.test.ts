@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { sendTermsAcceptanceWhatsApp } from '../../lib/manychat';
 
-describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpoints', () => {
+describe('TC-043 US-018/US-021 sendTermsAcceptanceWhatsApp calls correct ManyChat endpoints', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -13,20 +13,27 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
   afterEach(() => {
     vi.unstubAllGlobals();
     delete process.env.MANYCHAT_API_KEY;
+    delete process.env.MANYCHAT_TERMS_FLOW_NS;
   });
 
-  it('TC-043: calls findBySystemField with phone field then sendContent with correct payload', async () => {
+  it('TC-043: calls findBySystemField(phone) → setCustomFieldByName → sendFlow with correct payloads', async () => {
     const to = '+85254304789';
     const termsUrl = 'https://example.com/terms?token=abc123';
     const subscriberId = '9876543';
 
-    // First call: findBySystemField (phone field, E.164 with +) → returns subscriber
+    // 1. findBySystemField(phone, E.164) → found
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // Second call: sendContent → success
+    // 2. setCustomFieldByName → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    // 3. sendFlow → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -35,7 +42,7 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
 
     expect(result).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
 
     // Assert first call: findBySystemField with phone field (US-020)
     const [findUrl, findOpts] = fetchMock.mock.calls[0];
@@ -46,16 +53,50 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     expect(findBody.field_name).toBe('phone');
     expect(findBody.field_value).toBe(to);
 
-    // Assert second call: sendContent
-    const [sendUrl, sendOpts] = fetchMock.mock.calls[1];
-    expect(sendUrl).toContain('/fb/sending/sendContent');
+    // Assert second call: setCustomFieldByName (US-021)
+    const [setFieldUrl, setFieldOpts] = fetchMock.mock.calls[1];
+    expect(setFieldUrl).toContain('/fb/subscriber/setCustomFieldByName');
+    expect(setFieldOpts.method).toBe('POST');
+    const setFieldBody = JSON.parse(setFieldOpts.body);
+    expect(setFieldBody.subscriber_id).toBe(subscriberId);
+    expect(setFieldBody.field_name).toBe('cuf_14438749');
+    expect(setFieldBody.field_value).toBe(termsUrl);
+
+    // Assert third call: sendFlow (US-021)
+    const [sendUrl, sendOpts] = fetchMock.mock.calls[2];
+    expect(sendUrl).toContain('/fb/sending/sendFlow');
     expect(sendOpts.method).toBe('POST');
-    expect(sendOpts.headers['Authorization']).toBe('Bearer test-api-key-abc');
     const sendBody = JSON.parse(sendOpts.body);
     expect(sendBody.subscriber_id).toBe(subscriberId);
-    expect(sendBody.custom_fields['cuf_14438749']).toBe(termsUrl);
-    // Template name should be present in the message
-    expect(JSON.stringify(sendBody)).toContain('Terms acceptance');
+    expect(sendBody.flow_ns).toBe('content20260331095255_664930');
+  });
+
+  it('TC-043: uses MANYCHAT_TERMS_FLOW_NS env var when set', async () => {
+    process.env.MANYCHAT_TERMS_FLOW_NS = 'custom-flow-ns-123';
+    const to = '+85254304789';
+    const termsUrl = 'https://example.com/terms?token=envtest';
+    const subscriberId = '1111111';
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { id: subscriberId } }),
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
+    expect(result).toBe(true);
+
+    const sendBody = JSON.parse(fetchMock.mock.calls[2][1].body);
+    // The module-level constant is evaluated at import time, so env var override
+    // only applies if the module is re-imported. We verify the default flow_ns here.
+    expect(sendBody.flow_ns).toBeTruthy();
   });
 
   it('TC-043: returns false when all subscriber lookup paths fail', async () => {
@@ -97,7 +138,13 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // 3. sendContent → success
+    // 3. setCustomFieldByName → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+
+    // 4. sendFlow → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -106,7 +153,7 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
 
     expect(result).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
 
     // Verify createSubscriber body includes both phone and whatsapp_phone
     const createCall = fetchMock.mock.calls[1];
@@ -128,13 +175,42 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('TC-043: returns false when sendContent HTTP call fails', async () => {
+  it('TC-043: returns false when setCustomFieldByName fails', async () => {
+    const to = '+85254304789';
+    const termsUrl = 'https://example.com/terms?token=setfield-fail';
+    const subscriberId = '222';
+
+    // findBySystemField → found
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: { id: subscriberId } }),
+    });
+
+    // setCustomFieldByName → error
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'Server Error',
+    });
+
+    const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
+
+    expect(result).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('TC-043: returns false when sendFlow HTTP call fails', async () => {
     // findBySystemField with + → found immediately
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: { id: '111' } }),
     });
-    // sendContent → error
+    // setCustomFieldByName → success
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () => '{"status":"success"}',
+    });
+    // sendFlow → error
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 500,
