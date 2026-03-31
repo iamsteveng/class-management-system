@@ -46,6 +46,7 @@ export default defineSchema({
 
   classes: defineTable({
     class_id: v.string(),
+    name: v.optional(v.string()), // legacy field — kept for dev DB compat
     name_zh: v.optional(v.string()),
     name_en: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -57,6 +58,7 @@ export default defineSchema({
   sessions: defineTable({
     session_id: v.string(),
     class_id: v.string(),
+    location: v.optional(v.string()), // legacy field — kept for dev DB compat
     location_zh: v.optional(v.string()),
     location_en: v.optional(v.string()),
     end_time: v.optional(v.string()),
