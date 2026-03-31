@@ -34,10 +34,12 @@ export const sendPurchaseConfirmation = actionGeneric({
     const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
     const termsUrl = buildTermsUrl(baseUrl, purchase.token);
 
+    console.log(`[purchaseConfirmation] Sending WhatsApp to=${purchase.customer_mobile} termsUrl=${termsUrl} purchase_id=${purchase._id}`);
     const sent = await sendTermsAcceptanceWhatsApp({
       to: purchase.customer_mobile,
       termsUrl,
     });
+    console.log(`[purchaseConfirmation] WhatsApp send result: sent=${sent} to=${purchase.customer_mobile}`);
 
     if (sent) {
       await ctx.runMutation(

@@ -51,6 +51,7 @@ export async function sendTermsAcceptanceWhatsApp({
     }
 
     const findData = await findRes.json();
+    console.log(`[manychat] findBySystemField response for phone ${to}: ${JSON.stringify(findData)}`);
     if (!findData?.data?.id) {
       console.warn(
         `[manychat] Subscriber not found for phone ${to} — skipping WhatsApp send`
@@ -59,6 +60,7 @@ export async function sendTermsAcceptanceWhatsApp({
     }
 
     subscriberId = String(findData.data.id);
+    console.log(`[manychat] Resolved subscriber_id=${subscriberId} for phone ${to}`);
   } catch (err) {
     console.error(
       `[manychat] Error resolving subscriber for phone ${to}:`,
@@ -94,10 +96,11 @@ export async function sendTermsAcceptanceWhatsApp({
       }
     );
 
+    const responseBody = await sendRes.text();
+    console.log(`[manychat] sendContent response: status=${sendRes.status} body=${responseBody}`);
     if (!sendRes.ok) {
-      const body = await sendRes.text();
       console.error(
-        `[manychat] sendContent HTTP ${sendRes.status} for subscriber ${subscriberId}: ${body}`
+        `[manychat] sendContent HTTP ${sendRes.status} for subscriber ${subscriberId}: ${responseBody}`
       );
       return false;
     }

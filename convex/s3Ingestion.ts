@@ -131,6 +131,7 @@ export const processS3File = actionGeneric({
   handler: async (ctx, args) => {
     const s3 = createS3Client();
 
+    console.log(`[s3Ingestion:processS3File] Starting. key=${args.file_key} bucket=${args.bucket} env=${args.env}`);
     // Download the CSV file
     const getResponse = await s3.send(
       new GetObjectCommand({ Bucket: args.bucket, Key: args.file_key })
@@ -140,8 +141,10 @@ export const processS3File = actionGeneric({
     }
     const csvText = await getResponse.Body.transformToString("utf-8");
 
+    console.log(`[s3Ingestion:processS3File] Downloaded CSV. size=${csvText.length} chars`);
     // Parse CSV rows
     const rawRows = parseS3Csv(csvText);
+    console.log(`[s3Ingestion:processS3File] Parsed ${rawRows.length} rows from CSV`);
     const filename = args.file_key.split("/").pop() ?? args.file_key;
 
     // Map product IDs to class IDs
@@ -158,6 +161,7 @@ export const processS3File = actionGeneric({
     let skippedUnknownProduct = 0;
     for (const row of rawRows) {
       const class_id = resolveClassId(args.env, row.product_id);
+      console.log(`[s3Ingestion:processS3File] Row: order_id=${row.order_id} product_id=${row.product_id} class_id=${class_id ?? 'NOT_FOUND'} phone=${row.user_phone} qty=${row.qty}`);
       if (!class_id) {
         console.warn(
           `[s3Ingestion] Unknown product_id "${row.product_id}" in file ${filename} — skipping row`
@@ -176,6 +180,7 @@ export const processS3File = actionGeneric({
       });
     }
 
+    console.log(`[s3Ingestion:processS3File] Mapped ${mappedRows.length} rows, skipped ${skippedUnknownProduct} unknown products`);
     // Insert rows via mutation
     let insertResult = { rows_inserted: 0, rows_skipped: skippedUnknownProduct };
     if (mappedRows.length > 0) {
@@ -189,8 +194,10 @@ export const processS3File = actionGeneric({
       };
     }
 
+    console.log(`[s3Ingestion:processS3File] Insert complete. rows_inserted=${insertResult.rows_inserted} rows_skipped=${insertResult.rows_skipped}`);
     // Move file: copy to {ENV}/processed/, delete from {ENV}/new/ (US-006)
     const processedKey = `${args.env}/processed/${filename}`;
+    console.log(`[s3Ingestion:processS3File] Moving file: ${args.file_key} → ${processedKey}`);
     try {
       await s3.send(
         new CopyObjectCommand({
@@ -202,6 +209,7 @@ export const processS3File = actionGeneric({
       await s3.send(
         new DeleteObjectCommand({ Bucket: args.bucket, Key: args.file_key })
       );
+      console.log(`[s3Ingestion:processS3File] File moved successfully to ${processedKey}`);
     } catch (moveError) {
       const msg =
         moveError instanceof Error ? moveError.message : "Unknown move error";
@@ -271,7 +279,7 @@ export const pollS3ForNewFiles = actionGeneric({
     }
 
     console.log(
-      `[s3Ingestion] Polled S3. bucket=${bucket} prefix=${prefix} files_found=${csvFiles.length}`
+      `[s3Ingestion] Polled S3. bucket=${bucket} prefix=${prefix} files_found=${csvFiles.length} keys=${JSON.stringify(csvFiles.map(f => f.key))}`
     );
 
     if (csvFiles.length === 0) {
@@ -295,6 +303,7 @@ export const pollS3ForNewFiles = actionGeneric({
     for (const obj of csvFiles) {
       try {
         const purchaseDatetime = parseDatetimeFromFilename(obj.filename);
+        console.log(`[s3Ingestion] Processing file: key=${obj.key} filename=${obj.filename} purchase_datetime=${purchaseDatetime}`);
         const result = await ctx.runAction(
           makeFunctionReference<"action">("s3Ingestion:processS3File"),
           {
@@ -311,7 +320,7 @@ export const pollS3ForNewFiles = actionGeneric({
         anyError = true;
         const msg =
           fileError instanceof Error ? fileError.message : "Unknown error";
-        console.error(`[s3Ingestion] Failed to process file ${obj.key}: ${msg}`);
+        console.error(`[s3Ingestion] Failed to process file ${obj.key}: ${msg} stack=${fileError instanceof Error ? fileError.stack : ''}`);
       }
     }
 
