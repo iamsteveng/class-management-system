@@ -387,3 +387,32 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 }
 ```
 *(Exact payload structure should be validated against ManyChat docs / template config — adjust if needed)*
+
+---
+
+## Amendment: Fix ManyChat subscriber lookup and creation race condition (2026-03-31)
+
+### US-019: Handle "subscriber already exists" error from ManyChat createSubscriber
+
+**Description:** As a developer, I want the ManyChat integration to correctly handle the case where a subscriber already exists in ManyChat but was not found via `findBySystemField`, so that WhatsApp messages are sent reliably without errors.
+
+**Root cause:** Two failure modes observed:
+1. `findBySystemField` with `field_name: "whatsapp_phone"` returns non-OK (HTTP 495) even when the subscriber exists — likely because the phone was registered via `createSubscriber` not via WhatsApp opt-in, so the `whatsapp_phone` system field lookup behaves differently
+2. `createSubscriber` returns HTTP 400 `"This WhatsApp ID already exists"` — the subscriber exists but we couldn't find them in step 1
+
+**Fix approach:**
+- When `createSubscriber` returns HTTP 400 with `"WhatsApp ID already exists"`, extract the `wa_id` (e.g. `85262875094`) from the error and use it to look up the subscriber via a different field or endpoint
+- Try `findBySystemField` with `field_name: "wa_id"` and `field_value: "<phone without + prefix>"` as a fallback
+- If that also fails, try `field_name: "whatsapp_phone"` with phone stripped of `+` prefix (e.g. `85262875094` instead of `+85262875094`)
+
+**Acceptance Criteria:**
+- [ ] In `lib/manychat.ts`, after `createSubscriber` returns HTTP 400 with "WhatsApp ID already exists":
+  - Extract the `wa_id` value from the error response (strip `+` prefix if needed)
+  - Retry `findBySystemField` with `field_name: "wa_id"` and the extracted value
+  - If still not found, retry `findBySystemField` with `field_name: "whatsapp_phone"` and phone without `+` prefix
+  - Log each attempt with the result
+- [ ] Also update the initial `findBySystemField` call to try both `+85262875094` and `85262875094` formats (with and without `+`)
+- [ ] If subscriber ID is resolved via any fallback path, proceed to `sendContent` as normal
+- [ ] If all lookups fail, log error and return `false`
+- [ ] Typecheck passes
+- [ ] Test added covering the "already exists" error path that successfully resolves subscriber ID

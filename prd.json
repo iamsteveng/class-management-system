@@ -270,6 +270,23 @@
       ],
       "passes": true,
       "priority": 18
+    },
+    {
+      "id": "US-019",
+      "title": "Handle ManyChat subscriber already exists error and resolve subscriber ID",
+      "description": "As a developer, I want the ManyChat integration to handle the case where createSubscriber returns 400 \"WhatsApp ID already exists\", so WhatsApp messages are sent reliably.",
+      "acceptanceCriteria": [
+        "In lib/manychat.ts, when createSubscriber returns HTTP 400 with \"WhatsApp ID already exists\": extract the wa_id from the error response and retry findBySystemField with field_name=\"wa_id\" and the extracted value (without + prefix)",
+        "If wa_id lookup fails, also retry findBySystemField with field_name=\"whatsapp_phone\" and phone without + prefix (e.g. 85262875094)",
+        "Update initial findBySystemField to also try phone without + prefix as a fallback if the first attempt fails",
+        "Log each lookup attempt and result clearly",
+        "If subscriber ID resolved via any path, proceed to sendContent as normal",
+        "If all lookups fail, log error and return false",
+        "Typecheck passes",
+        "Test added covering the already-exists error path that successfully resolves subscriber ID"
+      ],
+      "passes": false,
+      "priority": 19
     }
   ]
 }
