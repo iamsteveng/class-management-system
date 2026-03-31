@@ -20,6 +20,7 @@ export const getTermsPageData = queryGeneric({
         v.literal("terms_accepted"),
         v.literal("cancelled")
       ),
+      participant_id: v.optional(v.string()),
       class_name: v.optional(v.string()),
       terms_version: v.string(),
       terms_content: v.string(),
@@ -131,10 +132,20 @@ export const getTermsPageData = queryGeneric({
         return leftDateTime.localeCompare(rightDateTime);
       });
 
+    let participantId: string | undefined;
+    if (purchase.status === "terms_accepted") {
+      const firstParticipant = await ctx.db
+        .query("participants")
+        .filter((q) => q.eq(q.field("purchase_id"), purchase._id))
+        .first();
+      participantId = firstParticipant?.participant_id;
+    }
+
     return {
       customer_mobile: purchase.customer_mobile,
       participant_count: purchase.participant_count,
       purchase_status: purchase.status,
+      participant_id: participantId,
       class_name: purchase.class_id
         ? (classDocs.get(purchase.class_id)?.name_zh ?? undefined)
         : undefined,

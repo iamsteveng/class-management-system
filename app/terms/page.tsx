@@ -16,6 +16,7 @@ type TermsPageData = {
   customer_mobile: string;
   participant_count: number;
   purchase_status: "pending_terms" | "confirmation_sent" | "terms_accepted" | "cancelled";
+  participant_id?: string;
   class_name?: string;
   terms_version: string;
   terms_content: string;
@@ -71,8 +72,8 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
   }
 
   const submissionSucceeded = status === "success";
-  const participantId = readSingleQueryParam(params.participant_id);
   const alreadyAccepted = pageData.purchase_status === "terms_accepted";
+  const participantId = readSingleQueryParam(params.participant_id) ?? pageData.participant_id;
 
   async function submitTerms(formData: FormData) {
     "use server";
@@ -128,7 +129,7 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
     redirect(successUrl);
   }
 
-  if (submissionSucceeded) {
+  if (submissionSucceeded || alreadyAccepted) {
     return (
       <LanguageProvider>
         <LanguageToggleHeader />
