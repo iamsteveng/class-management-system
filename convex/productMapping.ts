@@ -24,13 +24,14 @@
  */
 export const productMapping: Record<string, Record<string, string>> = {
   dev: {
-    // example: "PRODUCT_DEV_001": "class_id_here",
+    // Add dev mappings here when needed
   },
   uat: {
-    // example: "PRODUCT_UAT_001": "class_id_here",
+    "6": "class_cycling_fundamentals",
+    "7": "class_city_guided_tour",
   },
   prod: {
-    // example: "PRODUCT_PROD_001": "class_id_here",
+    // Add prod mappings here when ready
   },
 };
 
