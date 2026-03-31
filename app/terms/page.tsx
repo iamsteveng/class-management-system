@@ -101,7 +101,7 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
         session_id: selectedSessionId,
         accepted,
         email: typeof email === "string" ? email.trim() : "",
-        height: typeof height === "string" && height.trim() ? height.trim() : undefined,
+        height: typeof height === "string" && height.trim() ? (parseFloat(height.trim()) || undefined) : undefined,
         age: ageNumber && !isNaN(ageNumber) ? ageNumber : undefined,
         emergency_contact_name:
           typeof emergencyContactName === "string" && emergencyContactName.trim()

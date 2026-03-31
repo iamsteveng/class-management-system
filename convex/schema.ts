@@ -34,7 +34,7 @@ export default defineSchema({
     qr_code_data: v.optional(v.string()),
     terms_accepted_at: v.optional(v.number()),
     terms_version_id: v.optional(v.id("terms_versions")),
-    height: v.optional(v.string()),
+    height: v.optional(v.number()),
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),

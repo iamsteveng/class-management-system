@@ -150,7 +150,7 @@ export const acceptTermsByToken = mutationGeneric({
     token: v.string(),
     session_id: v.string(),
     accepted: v.boolean(),
-    height: v.optional(v.string()),
+    height: v.optional(v.number()),
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),
