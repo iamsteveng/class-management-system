@@ -203,3 +203,32 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 ## Open Questions
 
 1. Does the `super_admin` role already exist in the admin auth system, or does it need to be added as a new role? Please confirm the current role model.
+
+---
+
+## Amendment: Terms Page Session Filtering (2026-03-31)
+
+### US-010: Filter sessions to upcoming dates only in terms acceptance form
+**Description:** As a customer, I want to only see upcoming (future) sessions when accepting terms, so I don't accidentally select a past session.
+
+**Acceptance Criteria:**
+- [ ] In `convex/terms.ts` `getTermsPageData`, after filtering by `status === "scheduled"` and `available_quota > 0`, add a filter to exclude sessions where `date + time` is in the past (i.e. earlier than current UTC datetime)
+- [ ] A session is considered "upcoming" if `new Date(`${session.date}T${session.time}`) > new Date()` at query time
+- [ ] Past sessions (even if still `scheduled` with available quota) are excluded from the list
+- [ ] All existing filters remain: `status === "scheduled"`, `available_quota > 0`, sorted by date+time ascending
+- [ ] Typecheck passes
+- [ ] Existing tests updated/added to verify past sessions are excluded
+
+### US-011: Return empty session list when no class_id matched
+**Description:** As a customer, I should not see sessions from unrelated classes if my purchase has no valid class_id mapping, so I am not confused by irrelevant options.
+
+**Acceptance Criteria:**
+- [ ] In `convex/terms.ts` `getTermsPageData`, if `purchase.class_id` is null/undefined/empty, return an empty `sessions` array instead of fetching all sessions
+- [ ] No sessions are shown to the customer when there is no class mapping
+- [ ] The terms form still renders (with a "no available sessions" message) — it should not error
+- [ ] Typecheck passes
+- [ ] Test added verifying empty sessions returned when purchase has no class_id
+
+### Functional Requirements (additions)
+- FR-15: Sessions shown in terms acceptance form must have `date+time > now` (upcoming only)
+- FR-16: If purchase has no `class_id`, return empty sessions array (do not fall back to all sessions)
