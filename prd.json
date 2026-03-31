@@ -220,6 +220,35 @@
       ],
       "passes": true,
       "priority": 15
+    },
+    {
+      "id": "US-016",
+      "title": "Show accepted terms content on participant pass page",
+      "description": "As a customer, I want to see the terms I accepted on my participant pass page so I can reference what I agreed to.",
+      "acceptanceCriteria": [
+        "In convex/participants.ts getParticipantPageData, fetch terms_versions document via participant.terms_version_id; include terms_version and terms_content in returned data",
+        "If participant has no terms_version_id, omit terms section gracefully (no error)",
+        "In app/participant/[participant_id]/ParticipantPageContent.tsx, add a section below the QR code section showing accepted terms",
+        "Section heading is bilingual: ZH: \u5df2\u63a5\u53d7\u689d\u6b3e, EN: Accepted Terms, following the existing language toggle",
+        "Terms version string (e.g. v1.0) shown above the full terms text in a readable block",
+        "Typecheck passes"
+      ],
+      "passes": false,
+      "priority": 16
+    },
+    {
+      "id": "US-017",
+      "title": "Bilingual success state on /terms page",
+      "description": "As a customer, I want the success state on the terms page to display in my selected language (default Traditional Chinese).",
+      "acceptanceCriteria": [
+        "Success state in app/terms/page.tsx (post-submission and revisit) uses useLanguage context / LanguageProvider to determine active language",
+        "All success state text uses existing bilingual termsTranslations (zh-TW / en)",
+        "Default language is zh-TW when no language has been selected",
+        "Language toggle in header works on success state \u2014 switching language updates all text",
+        "Typecheck passes"
+      ],
+      "passes": false,
+      "priority": 17
     }
   ]
 }

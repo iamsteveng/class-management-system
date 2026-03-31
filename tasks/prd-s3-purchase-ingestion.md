@@ -297,3 +297,28 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] Remove or hide any i18n label for `participantNameLabel` that is no longer needed in the participant pass page
 - [ ] The participant details section still renders correctly without the name row
 - [ ] Typecheck passes
+
+---
+
+## Amendment: Participant pass terms display + bilingual success state (2026-03-31)
+
+### US-016: Show accepted terms content on participant pass page
+**Description:** As a customer, I want to see the terms I accepted displayed on my participant pass page, so I can reference what I agreed to.
+
+**Acceptance Criteria:**
+- [ ] In `convex/participants.ts` `getParticipantPageData`, look up the `terms_version_id` from the participant record and fetch the corresponding `terms_versions` document; include `terms_version` (version string) and `terms_content` (full text) in the returned data
+- [ ] If participant has no `terms_version_id`, omit the terms section gracefully (no error)
+- [ ] In `app/participant/[participant_id]/ParticipantPageContent.tsx`, add a new section below the QR code section displaying the accepted terms content
+- [ ] Section heading should be bilingual following the existing language toggle: ZH: `已接受條款`, EN: `Accepted Terms`
+- [ ] Terms version is shown (e.g. `v1.0`) and full terms text displayed below it in a scrollable/readable block
+- [ ] Typecheck passes
+
+### US-017: Bilingual success state on /terms page
+**Description:** As a customer, I want the success state on the terms acceptance page to display in the language I have selected (default Traditional Chinese), so the confirmation message is in my preferred language.
+
+**Acceptance Criteria:**
+- [ ] The success state rendered in `app/terms/page.tsx` (both post-submission and revisit) uses the `LanguageProvider` / `useLanguage` context to determine the active language
+- [ ] All text in the success state (heading, button text, helper text) uses the existing bilingual translations from `termsTranslations` (`zh-TW` / `en`)
+- [ ] Default language is Traditional Chinese (`zh-TW`) when no language has been selected
+- [ ] The language toggle (already present in the header) works on the success state page — switching language updates the success state text
+- [ ] Typecheck passes
