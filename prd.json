@@ -300,7 +300,7 @@
         "Typecheck passes",
         "Test updated to reflect new phone field in createSubscriber payload and findBySystemField using phone field"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 20
     }
   ]

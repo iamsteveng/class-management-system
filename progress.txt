@@ -1,3 +1,15 @@
 # Ralph Progress Log
 Started: Tue Mar 31 09:30:23 UTC 2026
 ---
+
+## 2026-03-31 - US-020
+- Changed initial `findBySystemField` from `field_name: "whatsapp_phone"` to `field_name: "phone"` in `lib/manychat.ts`
+- Removed the intermediate fallback lookup (whatsapp_phone without + prefix) — now only one initial lookup
+- Added `phone: to` alongside `whatsapp_phone: to` in the `createSubscriber` request body
+- Updated header comment to reflect new US-020 lookup chain
+- Files changed: `lib/manychat.ts`, `tests/unit/tc-043.test.ts`, `tests/unit/tc-044.test.ts`
+- **Learnings for future iterations:**
+  - The existing tc-043 and tc-044 tests had call counts tied to the old 2-step initial lookup — updating to the new 1-step flow required adjusting `toHaveBeenCalledTimes` and mock sequence in both files
+  - The old "initial fallback (without +)" test in tc-044 was repurposed to verify the new US-020 requirement that `createSubscriber` includes the `phone` field
+  - Typecheck passed cleanly with no changes needed beyond the function body
+---
