@@ -23,7 +23,7 @@ type ParticipantDetails = {
   class_name: string;
   terms_accepted_at?: number;
   terms_version?: string;
-  height?: string;
+  height?: number;
   age?: number;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;

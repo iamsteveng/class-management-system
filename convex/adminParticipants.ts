@@ -59,7 +59,7 @@ export const getParticipantAdminDetails = queryGeneric({
       class_name: v.string(),
       terms_accepted_at: v.optional(v.number()),
       terms_version: v.optional(v.string()),
-      height: v.optional(v.string()),
+      height: v.optional(v.float64()),
       age: v.optional(v.number()),
       emergency_contact_name: v.optional(v.string()),
       emergency_contact_phone: v.optional(v.string()),

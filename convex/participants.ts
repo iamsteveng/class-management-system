@@ -21,7 +21,7 @@ export const getParticipantPageData = queryGeneric({
       class_name_en: v.optional(v.string()),
       qr_code_data: v.string(),
       can_change_session: v.boolean(),
-      height: v.optional(v.string()),
+      height: v.optional(v.float64()),
       age: v.optional(v.number()),
       emergency_contact_name: v.optional(v.string()),
       emergency_contact_phone: v.optional(v.string()),
