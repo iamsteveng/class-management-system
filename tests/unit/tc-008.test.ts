@@ -86,7 +86,7 @@ describe('TC-008 S3 error does not crash scheduler', () => {
 
     expect(runMutationMock).toHaveBeenCalledOnce();
     expect(runMutationMock).toHaveBeenCalledWith(
-      's3Ingestion:recordIngestionRun',
+      's3IngestionMutations:recordIngestionRun',
       expect.objectContaining({
         status: 'error',
         files_processed: 0,

@@ -73,7 +73,7 @@ describe('TC-032 Successful poll writes ingestion_runs record with status=succes
 
     // recordIngestionRun was called once
     expect(runMutationMock).toHaveBeenCalledTimes(1);
-    expect(runMutationMock.mock.calls[0][0]).toBe('s3Ingestion:recordIngestionRun');
+    expect(runMutationMock.mock.calls[0][0]).toBe('s3IngestionMutations:recordIngestionRun');
 
     // DB record assertions
     expect(recordedArgs).not.toBeNull();

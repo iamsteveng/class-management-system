@@ -64,7 +64,7 @@ describe('TC-006 S3 ListObjectsV2 network failure writes error run record', () =
     // Should call runMutation with error status and the error message.
     expect(runMutationMock).toHaveBeenCalledOnce();
     expect(runMutationMock).toHaveBeenCalledWith(
-      's3Ingestion:recordIngestionRun',
+      's3IngestionMutations:recordIngestionRun',
       expect.objectContaining({
         status: 'error',
         files_processed: 0,

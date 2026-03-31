@@ -75,7 +75,7 @@ describe('TC-034 Empty S3 bucket writes status=success with zero counts', () => 
 
     // recordIngestionRun was called once
     expect(runMutationMock).toHaveBeenCalledTimes(1);
-    expect(runMutationMock.mock.calls[0][0]).toBe('s3Ingestion:recordIngestionRun');
+    expect(runMutationMock.mock.calls[0][0]).toBe('s3IngestionMutations:recordIngestionRun');
 
     // DB record assertions: status=success with all zero counts
     expect(recordedArgs).not.toBeNull();

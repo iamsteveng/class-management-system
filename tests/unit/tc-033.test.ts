@@ -73,7 +73,7 @@ describe('TC-033 Partial poll writes status=partial', () => {
 
     // recordIngestionRun was called once
     expect(runMutationMock).toHaveBeenCalledTimes(1);
-    expect(runMutationMock.mock.calls[0][0]).toBe('s3Ingestion:recordIngestionRun');
+    expect(runMutationMock.mock.calls[0][0]).toBe('s3IngestionMutations:recordIngestionRun');
 
     // DB record: status=partial with non-zero inserted and skipped
     expect(recordedArgs).not.toBeNull();

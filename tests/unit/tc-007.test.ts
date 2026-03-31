@@ -63,7 +63,7 @@ describe('TC-007 S3 auth failure (403) writes error run record', () => {
     // Should call runMutation with error status and AccessDenied in error message.
     expect(runMutationMock).toHaveBeenCalledOnce();
     expect(runMutationMock).toHaveBeenCalledWith(
-      's3Ingestion:recordIngestionRun',
+      's3IngestionMutations:recordIngestionRun',
       expect.objectContaining({
         status: 'error',
         files_processed: 0,
