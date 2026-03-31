@@ -285,7 +285,7 @@
         "Typecheck passes",
         "Test added covering the already-exists error path that successfully resolves subscriber ID"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 19
     }
   ]

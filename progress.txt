@@ -1,3 +1,22 @@
 # Ralph Progress Log
 Started: Tue Mar 31 09:08:54 UTC 2026
 ---
+
+## Codebase Patterns
+- `sendTermsAcceptanceWhatsApp` in `lib/manychat.ts` uses a multi-step lookup chain: findBySystemField(E.164) → findBySystemField(digits-only) → createSubscriber → (on 400 already-exists) findBySystemField(wa_id) → findBySystemField(digits-only)
+- ManyChat "already exists" 400 error body has wa_id in `data.wa_id`, `details.wa_id`, or embedded in `message` string — extractWaId() handles all three
+- TC-043 unit tests mock exact fetch call counts; when adding fallback logic, update `toHaveBeenCalledTimes` assertions accordingly
+
+---
+
+## 2026-03-31 - US-019
+- What was implemented: Extended `lib/manychat.ts` to handle ManyChat 400 "WhatsApp ID already exists" error. Added full subscriber lookup chain: (1) findBySystemField with E.164, (2) findBySystemField with digits-only (no +), (3) createSubscriber — on 400 already-exists: (3a) findBySystemField with wa_id extracted from error body, (3b) findBySystemField with digits-only as final fallback.
+- Files changed:
+  - `lib/manychat.ts` — refactored subscriber resolution into `findSubscriberByField()` helper and `extractWaId()` helper; added fallback chain
+  - `tests/unit/tc-043.test.ts` — updated "subscriber not found" test to mock all 3 fetch calls (was relying on undefined behavior from unmocked calls)
+  - `tests/unit/tc-044.test.ts` — new file with 4 tests covering: wa_id lookup success, details.wa_id fallback, all-paths-fail, and initial no-+ fallback
+- **Learnings for future iterations:**
+  - TC-043 "subscriber not found" test was previously passing only because unmocked fetch calls threw exceptions that got caught; after adding fallback logic the number of expected calls changed — always check `toHaveBeenCalledTimes` assertions when modifying call sequences
+  - `extractWaId()` tries `data.wa_id`, `details.wa_id`, then regex on message — covers known ManyChat API response shapes
+  - The `stripPlus()` helper ensures wa_id values from ManyChat never have a leading + when passed to findBySystemField
+---
