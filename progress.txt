@@ -18,3 +18,14 @@ Started: Tue Mar 31 05:59:43 UTC 2026
   - The page already had `alreadyAccepted` variable but only used it to lock the form — just needed to also gate the success UI render on it
   - `pageData.participant_id` from Convex query provides the participant_id for the QR code button when revisiting
 ---
+
+## 2026-03-31 - US-015
+- What was implemented: Remove participant name field from participant pass page
+- Files changed:
+  - `app/participant/[participant_id]/ParticipantPageContent.tsx`: Removed `participant_name: string` from `ParticipantPageData` type (the dt/dd row had already been removed in a prior commit)
+  - `app/participant/[participant_id]/page.tsx`: Removed `participant_name: string` from `ParticipantPageData` type
+  - `app/i18n/participantTranslations.ts`: Removed `participantNameLabel` from the `ParticipantTranslations` interface and both 'zh-TW' and 'en' locale objects
+- **Learnings for future iterations:**
+  - The dt/dd row was already removed in commit 3392ae1 but the TypeScript type and i18n entries were not cleaned up — US-015 completed the cleanup
+  - `convex/participants.ts` still returns `participant_name` in its validator — that's fine since the frontend just doesn't use it
+---
