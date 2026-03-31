@@ -25,6 +25,8 @@ export const getParticipantPageData = queryGeneric({
       age: v.optional(v.number()),
       emergency_contact_name: v.optional(v.string()),
       emergency_contact_phone: v.optional(v.string()),
+      terms_version: v.optional(v.string()),
+      terms_content: v.optional(v.string()),
       session_options: v.array(
         v.object({
           session_id: v.string(),
@@ -101,6 +103,16 @@ export const getParticipantPageData = queryGeneric({
           )
       : [];
 
+    let terms_version: string | undefined;
+    let terms_content: string | undefined;
+    if (participant.terms_version_id) {
+      const termsVersionDoc = await ctx.db.get(participant.terms_version_id);
+      if (termsVersionDoc) {
+        terms_version = termsVersionDoc.version;
+        terms_content = termsVersionDoc.content;
+      }
+    }
+
     return {
       participant_id: participant.participant_id,
       participant_name: participant.name?.trim() || "Participant",
@@ -119,6 +131,8 @@ export const getParticipantPageData = queryGeneric({
       age: participant.age,
       emergency_contact_name: participant.emergency_contact_name,
       emergency_contact_phone: participant.emergency_contact_phone,
+      terms_version,
+      terms_content,
       session_options: availableOptions,
     };
   },

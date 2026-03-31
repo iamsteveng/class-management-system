@@ -14,6 +14,7 @@ export interface ParticipantTranslations {
   qrCodeAlt: string;
   changeSessionButton: string;
   notFoundError: string;
+  acceptedTermsSection: string;
 }
 
 export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslations> = {
@@ -33,6 +34,7 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     qrCodeAlt: '參加者 QR 碼',
     changeSessionButton: '更改時段',
     notFoundError: '找不到此連結對應的參加者資料。',
+    acceptedTermsSection: '已接受條款',
   },
   en: {
     pageTitle: 'Participant Pass',
@@ -50,5 +52,6 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     qrCodeAlt: 'QR code for participant',
     changeSessionButton: 'Change Session',
     notFoundError: 'We could not find participant details for this link.',
+    acceptedTermsSection: 'Accepted Terms',
   },
 };
