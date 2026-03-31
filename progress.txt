@@ -1,3 +1,20 @@
 # Ralph Progress Log
 Started: Tue Mar 31 05:59:43 UTC 2026
 ---
+
+## Codebase Patterns
+- participants table has no `by_purchase_id` index — use `ctx.db.query("participants").filter(q => q.eq(q.field("purchase_id"), purchase._id)).first()` to get first participant for a purchase
+- terms page success state is triggered by `?status=success` OR by `purchase_status === "terms_accepted"` (after US-014)
+
+---
+
+## 2026-03-31 - US-014
+- What was implemented: Show success state when user revisits terms page after submission
+- Files changed:
+  - `convex/terms.ts`: Added `participant_id: v.optional(v.string())` to getTermsPageData return validator; added logic to query first participant by purchase._id when status is terms_accepted
+  - `app/terms/page.tsx`: Added `participant_id?` to TermsPageData type; updated participantId to fallback to `pageData.participant_id`; changed condition from `if (submissionSucceeded)` to `if (submissionSucceeded || alreadyAccepted)`
+- **Learnings for future iterations:**
+  - participants table has no by_purchase_id index — use `.filter()` to query by purchase_id
+  - The page already had `alreadyAccepted` variable but only used it to lock the form — just needed to also gate the success UI render on it
+  - `pageData.participant_id` from Convex query provides the participant_id for the QR code button when revisiting
+---

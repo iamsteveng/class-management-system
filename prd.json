@@ -205,7 +205,7 @@
         "If multiple participants exist for the purchase, link to the first participant page",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 14
     },
     {

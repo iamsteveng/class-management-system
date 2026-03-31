@@ -2,7 +2,6 @@ export interface ParticipantTranslations {
   pageTitle: string;
   pageSubtitle: string;
   participantDetailsSection: string;
-  participantNameLabel: string;
   participantIdLabel: string;
   classLabel: string;
   sessionLabel: string;
@@ -22,7 +21,6 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     pageTitle: '參加者通行證',
     pageSubtitle: '出示此 QR 碼以登記出席。',
     participantDetailsSection: '參加者資料',
-    participantNameLabel: '參加者姓名',
     participantIdLabel: '參加者編號',
     classLabel: '課程',
     sessionLabel: '時段',
@@ -40,7 +38,6 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     pageTitle: 'Participant Pass',
     pageSubtitle: 'Present this QR code at check-in for attendance.',
     participantDetailsSection: 'Participant details',
-    participantNameLabel: 'Participant name',
     participantIdLabel: 'Participant ID',
     classLabel: 'Class',
     sessionLabel: 'Session',

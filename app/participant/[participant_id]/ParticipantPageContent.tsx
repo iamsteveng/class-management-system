@@ -17,7 +17,6 @@ type SessionOption = {
 
 type ParticipantPageData = {
   participant_id: string;
-  participant_name: string;
   session_id: string;
   session_location: string;
   session_location_en?: string;
