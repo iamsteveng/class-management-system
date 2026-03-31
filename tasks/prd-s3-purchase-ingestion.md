@@ -248,3 +248,29 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] The label must show in both Chinese and English regardless of selected language — format: `身高（厘米） Height (cm)`
 - [ ] Typecheck passes
 - [ ] Test added or updated to verify height is stored as a number
+
+---
+
+## Amendment: Fix height type in all Convex validators and frontend types (2026-03-31)
+
+### US-013: Update all Convex query/mutation validators and frontend types for height as number
+
+**Description:** As a developer, I want all Convex validators and frontend TypeScript types that reference `height` to use `number` instead of `string`, so that the participant page and admin panel don't throw `ReturnsValidationError` after the schema change in US-012.
+
+**Root cause:** US-012 changed `participants.height` in `schema.ts` from `v.optional(v.string())` to `v.optional(v.number())`, but the return validators and TypeScript interfaces in three other files still declare `height` as `string`.
+
+**Affected files (all must be updated):**
+
+1. `convex/participants.ts` — `getParticipantPageData` return validator: `height: v.optional(v.string())` → `height: v.optional(v.float64())`
+2. `convex/adminParticipants.ts` — participant detail return validator: `height: v.optional(v.string())` → `height: v.optional(v.float64())`
+3. `convex/testPurchase.ts` — test helper return validator: `height: v.optional(v.string())` → `height: v.optional(v.float64())`
+4. `app/admin/participants/[participant_id]/page.tsx` — TypeScript interface: `height?: string` → `height?: number`
+
+**Acceptance Criteria:**
+- [ ] `convex/participants.ts` return validator updated to `v.optional(v.float64())` for height
+- [ ] `convex/adminParticipants.ts` return validator updated to `v.optional(v.float64())` for height
+- [ ] `convex/testPurchase.ts` return validator updated to `v.optional(v.float64())` for height
+- [ ] `app/admin/participants/[participant_id]/page.tsx` TypeScript interface updated to `height?: number`
+- [ ] `/participant/[participant_id]` page loads without `ReturnsValidationError` for participants with a numeric height
+- [ ] Typecheck passes
+- [ ] Existing tests pass; add/update test verifying `getParticipantPageData` returns height as number

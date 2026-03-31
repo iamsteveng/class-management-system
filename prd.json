@@ -177,6 +177,22 @@
       ],
       "passes": true,
       "priority": 12
+    },
+    {
+      "id": "US-013",
+      "title": "Fix height type in all Convex validators and frontend types",
+      "description": "As a developer, I want all Convex validators and frontend TypeScript types for height to use number instead of string, so the participant page and admin panel do not throw ReturnsValidationError.",
+      "acceptanceCriteria": [
+        "convex/participants.ts: update getParticipantPageData return validator height from v.optional(v.string()) to v.optional(v.float64())",
+        "convex/adminParticipants.ts: update participant detail return validator height from v.optional(v.string()) to v.optional(v.float64())",
+        "convex/testPurchase.ts: update return validator height from v.optional(v.string()) to v.optional(v.float64())",
+        "app/admin/participants/[participant_id]/page.tsx: update TypeScript interface height?: string to height?: number",
+        "/participant/[participant_id] page loads without ReturnsValidationError for participants with numeric height",
+        "Typecheck passes",
+        "Tests pass; add/update test verifying getParticipantPageData returns height as number"
+      ],
+      "passes": false,
+      "priority": 13
     }
   ]
 }
