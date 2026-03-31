@@ -15,10 +15,9 @@ vi.mock('convex/values', () => {
   return { v };
 });
 
-// Mock Twilio lib — sendWhatsApp will be overridden per-test
-vi.mock('../../lib/twilio', () => ({
-  sendWhatsApp: vi.fn(),
-  getTwilioCredentialsFromConvexEnv: vi.fn().mockReturnValue(null),
+// Mock ManyChat lib — sendTermsAcceptanceWhatsApp will be overridden per-test
+vi.mock('../../lib/manychat', () => ({
+  sendTermsAcceptanceWhatsApp: vi.fn(),
 }));
 
 // Mock appBaseUrl lib
@@ -28,7 +27,7 @@ vi.mock('../../lib/appBaseUrl', () => ({
 }));
 
 import { sendPurchaseConfirmation } from '../../convex/purchaseConfirmation';
-import { sendWhatsApp } from '../../lib/twilio';
+import { sendTermsAcceptanceWhatsApp } from '../../lib/manychat';
 
 describe('TC-031 WhatsApp failure does not roll back purchase record', () => {
   let handler: (ctx: any, args: any) => Promise<any>;
@@ -38,13 +37,12 @@ describe('TC-031 WhatsApp failure does not roll back purchase record', () => {
     handler = (sendPurchaseConfirmation as any).handler;
   });
 
-  it('TC-031: updatePurchaseStatus mutation is NOT called when sendWhatsApp throws — purchase stays at pending_terms', async () => {
+  it('TC-031: updatePurchaseStatus mutation is NOT called when sendTermsAcceptanceWhatsApp returns false — purchase stays at pending_terms', async () => {
     const purchaseId = 'purchases:tc031-purchase-001';
     const orderId = 'TC031-ORDER-001';
 
-    // Simulate WhatsApp / Twilio failure
-    const whatsappError = new Error('Twilio error: network failure sending WhatsApp');
-    (sendWhatsApp as any).mockRejectedValue(whatsappError);
+    // Simulate ManyChat failure — returns false (subscriber not found or API error)
+    (sendTermsAcceptanceWhatsApp as any).mockResolvedValue(false);
 
     // Purchase exists in pending_terms state (already committed by the prior mutation)
     const mockPurchase = {
@@ -63,28 +61,19 @@ describe('TC-031 WhatsApp failure does not roll back purchase record', () => {
       runMutation: runMutationMock,
     };
 
-    // sendPurchaseConfirmation should propagate the WhatsApp error
-    let caughtError: Error | null = null;
-    try {
-      await handler(ctx, { purchase_id: purchaseId });
-    } catch (err) {
-      caughtError = err as Error;
-      // Caller would log the error with order_id for diagnostics
-      console.error(`[purchaseConfirmation] WhatsApp failed for order_id=${orderId}: ${err}`);
-    }
+    const result = await handler(ctx, { purchase_id: purchaseId });
 
-    // 1. The action threw (WhatsApp failure was not silently swallowed)
-    expect(caughtError).not.toBeNull();
-    expect(caughtError!.message).toContain('Twilio error');
+    // 1. The action returns { success: false } — WhatsApp failure is reflected
+    expect(result.success).toBe(false);
 
     // 2. updatePurchaseStatus mutation was NEVER called
     //    → purchase record stays committed at status='pending_terms'
     //    → no rollback: the purchase was persisted by the prior applyS3CsvRows mutation
     expect(runMutationMock).not.toHaveBeenCalled();
 
-    // 3. sendWhatsApp was called once (the failure point)
-    expect(sendWhatsApp).toHaveBeenCalledTimes(1);
-    expect(sendWhatsApp).toHaveBeenCalledWith(
+    // 3. sendTermsAcceptanceWhatsApp was called once with correct params
+    expect(sendTermsAcceptanceWhatsApp).toHaveBeenCalledTimes(1);
+    expect(sendTermsAcceptanceWhatsApp).toHaveBeenCalledWith(
       expect.objectContaining({ to: mockPurchase.customer_mobile })
     );
   });

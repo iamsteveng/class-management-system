@@ -3,10 +3,7 @@
 import { actionGeneric, makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 
-import {
-  getTwilioCredentialsFromConvexEnv,
-  sendWhatsApp,
-} from "../lib/twilio";
+import { sendTermsAcceptanceWhatsApp } from "../lib/manychat";
 import { buildTermsUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
 
 export const sendPurchaseConfirmation = actionGeneric({
@@ -35,16 +32,11 @@ export const sendPurchaseConfirmation = actionGeneric({
     }
 
     const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
-    const termsLink = buildTermsUrl(baseUrl, purchase.token);
-    const message = `你的訂單已確認！請點擊以下連結接受條款及選擇地點時間：${termsLink}\nYour purchase is confirmed! Please accept terms and select session: ${termsLink}`;
+    const termsUrl = buildTermsUrl(baseUrl, purchase.token);
 
-    const sent = await sendWhatsApp({
+    const sent = await sendTermsAcceptanceWhatsApp({
       to: purchase.customer_mobile,
-      message,
-      credentials:
-        getTwilioCredentialsFromConvexEnv({
-          get: (name) => process.env[name],
-        }) ?? undefined,
+      termsUrl,
     });
 
     if (sent) {
@@ -54,6 +46,10 @@ export const sendPurchaseConfirmation = actionGeneric({
           purchase_id: purchase._id,
           status: "confirmation_sent",
         }
+      );
+    } else {
+      console.error(
+        `[purchaseConfirmation] WhatsApp failed for order_id=${purchase.order_id ?? purchase._id}`
       );
     }
 

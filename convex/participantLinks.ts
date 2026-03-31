@@ -3,12 +3,8 @@
 import { actionGeneric } from "convex/server";
 import { v } from "convex/values";
 
-import {
-  getTwilioCredentialsFromConvexEnv,
-  sendWhatsApp,
-} from "../lib/twilio";
-import { resolveAppBaseUrl } from "../lib/appBaseUrl";
-
+// WhatsApp sending has been removed from this action (previously used Twilio).
+// Participant links are now communicated via the terms acceptance success page.
 export const sendParticipantLinks = actionGeneric({
   args: {
     customer_mobile: v.string(),
@@ -22,30 +18,6 @@ export const sendParticipantLinks = actionGeneric({
       return { success: false };
     }
 
-    const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
-    const participantLinks = args.participant_ids.map(
-      (participantId, index) =>
-        `${index + 1}. ${baseUrl}/participant/${encodeURIComponent(participantId)}`
-    );
-
-    const message =
-      participantLinks.length === 1
-        ? `你的參加者 QR 連結：${baseUrl}/participant/${encodeURIComponent(
-            args.participant_ids[0]
-          )}\nYour participant QR link: ${baseUrl}/participant/${encodeURIComponent(
-            args.participant_ids[0]
-          )}`
-        : `你的參加者 QR 連結：\n${participantLinks.join("\n")}\nYour participant QR links:\n${participantLinks.join("\n")}`;
-
-    const sent = await sendWhatsApp({
-      to: args.customer_mobile,
-      message,
-      credentials:
-        getTwilioCredentialsFromConvexEnv({
-          get: (name) => process.env[name],
-        }) ?? undefined,
-    });
-
-    return { success: sent };
+    return { success: true };
   },
 });
