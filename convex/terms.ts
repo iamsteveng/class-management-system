@@ -98,6 +98,7 @@ export const getTermsPageData = queryGeneric({
       }
     }
 
+    const now = new Date();
     const sessions = rawSessions
       .filter((session) => session.status === "scheduled")
       .map((session) => {
@@ -122,6 +123,7 @@ export const getTermsPageData = queryGeneric({
         };
       })
       .filter((session) => session.available_quota > 0)
+      .filter((session) => new Date(`${session.date}T${session.time}`) > now)
       .sort((left, right) => {
         const leftDateTime = `${left.date}T${left.time}`;
         const rightDateTime = `${right.date}T${right.time}`;
