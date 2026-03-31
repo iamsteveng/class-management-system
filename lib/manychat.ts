@@ -43,24 +43,38 @@ export async function sendTermsAcceptanceWhatsApp({
       }
     );
 
-    if (!findRes.ok) {
-      console.warn(
-        `[manychat] findBySystemField HTTP ${findRes.status} for phone ${to}`
-      );
-      return false;
-    }
+    const findData = findRes.ok ? await findRes.json() : null;
+    console.log(`[manychat] findBySystemField HTTP ${findRes.status} for phone ${to}: ${JSON.stringify(findData)}`);
 
-    const findData = await findRes.json();
-    console.log(`[manychat] findBySystemField response for phone ${to}: ${JSON.stringify(findData)}`);
-    if (!findData?.data?.id) {
-      console.warn(
-        `[manychat] Subscriber not found for phone ${to} — skipping WhatsApp send`
+    if (findRes.ok && findData?.data?.id) {
+      // Existing subscriber found
+      subscriberId = String(findData.data.id);
+      console.log(`[manychat] Found existing subscriber_id=${subscriberId} for phone ${to}`);
+    } else {
+      // Subscriber not found — create a new contact
+      console.log(`[manychat] Subscriber not found for phone ${to} — creating new contact`);
+      const createRes = await fetch(
+        `${MANYCHAT_API_BASE}/fb/subscriber/createSubscriber`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            whatsapp_phone: to,
+            consent_phrase: "Purchase confirmed",
+            has_opt_in_sms: false,
+            has_opt_in_email: false,
+          }),
+        }
       );
-      return false;
+      const createData = await createRes.json();
+      console.log(`[manychat] createSubscriber HTTP ${createRes.status} for phone ${to}: ${JSON.stringify(createData)}`);
+      if (!createRes.ok || !createData?.data?.id) {
+        console.error(`[manychat] Failed to create subscriber for phone ${to}`);
+        return false;
+      }
+      subscriberId = String(createData.data.id);
+      console.log(`[manychat] Created new subscriber_id=${subscriberId} for phone ${to}`);
     }
-
-    subscriberId = String(findData.data.id);
-    console.log(`[manychat] Resolved subscriber_id=${subscriberId} for phone ${to}`);
   } catch (err) {
     console.error(
       `[manychat] Error resolving subscriber for phone ${to}:`,
