@@ -1,3 +1,24 @@
 # Ralph Progress Log
 Started: Tue Mar 31 03:46:58 UTC 2026
 ---
+
+## Codebase Patterns
+- Unit test pattern: mock `convex/server` (mutationGeneric/queryGeneric return def), mock `convex/values` (Proxy noop), import function, access `.handler`, call with mock ctx
+- `acceptTermsByToken` in `convex/terms.ts` stores participant fields (height, age, etc.) directly from args — no internal transformation
+- Height parsing from form string to number happens in `app/terms/page.tsx` server action, not in the Convex mutation
+- Terms i18n labels in `app/i18n/termsTranslations.ts` — both `zh-TW` and `en` locales must be updated for bilingual labels
+
+---
+
+## 2026-03-31 - US-012
+- Changed `height` in `convex/schema.ts` participants table from `v.optional(v.string())` to `v.optional(v.number())`
+- Changed `height` arg type in `convex/terms.ts` acceptTermsByToken from `v.optional(v.string())` to `v.optional(v.number())`
+- Updated `app/terms/page.tsx` server action to parse height via `parseFloat` before passing to mutation
+- Changed height input in `app/terms/terms-form.tsx` from `type="text"` to `type="number" min={0}`
+- Updated `heightLabel` in both `zh-TW` and `en` locales of `app/i18n/termsTranslations.ts` to `身高（厘米）Height (cm)` (bilingual regardless of language)
+- Added unit test `tests/unit/tc-041.test.ts` verifying height is stored as a number in the participants table
+- **Learnings for future iterations:**
+  - The `parseFloat` conversion for height lives in `page.tsx` (server action), not in the Convex mutation — mutations receive typed values from callers
+  - Bilingual label requirement means both locale keys get the same combined string `身高（厘米）Height (cm)`
+  - Height placeholder updated to remove "cm" suffix since type=number fields don't accept text suffixes
+---

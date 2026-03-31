@@ -175,7 +175,7 @@
         "Typecheck passes",
         "Test added/updated to verify height is stored as a number in the purchase record"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 12
     }
   ]
