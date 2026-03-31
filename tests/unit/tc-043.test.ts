@@ -20,7 +20,7 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     const termsUrl = 'https://example.com/terms?token=abc123';
     const subscriberId = '9876543';
 
-    // First call: findBySystemField → returns subscriber
+    // First call: findBySystemField (E.164 with +) → returns subscriber
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: { id: subscriberId } }),
@@ -29,7 +29,7 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     // Second call: sendContent → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ status: 'success' }),
+      text: async () => '{"status":"success"}',
     });
 
     const result = await sendTermsAcceptanceWhatsApp({ to, termsUrl });
@@ -58,10 +58,22 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     expect(JSON.stringify(sendBody)).toContain('Terms acceptance');
   });
 
-  it('TC-043: returns false when subscriber not found', async () => {
+  it('TC-043: returns false when all subscriber lookup paths fail', async () => {
+    // 1. findBySystemField with + → not found
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
+    });
+    // 2. findBySystemField without + → not found
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ data: null }),
+    });
+    // 3. createSubscriber → fails (non-already-exists error)
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ status: 'error', message: 'Internal server error' }),
     });
 
     const result = await sendTermsAcceptanceWhatsApp({
@@ -70,7 +82,7 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
     });
 
     expect(result).toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('TC-043: returns false when MANYCHAT_API_KEY is missing', async () => {
@@ -86,10 +98,12 @@ describe('TC-043 US-018 sendTermsAcceptanceWhatsApp calls correct ManyChat endpo
   });
 
   it('TC-043: returns false when sendContent HTTP call fails', async () => {
+    // findBySystemField with + → found immediately
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: { id: '111' } }),
     });
+    // sendContent → error
     fetchMock.mockResolvedValueOnce({
       ok: false,
       status: 500,
