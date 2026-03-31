@@ -162,6 +162,21 @@
       ],
       "passes": true,
       "priority": 11
+    },
+    {
+      "id": "US-012",
+      "title": "Change height field to number type and update bilingual label",
+      "description": "As a customer, I want the height field to accept a number in centimetres with a clear bilingual label, so the expected format is unambiguous.",
+      "acceptanceCriteria": [
+        "In convex/schema.ts, change height in the participants table from v.optional(v.string()) to v.optional(v.number())",
+        "In convex/terms.ts acceptTermsByToken, parse submitted height as a number (parseFloat) before storing; store undefined if not a valid number",
+        "In app/terms/terms-form.tsx, change height input type from text to number with min=0",
+        "Update height field label in i18n translations to display: \u8eab\u9ad8\uff08\u5398\u7c73\uff09 Height (cm) \u2014 shown bilingually regardless of selected language",
+        "Typecheck passes",
+        "Test added/updated to verify height is stored as a number in the purchase record"
+      ],
+      "passes": false,
+      "priority": 12
     }
   ]
 }

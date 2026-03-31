@@ -232,3 +232,19 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 ### Functional Requirements (additions)
 - FR-15: Sessions shown in terms acceptance form must have `date+time > now` (upcoming only)
 - FR-16: If purchase has no `class_id`, return empty sessions array (do not fall back to all sessions)
+
+---
+
+## Amendment: Height Field Type and Label (2026-03-31)
+
+### US-012: Change height field to number type and update label
+**Description:** As a customer filling in the terms acceptance form, I want the height field to accept a numeric value in centimetres with a clear bilingual label, so there is no ambiguity about the unit or format expected.
+
+**Acceptance Criteria:**
+- [ ] In `convex/schema.ts`, change `height` field in `participants` table from `v.optional(v.string())` to `v.optional(v.number())`
+- [ ] In `convex/terms.ts` `acceptTermsByToken`, parse the submitted height value as a number (`parseFloat` or `Number()`) before storing; if not a valid number, store `undefined`
+- [ ] In `app/terms/terms-form.tsx`, change the height input `type` from `text` to `number` and set `min="0"`
+- [ ] Update the height field label in the i18n translations to display `身高（厘米） / Height (cm)` bilingually
+- [ ] The label must show in both Chinese and English regardless of selected language — format: `身高（厘米） Height (cm)`
+- [ ] Typecheck passes
+- [ ] Test added or updated to verify height is stored as a number
