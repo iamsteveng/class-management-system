@@ -9,8 +9,11 @@
 //      2b. findBySystemField(whatsapp_phone, digits only, no +) [final fallback]
 //
 // Sending flow (US-021):
-//   1. setCustomFieldByName (cuf_14438749 = termsUrl)
+//   1. setCustomFields (plural endpoint, field_id: 14438749 = termsUrl)
 //   2. sendFlow with TERMS_FLOW_NS
+//
+// Note: createSubscriber requires phone import permission enabled on ManyChat account.
+// Fields: phone, has_opt_in_whatsapp: true, consent_phrase
 
 const MANYCHAT_API_BASE = "https://api.manychat.com";
 const TERMS_URL_FIELD = "cuf_14438749";
@@ -135,11 +138,11 @@ export async function sendTermsAcceptanceWhatsApp({
           method: "POST",
           headers,
           body: JSON.stringify({
-            whatsapp_phone: to,
             phone: to,
-            consent_phrase: "Purchase confirmed",
+            has_opt_in_whatsapp: true,
             has_opt_in_sms: false,
             has_opt_in_email: false,
+            consent_phrase: "User agreed to receive WhatsApp messages",
           }),
         }
       );
@@ -199,27 +202,31 @@ export async function sendTermsAcceptanceWhatsApp({
     }
   }
 
-  // ── Step 2: Set custom field (terms URL) ─────────────────────────────────
+  // ── Step 2: Set custom field (terms URL) via setCustomFields (plural) ───────
   try {
     const setFieldRes = await fetch(
-      `${MANYCHAT_API_BASE}/fb/subscriber/setCustomFieldByName`,
+      `${MANYCHAT_API_BASE}/fb/subscriber/setCustomFields`,
       {
         method: "POST",
         headers,
         body: JSON.stringify({
-          subscriber_id: subscriberId,
-          field_name: TERMS_URL_FIELD,
-          field_value: termsUrl,
+          subscriber_id: Number(subscriberId),
+          fields: [
+            {
+              field_id: Number(TERMS_URL_FIELD.replace("cuf_", "")),
+              field_value: termsUrl,
+            },
+          ],
         }),
       }
     );
     const setFieldBody = await setFieldRes.text();
     console.log(
-      `[manychat] setCustomFieldByName response: status=${setFieldRes.status} body=${setFieldBody}`
+      `[manychat] setCustomFields response: status=${setFieldRes.status} body=${setFieldBody}`
     );
     if (!setFieldRes.ok) {
       console.error(
-        `[manychat] setCustomFieldByName HTTP ${setFieldRes.status} for subscriber ${subscriberId}: ${setFieldBody}`
+        `[manychat] setCustomFields HTTP ${setFieldRes.status} for subscriber ${subscriberId}: ${setFieldBody}`
       );
       return false;
     }
