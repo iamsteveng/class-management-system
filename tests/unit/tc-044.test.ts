@@ -8,7 +8,7 @@ import { sendTermsAcceptanceWhatsApp } from '../../lib/manychat';
  * the function must extract wa_id from the error body and retry
  * findBySystemField lookups before giving up.
  *
- * US-021: after resolving subscriber ID, sends via setCustomFieldByName + sendFlow.
+ * US-021: after resolving subscriber ID, sends via setCustomFields + sendFlow.
  */
 describe('TC-044 US-019 ManyChat already-exists error path', () => {
   let fetchMock: ReturnType<typeof vi.fn>;
@@ -31,7 +31,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const subscriberId = '55551234';
     const termsUrl = 'https://example.com/terms?token=us019';
 
-    // 1. findBySystemField(phone, E.164) → not found (US-020: uses phone field)
+    // 1. findBySystemField(whatsapp_phone, E.164) → not found (US-020: uses whatsapp_phone field)
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
@@ -54,7 +54,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // 4. setCustomFieldByName → success
+    // 4. setCustomFields → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -74,7 +74,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     // Verify initial lookup used phone field (US-020)
     const initialCall = fetchMock.mock.calls[0];
     const initialBody = JSON.parse(initialCall[1].body);
-    expect(initialBody.field_name).toBe('phone');
+    expect(initialBody.field_name).toBe('whatsapp_phone');
 
     // Verify wa_id lookup was attempted
     const waIdCall = fetchMock.mock.calls[2];
@@ -82,13 +82,13 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     expect(waIdBody.field_name).toBe('wa_id');
     expect(waIdBody.field_value).toBe(phoneDigits); // no + prefix
 
-    // Verify setCustomFieldByName called with correct args (US-021)
+    // Verify setCustomFields called with correct args (US-021)
     const setFieldCall = fetchMock.mock.calls[3];
-    expect(setFieldCall[0]).toContain('/fb/subscriber/setCustomFieldByName');
+    expect(setFieldCall[0]).toContain('/fb/subscriber/setCustomFields');
     const setFieldBody = JSON.parse(setFieldCall[1].body);
-    expect(setFieldBody.subscriber_id).toBe(subscriberId);
-    expect(setFieldBody.field_name).toBe('cuf_14438749');
-    expect(setFieldBody.field_value).toBe(termsUrl);
+    expect(setFieldBody.subscriber_id).toBe(Number(subscriberId));
+    expect(setFieldBody.fields[0].field_id).toBe(14438749);
+    expect(setFieldBody.fields[0].field_value).toBe(termsUrl);
 
     // Verify sendFlow used the resolved subscriber ID (US-021)
     const sendCall = fetchMock.mock.calls[4];
@@ -104,7 +104,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const subscriberId = '99998888';
     const termsUrl = 'https://example.com/terms?token=us019-fallback';
 
-    // 1. findBySystemField(phone, +phone) → not found (US-020: uses phone field)
+    // 1. findBySystemField(phone, +phone) → not found (US-020: uses whatsapp_phone field)
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
@@ -133,7 +133,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // 5. setCustomFieldByName → success
+    // 5. setCustomFields → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -161,7 +161,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     const phoneDigits = '85262875094';
     const termsUrl = 'https://example.com/terms?token=us019-allfail';
 
-    // 1. findBySystemField(phone, +phone) → not found (US-020: uses phone field)
+    // 1. findBySystemField(phone, +phone) → not found (US-020: uses whatsapp_phone field)
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ data: null }),
@@ -195,7 +195,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
-  it('TC-044: createSubscriber body includes both phone and whatsapp_phone fields (US-020)', async () => {
+  it('TC-044: createSubscriber body uses whatsapp_phone field (confirmed with ManyChat support)', async () => {
     const to = '+85262875094';
     const subscriberId = '77776666';
     const termsUrl = 'https://example.com/terms?token=us020-create-fields';
@@ -212,7 +212,7 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
       json: async () => ({ data: { id: subscriberId } }),
     });
 
-    // 3. setCustomFieldByName → success
+    // 3. setCustomFields → success
     fetchMock.mockResolvedValueOnce({
       ok: true,
       text: async () => '{"status":"success"}',
@@ -229,9 +229,9 @@ describe('TC-044 US-019 ManyChat already-exists error path', () => {
     expect(result).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(4);
 
-    // Verify createSubscriber includes both phone and whatsapp_phone (US-020)
+    // Verify createSubscriber uses whatsapp_phone (confirmed with ManyChat support)
     const createBody = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(createBody.phone).toBe(to);
     expect(createBody.whatsapp_phone).toBe(to);
+    expect(createBody.has_opt_in_whatsapp).toBe(true);
   });
 });
