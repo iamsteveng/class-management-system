@@ -328,7 +328,7 @@
         "Use the LanguageProvider / useLanguage context already present on the page",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 22
     },
     {
@@ -340,7 +340,7 @@
         "Update qrCodeNote en: After confirming your class session and accepting the terms, your QR code will be available on this page.",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 23
     },
     {
