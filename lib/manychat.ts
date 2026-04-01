@@ -12,8 +12,8 @@
 //   1. setCustomFields (plural endpoint, field_id: 14438749 = termsUrl)
 //   2. sendFlow with TERMS_FLOW_NS
 //
-// Note: createSubscriber requires phone import permission enabled on ManyChat account.
-// Fields: phone, has_opt_in_whatsapp: true, consent_phrase
+// Note: createSubscriber uses whatsapp_phone (confirmed with ManyChat support).
+// Fields: whatsapp_phone, has_opt_in_whatsapp: true, consent_phrase
 
 const MANYCHAT_API_BASE = "https://api.manychat.com";
 const TERMS_URL_FIELD = "cuf_14438749";
@@ -123,8 +123,8 @@ export async function sendTermsAcceptanceWhatsApp({
 
   let subscriberId: string | null = null;
 
-  // 1. findBySystemField with phone field (US-020: phone is reliably set at creation)
-  subscriberId = await findSubscriberByField("phone", to, headers);
+  // 1. findBySystemField with whatsapp_phone (confirmed with ManyChat support)
+  subscriberId = await findSubscriberByField("whatsapp_phone", to, headers);
 
   // 2. Not found — try createSubscriber
   if (!subscriberId) {
@@ -138,7 +138,7 @@ export async function sendTermsAcceptanceWhatsApp({
           method: "POST",
           headers,
           body: JSON.stringify({
-            phone: to,
+            whatsapp_phone: to,
             has_opt_in_whatsapp: true,
             has_opt_in_sms: false,
             has_opt_in_email: false,
