@@ -7,6 +7,14 @@ Started: Wed Apr  1 10:02:34 UTC 2026
 - For bilingual client components in `app/terms/`, import `useLanguage` from `../contexts/LanguageContext` and `termsTranslations` from `../i18n/termsTranslations`
 - Server components (page.tsx) can't use useLanguage directly — extract sections that need language context into separate client components
 
+## 2026-04-01 - US-024
+- What was implemented: Downloaded favicon from mart-uat.loco.hk/image/catalog/favicon.ico; updated page title in app/layout.tsx to 樂區單車安全學院
+- Files changed: app/favicon.ico (replaced), app/layout.tsx (title updated)
+- **Learnings for future iterations:**
+  - Next.js uses app/favicon.ico automatically — no explicit import needed
+  - Page title lives in `export const metadata: Metadata` in app/layout.tsx
+---
+
 ## 2026-04-01 - US-023
 - What was implemented: Updated qrCodeNote translation strings in both zh-TW and en to say QR code is available on this page (not via WhatsApp)
 - Files changed: app/i18n/termsTranslations.ts

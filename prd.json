@@ -353,7 +353,7 @@
         "Favicon imported into source code, not referenced as external URL",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 24
     }
   ]
