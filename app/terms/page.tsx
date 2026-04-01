@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { TermsForm } from "./terms-form";
 import { TermsSuccessContent } from "./TermsSuccessContent";
+import { PurchaseDetailsSection } from "./PurchaseDetailsSection";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 import { LanguageProvider } from "../components/LanguageProvider";
 import { LanguageToggleHeader } from "../components/LanguageToggleHeader";
@@ -143,23 +144,11 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
     <LanguageProvider>
       <LanguageToggleHeader />
       <main className="mx-auto min-h-screen w-full max-w-3xl space-y-6 px-4 py-8">
-        <section className="rounded-xl border border-zinc-200 p-5">
-          <h2 className="text-lg font-medium text-zinc-900">購買詳情 / Purchase details</h2>
-          <dl className="mt-3 grid gap-2 text-sm text-zinc-700">
-            <div>
-              <dt className="font-medium text-zinc-900">客戶手機 / Customer mobile</dt>
-              <dd>{pageData.customer_mobile}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-zinc-900">參加者人數 / Participants</dt>
-              <dd>{pageData.participant_count}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-zinc-900">課程 / Class</dt>
-              <dd>{pageData.class_name ?? "將根據所選時段確定 / Will be selected based on your chosen session"}</dd>
-            </div>
-          </dl>
-        </section>
+        <PurchaseDetailsSection
+          customer_mobile={pageData.customer_mobile}
+          participant_count={pageData.participant_count}
+          class_name={pageData.class_name}
+        />
 
         <section className="rounded-xl border border-zinc-200 p-5">
           <h2 className="text-lg font-medium text-zinc-900">
