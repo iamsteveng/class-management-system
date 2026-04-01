@@ -463,3 +463,40 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] Remove the old `sendContent` code and `TERMS_TEMPLATE_NAME` constant
 - [ ] Typecheck passes
 - [ ] Test updated to verify `setCustomFieldByName` and `sendFlow` are called with correct args
+
+---
+
+## Amendment: Terms page bilingual purchase details, updated QR note, favicon + page title (2026-04-01)
+
+### US-022: Make purchase details section on /terms page bilingual
+
+**Description:** As a customer, I want the purchase details section labels on the terms page to display in my selected language, following the same language toggle as the rest of the page.
+
+**Acceptance Criteria:**
+- [ ] In `app/terms/page.tsx`, the "Purchase details" section heading and field labels (`customer_mobile`, `participant_count`, `class_name`) must use i18n translations from `termsTranslations` via the `useLanguage` context (same as the form below it)
+- [ ] The section currently has hardcoded bilingual strings like `"購買詳情 / Purchase details"` — replace with language-specific strings from `tr.purchaseDetails`, `tr.customerMobileLabel`, `tr.participantsLabel`, `tr.classLabel`, `tr.classNotSelected`
+- [ ] Since `page.tsx` is a Server Component, pass the purchase details section as a Client Component or pass translations as props to the existing `TermsForm` component
+- [ ] Typecheck passes
+
+### US-023: Update QR code note wording on /terms page
+
+**Description:** As a customer, I want the note about the QR code to reflect that I will see it on the same page (not receive it via a second WhatsApp message).
+
+**Acceptance Criteria:**
+- [ ] Update `qrCodeNote` in `app/i18n/termsTranslations.ts` for `zh-TW`:
+  - Old: `確認課程時段並接受條款後，你將透過 WhatsApp 收到 QR 碼。`
+  - New: `確認課程時段並接受條款後，你可在此頁面取得 QR 碼。`
+- [ ] Update `qrCodeNote` for `en`:
+  - Old: `After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message.`
+  - New: `After confirming your class session and accepting the terms, your QR code will be available on this page.`
+- [ ] Typecheck passes
+
+### US-024: Update favicon and page title
+
+**Description:** As an admin, I want the site to use the correct favicon and page title to match the brand.
+
+**Acceptance Criteria:**
+- [ ] Download favicon from `https://mart-uat.loco.hk/image/catalog/favicon.ico` and save to `app/favicon.ico` (replacing the existing one)
+- [ ] Update page title in `app/layout.tsx` from `"Create Next App"` to `"樂區單車安全學院"`
+- [ ] The favicon must be imported into the source code (not referenced as an external URL)
+- [ ] Typecheck passes

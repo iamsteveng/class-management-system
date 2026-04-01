@@ -318,6 +318,43 @@
       ],
       "passes": true,
       "priority": 21
+    },
+    {
+      "id": "US-022",
+      "title": "Make purchase details section on /terms page bilingual",
+      "description": "As a customer, I want the purchase details section labels to display in my selected language.",
+      "acceptanceCriteria": [
+        "In app/terms/page.tsx, replace hardcoded bilingual strings in the purchase details section with i18n translations from termsTranslations (tr.purchaseDetails, tr.customerMobileLabel, tr.participantsLabel, tr.classLabel, tr.classNotSelected)",
+        "Use the LanguageProvider / useLanguage context already present on the page",
+        "Typecheck passes"
+      ],
+      "passes": false,
+      "priority": 22
+    },
+    {
+      "id": "US-023",
+      "title": "Update QR code note wording on /terms page",
+      "description": "As a customer, I want the QR code note to say the QR code is available on this page, not via WhatsApp.",
+      "acceptanceCriteria": [
+        "Update qrCodeNote zh-TW: \u78ba\u8a8d\u8ab2\u7a0b\u6642\u6bb5\u4e26\u63a5\u53d7\u689d\u6b3e\u5f8c\uff0c\u4f60\u53ef\u5728\u6b64\u9801\u9762\u53d6\u5f97 QR \u78bc\u3002",
+        "Update qrCodeNote en: After confirming your class session and accepting the terms, your QR code will be available on this page.",
+        "Typecheck passes"
+      ],
+      "passes": false,
+      "priority": 23
+    },
+    {
+      "id": "US-024",
+      "title": "Update favicon and page title",
+      "description": "As an admin, I want the site to use the correct favicon and page title.",
+      "acceptanceCriteria": [
+        "Download favicon from https://mart-uat.loco.hk/image/catalog/favicon.ico and save to app/favicon.ico (replacing existing)",
+        "Update page title in app/layout.tsx to \u6a02\u5340\u55ae\u8eca\u5b89\u5168\u5b78\u9662",
+        "Favicon imported into source code, not referenced as external URL",
+        "Typecheck passes"
+      ],
+      "passes": false,
+      "priority": 24
     }
   ]
 }
