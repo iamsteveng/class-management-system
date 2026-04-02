@@ -375,6 +375,24 @@
       ],
       "passes": true,
       "priority": 25
+    },
+    {
+      "id": "US-026",
+      "title": "Split CSV row with qty > 1 into multiple purchase records",
+      "description": "As a customer purchasing multiple participant slots, I want to receive a separate WhatsApp terms acceptance message for each slot, each with its own unique terms URL.",
+      "acceptanceCriteria": [
+        "Add slot_index: v.optional(v.number()) to purchases table in convex/schema.ts",
+        "Add index by_order_class_slot on [\"order_id\", \"class_id\", \"slot_index\"] to purchases table",
+        "Update convex/purchases.ts createPurchase: accept slot_index argument (default 0); use by_order_class_slot for duplicate detection; store slot_index on record",
+        "Update convex/s3IngestionMutations.ts applyS3CsvRows: for each CSV row, loop participant_count times; call createPurchase once per slot with slot_index=i and participant_count=1; all slots share same order_id, customer_mobile, class_id, purchase_datetime",
+        "sendPurchaseConfirmation and s3Ingestion require no changes",
+        "Existing qty=1 records remain idempotent \u2014 no migration needed",
+        "Typecheck passes",
+        "Test: CSV row with qty=2 produces 2 purchase records each with participant_count=1 and distinct tokens",
+        "Test: reprocessing same file does not create duplicate records (idempotency with slot_index)"
+      ],
+      "passes": false,
+      "priority": 26
     }
   ]
 }

@@ -555,3 +555,34 @@ manychat_subscribers: defineTable({
   - Verify new subscriber ID is saved to `manychat_subscribers` after `createSubscriber`
   - Verify 400 "already exists" without stored ID logs error and returns false
   - Verify `whatsapp_errors` incremented in ingestion run on WhatsApp failure
+
+---
+
+## Amendment: Split purchase by participant count (qty > 1) (2026-04-02)
+
+### US-026: Split CSV row with qty > 1 into multiple purchase records
+
+**Description:** As a customer who purchases multiple participant slots in one order, I want to receive a separate WhatsApp terms acceptance message for each participant slot, each with its own unique terms URL.
+
+**Approach:** Split one CSV row with `qty: N` into N separate purchase records at ingestion time, each with `participant_count: 1` and a unique `token`. The existing `sendPurchaseConfirmation` loop already handles one WhatsApp per purchase — no changes needed there.
+
+**Schema changes:**
+- Add `slot_index: v.optional(v.number())` to `purchases` table — identifies which slot within the order (0-based: 0, 1, 2...)
+- Add composite index `by_order_class_slot` on `["order_id", "class_id", "slot_index"]` for duplicate detection
+
+**Acceptance Criteria:**
+- [ ] Add `slot_index: v.optional(v.number())` to `purchases` table in `convex/schema.ts`
+- [ ] Add index `by_order_class_slot` on `["order_id", "class_id", "slot_index"]` to `purchases` table
+- [ ] Update `convex/purchases.ts createPurchase`:
+  - Accept `slot_index: v.optional(v.number())` argument (default 0)
+  - Change duplicate detection to use `by_order_class_slot` index: `order_id + class_id + slot_index`
+  - Store `slot_index` on the purchase record
+- [ ] Update `convex/s3IngestionMutations.ts applyS3CsvRows`:
+  - For each CSV row, loop `participant_count` times (0 to qty-1)
+  - Call `createPurchase` once per slot, passing `slot_index: i` and `participant_count: 1`
+  - All slots share the same `order_id`, `customer_mobile`, `class_id`, `purchase_datetime`
+- [ ] `sendPurchaseConfirmation` and `s3Ingestion` — no changes needed (loop already handles multiple purchase_ids)
+- [ ] Existing qty=1 records (slot_index: null/0) remain idempotent — no migration needed
+- [ ] Typecheck passes
+- [ ] Test added: CSV row with qty=2 produces 2 purchase records each with participant_count=1 and distinct tokens
+- [ ] Test added: reprocessing same file does not create duplicate records (idempotency with slot_index)
