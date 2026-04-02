@@ -35,17 +35,23 @@ export const createPurchase = mutationGeneric({
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
     purchase_datetime: v.string(),
+    slot_index: v.optional(v.number()),
   },
   returns: v.id("purchases"),
   handler: async (ctx, args) => {
-    // Duplicate detection: same order_id + class_id
+    const effectiveSlotIndex = args.slot_index ?? 0;
+
+    // Duplicate detection: same order_id + class_id + slot_index
     const existing = await ctx.db
       .query("purchases")
-      .withIndex("by_order_id", (q) => q.eq("order_id", args.order_id))
+      .withIndex("by_order_class_slot", (q) => q.eq("order_id", args.order_id))
       .filter((q) =>
-        args.class_id
-          ? q.eq(q.field("class_id"), args.class_id)
-          : q.eq(q.field("class_id"), undefined)
+        q.and(
+          args.class_id
+            ? q.eq(q.field("class_id"), args.class_id)
+            : q.eq(q.field("class_id"), undefined),
+          q.eq(q.field("slot_index"), effectiveSlotIndex)
+        )
       )
       .first();
 
@@ -64,6 +70,7 @@ export const createPurchase = mutationGeneric({
       source: args.source,
       unit_price: args.unit_price,
       total_price: args.total_price,
+      slot_index: effectiveSlotIndex,
       created_at: Date.now(),
     });
   },

@@ -67,38 +67,47 @@ export const applyS3CsvRows = mutationGeneric({
     const purchaseIds: Id<"purchases">[] = [];
 
     for (const row of args.rows) {
-      // Duplicate detection: same order_id + class_id
-      const existing = await ctx.db
-        .query("purchases")
-        .withIndex("by_order_id", (q) => q.eq("order_id", row.order_id))
-        .filter((q) =>
-          row.class_id
-            ? q.eq(q.field("class_id"), row.class_id)
-            : q.eq(q.field("class_id"), undefined)
-        )
-        .first();
+      // For each slot (one per participant count), create a separate purchase record
+      for (let slotIndex = 0; slotIndex < row.participant_count; slotIndex++) {
+        // Duplicate detection: same order_id + class_id + slot_index
+        const existing = await ctx.db
+          .query("purchases")
+          .withIndex("by_order_class_slot", (q) =>
+            q.eq("order_id", row.order_id)
+          )
+          .filter((q) =>
+            q.and(
+              row.class_id
+                ? q.eq(q.field("class_id"), row.class_id)
+                : q.eq(q.field("class_id"), undefined),
+              q.eq(q.field("slot_index"), slotIndex)
+            )
+          )
+          .first();
 
-      if (existing) {
-        skipped += 1;
-        continue;
+        if (existing) {
+          skipped += 1;
+          continue;
+        }
+
+        const purchaseId = await ctx.db.insert("purchases", {
+          order_id: row.order_id,
+          customer_mobile: row.customer_mobile,
+          purchase_datetime: row.purchase_datetime,
+          participant_count: 1,
+          status: "pending_terms",
+          token: crypto.randomUUID(),
+          class_id: row.class_id,
+          source: "s3",
+          unit_price: row.unit_price,
+          total_price: row.total_price,
+          slot_index: slotIndex,
+          created_at: now,
+        });
+
+        purchaseIds.push(purchaseId);
+        inserted += 1;
       }
-
-      const purchaseId = await ctx.db.insert("purchases", {
-        order_id: row.order_id,
-        customer_mobile: row.customer_mobile,
-        purchase_datetime: row.purchase_datetime,
-        participant_count: row.participant_count,
-        status: "pending_terms",
-        token: crypto.randomUUID(),
-        class_id: row.class_id,
-        source: "s3",
-        unit_price: row.unit_price,
-        total_price: row.total_price,
-        created_at: now,
-      });
-
-      purchaseIds.push(purchaseId);
-      inserted += 1;
     }
 
     return { rows_inserted: inserted, rows_skipped: skipped, purchase_ids: purchaseIds };

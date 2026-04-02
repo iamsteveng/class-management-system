@@ -20,11 +20,13 @@ export default defineSchema({
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
     manychat_subscriber_id: v.optional(v.string()),
+    slot_index: v.optional(v.number()),
     created_at: v.number(),
   })
     .index("by_order_id", ["order_id"])
     .index("by_token", ["token"])
-    .index("by_order_class", ["order_id", "class_id"]),
+    .index("by_order_class", ["order_id", "class_id"])
+    .index("by_order_class_slot", ["order_id", "class_id", "slot_index"]),
 
   participants: defineTable({
     participant_id: v.string(),
