@@ -1,3 +1,15 @@
 # Ralph Progress Log
 Started: Thu Apr  2 08:11:32 UTC 2026
 ---
+
+## 2026-04-02 - US-026
+- Added `slot_index: v.optional(v.number())` to purchases table in schema
+- Added `.index("by_order_class_slot", ["order_id", "class_id", "slot_index"])` to purchases table
+- Updated `createPurchase` to accept `slot_index` arg (default 0), use `by_order_class_slot` index for dup detection, store `slot_index` on record
+- Updated `applyS3CsvRows` to loop `participant_count` times per row, creating one purchase per slot with `participant_count=1` and `slot_index=i`
+- Added 4 unit tests in `tests/unit/tc-026.test.ts`
+- Files changed: `convex/schema.ts`, `convex/purchases.ts`, `convex/s3IngestionMutations.ts`, `tests/unit/tc-026.test.ts`
+- **Learnings for future iterations:**
+  - Multi-field index chaining (`.eq().eq()`) doesn't work with `mutationGeneric` — use first field in `withIndex` callback and `.filter()` for additional fields
+  - Unit test mocks for chained queries need to match the full chain: `withIndex().filter().first()`
+---

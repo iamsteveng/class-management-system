@@ -391,7 +391,7 @@
         "Test: CSV row with qty=2 produces 2 purchase records each with participant_count=1 and distinct tokens",
         "Test: reprocessing same file does not create duplicate records (idempotency with slot_index)"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 26
     }
   ]
