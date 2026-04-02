@@ -1,3 +1,36 @@
+## Codebase Patterns
+- `lib/manychat.ts` `sendTermsAcceptanceWhatsApp` now returns `{success, subscriberId}` (not boolean) — callers must destructure
+- `applyS3CsvRows` mutation no longer schedules WhatsApp; returns `purchase_ids[]` for the calling action to process
+- `processS3File` action sends WhatsApp per-purchase synchronously and returns `whatsapp_errors` count
+- `manychat_subscribers` table caches phone → subscriber_id; query via `manychatSubscribers:getByPhone` before sending
+- Import `Id` type in Convex mutations from `"./_generated/dataModel"` when explicit typing is needed
+---
+
 # Ralph Progress Log
 Started: Thu Apr  2 04:35:34 UTC 2026
+---
+
+## 2026-04-02 - US-025
+- What was implemented:
+  - Added `manychat_subscribers` table to schema (phone → subscriber_id cache, indexed by_whatsapp_phone)
+  - Added `manychat_subscriber_id` field to purchases table (for auditing)
+  - Added `whatsapp_errors` field to ingestion_runs table
+  - Created `convex/manychatSubscribers.ts` with `getByPhone` query and `upsertSubscriber` mutation
+  - Added `updateManychatSubscriberId` mutation to `convex/purchases.ts`
+  - Simplified `lib/manychat.ts`: removed findBySystemField/extractWaId/wa_id fallback chain; new flow accepts optional `subscriberId` param and returns `{success, subscriberId}`; 400 already-exists without stored ID → log error + return false
+  - Updated `convex/purchaseConfirmation.ts`: looks up stored subscriber ID via `manychatSubscribers:getByPhone` before send; after success saves to `manychat_subscribers` and `purchases.manychat_subscriber_id`
+  - Updated `convex/s3IngestionMutations.ts`: removed `ctx.scheduler.runAfter` WhatsApp scheduling; `applyS3CsvRows` now returns `purchase_ids[]`; `recordIngestionRun` accepts `whatsapp_errors` and sets status to partial if > 0
+  - Updated `convex/s3Ingestion.ts`: `processS3File` sends WhatsApp per-purchase synchronously, tracks whatsapp_errors; `pollS3ForNewFiles` accumulates whatsapp_errors and includes in status determination
+  - Updated tc-043, tc-044 to match new interface; added tc-045 for US-025 specific behaviour
+- Files changed:
+  - convex/schema.ts, convex/purchases.ts, convex/purchaseConfirmation.ts
+  - convex/s3IngestionMutations.ts, convex/s3Ingestion.ts
+  - convex/manychatSubscribers.ts (new)
+  - lib/manychat.ts
+  - tests/unit/tc-043.test.ts, tests/unit/tc-044.test.ts, tests/unit/tc-045.test.ts (new)
+- **Learnings for future iterations:**
+  - `lib/manychat.ts` now returns `{success, subscriberId}` — not a boolean. Any caller expecting boolean will break.
+  - `applyS3CsvRows` no longer schedules WhatsApp sends — that logic moved to `processS3File` action. WhatsApp errors are now tracked per ingestion run.
+  - When declaring `Id<"purchases">[]` arrays in `mutationGeneric`, import `Id` from `./_generated/dataModel` — the inferred type from `ctx.db.insert` is too generic without it.
+  - ManyChat subscriber ID caching: always query `manychatSubscribers:getByPhone` before calling `sendTermsAcceptanceWhatsApp` to avoid redundant `createSubscriber` calls.
 ---

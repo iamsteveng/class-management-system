@@ -373,7 +373,7 @@
         "Typecheck passes",
         "Tests: verify stored ID used on repeat sends; verify new ID saved after createSubscriber; verify 400 already-exists logs error and returns false; verify whatsapp_errors incremented on failure"
       ],
-      "passes": false,
+      "passes": true,
       "priority": 25
     }
   ]
