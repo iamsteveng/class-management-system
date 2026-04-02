@@ -2,6 +2,23 @@ import { mutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
 /**
+ * Patch the manychat_subscriber_id on a purchase record for auditing.
+ */
+export const updateManychatSubscriberId = mutationGeneric({
+  args: {
+    purchase_id: v.id("purchases"),
+    manychat_subscriber_id: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.purchase_id, {
+      manychat_subscriber_id: args.manychat_subscriber_id,
+    });
+    return null;
+  },
+});
+
+/**
  * Shared mutation: creates a purchase record.
  * Used by both S3 ingestion and the future direct payment gateway.
  *

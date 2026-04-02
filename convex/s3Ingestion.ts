@@ -127,6 +127,7 @@ export const processS3File = actionGeneric({
   returns: v.object({
     rows_inserted: v.number(),
     rows_skipped: v.number(),
+    whatsapp_errors: v.number(),
   }),
   handler: async (ctx, args) => {
     const s3 = createS3Client();
@@ -182,7 +183,7 @@ export const processS3File = actionGeneric({
 
     console.log(`[s3Ingestion:processS3File] Mapped ${mappedRows.length} rows, skipped ${skippedUnknownProduct} unknown products`);
     // Insert rows via mutation
-    let insertResult = { rows_inserted: 0, rows_skipped: skippedUnknownProduct };
+    let insertResult = { rows_inserted: 0, rows_skipped: skippedUnknownProduct, purchase_ids: [] as string[] };
     if (mappedRows.length > 0) {
       const result = await ctx.runMutation(
         makeFunctionReference<"mutation">("s3IngestionMutations:applyS3CsvRows"),
@@ -191,10 +192,34 @@ export const processS3File = actionGeneric({
       insertResult = {
         rows_inserted: result.rows_inserted,
         rows_skipped: result.rows_skipped + skippedUnknownProduct,
+        purchase_ids: result.purchase_ids as string[],
       };
     }
 
     console.log(`[s3Ingestion:processS3File] Insert complete. rows_inserted=${insertResult.rows_inserted} rows_skipped=${insertResult.rows_skipped}`);
+
+    // Send WhatsApp term acceptance messages for newly inserted purchases (US-007)
+    // Done here (in the action) so failures can be tracked per ingestion run (US-025)
+    let whatsappErrors = 0;
+    for (const purchase_id of insertResult.purchase_ids) {
+      try {
+        const sendResult = await ctx.runAction(
+          makeFunctionReference<"action">(
+            "purchaseConfirmation:sendPurchaseConfirmation"
+          ),
+          { purchase_id }
+        );
+        if (!sendResult.success) {
+          whatsappErrors += 1;
+          console.warn(`[s3Ingestion:processS3File] WhatsApp failed for purchase_id=${purchase_id}`);
+        }
+      } catch (err) {
+        whatsappErrors += 1;
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        console.error(`[s3Ingestion:processS3File] WhatsApp error for purchase_id=${purchase_id}: ${msg}`);
+      }
+    }
+    console.log(`[s3Ingestion:processS3File] WhatsApp sends complete. errors=${whatsappErrors}`);
     // Move file: copy to {ENV}/processed/, delete from {ENV}/new/ (US-006)
     const processedKey = `${args.env}/processed/${filename}`;
     console.log(`[s3Ingestion:processS3File] Moving file: ${args.file_key} → ${processedKey}`);
@@ -219,7 +244,11 @@ export const processS3File = actionGeneric({
       // Continue — idempotency prevents duplicates on reprocessing
     }
 
-    return insertResult;
+    return {
+      rows_inserted: insertResult.rows_inserted,
+      rows_skipped: insertResult.rows_skipped,
+      whatsapp_errors: whatsappErrors,
+    };
   },
 });
 
@@ -235,6 +264,7 @@ export const pollS3ForNewFiles = actionGeneric({
     files_processed: v.number(),
     rows_inserted: v.number(),
     rows_skipped: v.number(),
+    whatsapp_errors: v.number(),
   }),
   handler: async (ctx) => {
     const s3 = createS3Client();
@@ -275,7 +305,7 @@ export const pollS3ForNewFiles = actionGeneric({
         }
       );
       // Return without throwing — polling continues on next tick
-      return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0 };
+      return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0, whatsapp_errors: 0 };
     }
 
     console.log(
@@ -292,11 +322,12 @@ export const pollS3ForNewFiles = actionGeneric({
           rows_skipped: 0,
         }
       );
-      return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0 };
+      return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0, whatsapp_errors: 0 };
     }
 
     let totalInserted = 0;
     let totalSkipped = 0;
+    let totalWhatsappErrors = 0;
     let filesProcessed = 0;
     let anyError = false;
 
@@ -315,6 +346,7 @@ export const pollS3ForNewFiles = actionGeneric({
         );
         totalInserted += result.rows_inserted;
         totalSkipped += result.rows_skipped;
+        totalWhatsappErrors += result.whatsapp_errors;
         filesProcessed += 1;
       } catch (fileError) {
         anyError = true;
@@ -327,7 +359,7 @@ export const pollS3ForNewFiles = actionGeneric({
     const finalStatus =
       anyError && filesProcessed === 0
         ? "error"
-        : anyError || totalSkipped > 0
+        : anyError || totalSkipped > 0 || totalWhatsappErrors > 0
         ? "partial"
         : "success";
 
@@ -338,6 +370,7 @@ export const pollS3ForNewFiles = actionGeneric({
         files_processed: filesProcessed,
         rows_inserted: totalInserted,
         rows_skipped: totalSkipped,
+        whatsapp_errors: totalWhatsappErrors > 0 ? totalWhatsappErrors : undefined,
         error_message: anyError ? "Some files failed to process" : undefined,
       }
     );
@@ -347,6 +380,7 @@ export const pollS3ForNewFiles = actionGeneric({
       files_processed: filesProcessed,
       rows_inserted: totalInserted,
       rows_skipped: totalSkipped,
+      whatsapp_errors: totalWhatsappErrors,
     };
   },
 });

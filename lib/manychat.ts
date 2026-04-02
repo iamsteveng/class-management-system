@@ -1,19 +1,14 @@
-// ManyChat WhatsApp integration
-// sendTermsAcceptanceWhatsApp resolves subscriber ID by phone and sends
-// terms acceptance message via sendFlow (US-021).
+// ManyChat WhatsApp integration (US-025 simplified)
 //
-// Lookup chain (US-020):
-//   1. findBySystemField(phone, E.164 with +) — phone field reliably set at creation
-//   2. createSubscriber(phone + whatsapp_phone) — if 400 "WhatsApp ID already exists":
-//      2a. findBySystemField(wa_id, extracted wa_id)
-//      2b. findBySystemField(whatsapp_phone, digits only, no +) [final fallback]
+// sendTermsAcceptanceWhatsApp flow:
+//   1. If subscriberId provided (from DB cache) — use it directly
+//   2. If not found — call createSubscriber to get a new ID
+//      - On 400 "already exists" without stored ID: log error and return false
+//   3. setCustomFields (field_id 14438749 = termsUrl)
+//   4. sendFlow with TERMS_FLOW_NS
 //
-// Sending flow (US-021):
-//   1. setCustomFields (plural endpoint, field_id: 14438749 = termsUrl)
-//   2. sendFlow with TERMS_FLOW_NS
-//
-// Note: createSubscriber uses whatsapp_phone (confirmed with ManyChat support).
-// Fields: whatsapp_phone, has_opt_in_whatsapp: true, consent_phrase
+// Returns { success, subscriberId } so the caller can persist the ID to the
+// manychat_subscribers lookup table and purchases.manychat_subscriber_id.
 
 const MANYCHAT_API_BASE = "https://api.manychat.com";
 const TERMS_URL_FIELD = "cuf_14438749";
@@ -24,6 +19,12 @@ const TERMS_FLOW_NS =
 type SendTermsWhatsAppParams = {
   to: string; // E.164 phone number, e.g. +85254304789
   termsUrl: string;
+  subscriberId?: string | null; // pre-resolved from DB; if set, skips createSubscriber
+};
+
+export type SendTermsResult = {
+  success: boolean;
+  subscriberId: string | null;
 };
 
 /** Remove leading + from a phone string (if present). */
@@ -31,85 +32,17 @@ function stripPlus(phone: string): string {
   return phone.startsWith("+") ? phone.slice(1) : phone;
 }
 
-/**
- * Try findBySystemField with a given field_name / field_value pair.
- * Returns subscriber ID string on success, null if not found / error.
- */
-async function findSubscriberByField(
-  fieldName: string,
-  fieldValue: string,
-  headers: Record<string, string>
-): Promise<string | null> {
-  console.log(
-    `[manychat] findBySystemField attempt: field_name=${fieldName} field_value=${fieldValue}`
-  );
-  try {
-    const res = await fetch(
-      `${MANYCHAT_API_BASE}/fb/subscriber/findBySystemField`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ field_name: fieldName, field_value: fieldValue }),
-      }
-    );
-    const data = res.ok ? await res.json() : null;
-    console.log(
-      `[manychat] findBySystemField HTTP ${res.status} (${fieldName}=${fieldValue}): ${JSON.stringify(data)}`
-    );
-    if (res.ok && data?.data?.id) {
-      const id = String(data.data.id);
-      console.log(
-        `[manychat] Resolved subscriber_id=${id} via ${fieldName}=${fieldValue}`
-      );
-      return id;
-    }
-  } catch (err) {
-    console.error(
-      `[manychat] findBySystemField threw for ${fieldName}=${fieldValue}:`,
-      err
-    );
-  }
-  return null;
-}
-
-/**
- * Extract wa_id from a ManyChat createSubscriber 400 error body.
- * Handles: { data: { wa_id: "..." } } and { details: { wa_id: "..." } }
- * Falls back to regex extraction from the message string.
- */
-function extractWaId(errorBody: unknown): string | null {
-  if (typeof errorBody !== "object" || errorBody === null) return null;
-  const body = errorBody as Record<string, unknown>;
-
-  // Try data.wa_id
-  const dataWaId =
-    (body.data as Record<string, unknown> | undefined)?.wa_id;
-  if (typeof dataWaId === "string" && dataWaId) return stripPlus(dataWaId);
-
-  // Try details.wa_id
-  const detailsWaId =
-    (body.details as Record<string, unknown> | undefined)?.wa_id;
-  if (typeof detailsWaId === "string" && detailsWaId)
-    return stripPlus(detailsWaId);
-
-  // Try parsing from message string, e.g. "WhatsApp ID already exists: 85262875094"
-  const message = typeof body.message === "string" ? body.message : "";
-  const match = message.match(/(\d{7,15})/);
-  if (match) return match[1];
-
-  return null;
-}
-
 export async function sendTermsAcceptanceWhatsApp({
   to,
   termsUrl,
-}: SendTermsWhatsAppParams): Promise<boolean> {
+  subscriberId: existingSubscriberId,
+}: SendTermsWhatsAppParams): Promise<SendTermsResult> {
   const apiKey = process.env.MANYCHAT_API_KEY;
   if (!apiKey) {
     console.error(
       "[manychat] MANYCHAT_API_KEY is not set — cannot send WhatsApp message"
     );
-    return false;
+    return { success: false, subscriberId: null };
   }
 
   const headers = {
@@ -117,19 +50,13 @@ export async function sendTermsAcceptanceWhatsApp({
     "Content-Type": "application/json",
   };
 
-  const phoneDigits = stripPlus(to); // e.g. "85254304789"
-
   // ── Step 1: Resolve subscriber ID ────────────────────────────────────────
 
-  let subscriberId: string | null = null;
+  let subscriberId: string | null = existingSubscriberId ?? null;
 
-  // 1. findBySystemField with whatsapp_phone (confirmed with ManyChat support)
-  subscriberId = await findSubscriberByField("whatsapp_phone", to, headers);
-
-  // 2. Not found — try createSubscriber
   if (!subscriberId) {
     console.log(
-      `[manychat] Subscriber not found for phone ${to} — attempting createSubscriber`
+      `[manychat] No stored subscriber ID for ${to} — calling createSubscriber`
     );
     try {
       const createRes = await fetch(
@@ -139,6 +66,7 @@ export async function sendTermsAcceptanceWhatsApp({
           headers,
           body: JSON.stringify({
             whatsapp_phone: to,
+            phone: stripPlus(to),
             has_opt_in_whatsapp: true,
             has_opt_in_sms: false,
             has_opt_in_email: false,
@@ -148,61 +76,44 @@ export async function sendTermsAcceptanceWhatsApp({
       );
       const createData = await createRes.json();
       console.log(
-        `[manychat] createSubscriber HTTP ${createRes.status} for phone ${to}: ${JSON.stringify(createData)}`
+        `[manychat] createSubscriber HTTP ${createRes.status} for ${to}: ${JSON.stringify(createData)}`
       );
 
       if (createRes.ok && createData?.data?.id) {
         subscriberId = String(createData.data.id);
         console.log(
-          `[manychat] Created new subscriber_id=${subscriberId} for phone ${to}`
+          `[manychat] Created new subscriber_id=${subscriberId} for ${to}`
         );
       } else if (
         createRes.status === 400 &&
         typeof createData?.message === "string" &&
         createData.message.toLowerCase().includes("already exists")
       ) {
-        // Subscriber already exists in ManyChat — resolve via wa_id lookup chain
-        console.log(
-          `[manychat] createSubscriber 400 "already exists" for phone ${to} — attempting wa_id lookup`
+        // Subscriber already exists in ManyChat but no stored ID — cannot resolve
+        console.error(
+          `[manychat] createSubscriber 400 "already exists" for ${to} and no stored subscriber ID — cannot send WhatsApp`
         );
-
-        const waId = extractWaId(createData);
-        if (waId) {
-          // 3a. findBySystemField with wa_id
-          subscriberId = await findSubscriberByField("wa_id", waId, headers);
-        }
-
-        // 3b. Final fallback: findBySystemField with phone without +
-        if (!subscriberId) {
-          subscriberId = await findSubscriberByField(
-            "whatsapp_phone",
-            phoneDigits,
-            headers
-          );
-        }
-
-        if (!subscriberId) {
-          console.error(
-            `[manychat] All lookup paths exhausted for phone ${to} after already-exists error`
-          );
-          return false;
-        }
+        return { success: false, subscriberId: null };
       } else {
         console.error(
-          `[manychat] createSubscriber failed for phone ${to} — status=${createRes.status}`
+          `[manychat] createSubscriber failed for ${to} — status=${createRes.status}`
         );
-        return false;
+        return { success: false, subscriberId: null };
       }
     } catch (err) {
       console.error(
-        `[manychat] Error during createSubscriber for phone ${to}:`,
+        `[manychat] Error during createSubscriber for ${to}:`,
         err
       );
-      return false;
+      return { success: false, subscriberId: null };
     }
+  } else {
+    console.log(
+      `[manychat] Using stored subscriber_id=${subscriberId} for ${to}`
+    );
   }
 
-  // ── Step 2: Set custom field (terms URL) via setCustomFields (plural) ───────
+  // ── Step 2: Set custom field (terms URL) via setCustomFields ──────────────
   try {
     const setFieldRes = await fetch(
       `${MANYCHAT_API_BASE}/fb/subscriber/setCustomFields`,
@@ -228,30 +139,27 @@ export async function sendTermsAcceptanceWhatsApp({
       console.error(
         `[manychat] setCustomFields HTTP ${setFieldRes.status} for subscriber ${subscriberId}: ${setFieldBody}`
       );
-      return false;
+      return { success: false, subscriberId: null };
     }
   } catch (err) {
     console.error(
       `[manychat] Error setting custom field for subscriber ${subscriberId}:`,
       err
     );
-    return false;
+    return { success: false, subscriberId: null };
   }
 
   // ── Step 3: Send via sendFlow ─────────────────────────────────────────────
   try {
     const flowNs = TERMS_FLOW_NS;
-    const sendRes = await fetch(
-      `${MANYCHAT_API_BASE}/fb/sending/sendFlow`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          subscriber_id: subscriberId,
-          flow_ns: flowNs,
-        }),
-      }
-    );
+    const sendRes = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlow`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        subscriber_id: subscriberId,
+        flow_ns: flowNs,
+      }),
+    });
 
     const responseBody = await sendRes.text();
     console.log(
@@ -261,15 +169,15 @@ export async function sendTermsAcceptanceWhatsApp({
       console.error(
         `[manychat] sendFlow HTTP ${sendRes.status} for subscriber ${subscriberId}: ${responseBody}`
       );
-      return false;
+      return { success: false, subscriberId: null };
     }
 
-    return true;
+    return { success: true, subscriberId };
   } catch (err) {
     console.error(
       `[manychat] Error sending flow to subscriber ${subscriberId}:`,
       err
     );
-    return false;
+    return { success: false, subscriberId: null };
   }
 }

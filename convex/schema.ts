@@ -19,6 +19,7 @@ export default defineSchema({
     source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"))),
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
+    manychat_subscriber_id: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_order_id", ["order_id"])
@@ -145,6 +146,13 @@ export default defineSchema({
     files_processed: v.number(),
     rows_inserted: v.number(),
     rows_skipped: v.number(),
+    whatsapp_errors: v.optional(v.number()),
     error_message: v.optional(v.string()),
   }).index("by_run_at", ["run_at"]),
+
+  manychat_subscribers: defineTable({
+    whatsapp_phone: v.string(),
+    subscriber_id: v.string(),
+    created_at: v.number(),
+  }).index("by_whatsapp_phone", ["whatsapp_phone"]),
 });

@@ -1,5 +1,6 @@
-import { makeFunctionReference, mutationGeneric } from "convex/server";
+import { mutationGeneric } from "convex/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 
 /** Records an ingestion run to the ingestion_runs table (US-008). */
 export const recordIngestionRun = mutationGeneric({
@@ -12,24 +13,33 @@ export const recordIngestionRun = mutationGeneric({
     files_processed: v.number(),
     rows_inserted: v.number(),
     rows_skipped: v.number(),
+    whatsapp_errors: v.optional(v.number()),
     error_message: v.optional(v.string()),
   },
   returns: v.id("ingestion_runs"),
   handler: async (ctx, args) => {
+    // Override status to partial if WhatsApp errors occurred on an otherwise successful run
+    let finalStatus = args.status;
+    if ((args.whatsapp_errors ?? 0) > 0 && finalStatus === "success") {
+      finalStatus = "partial";
+    }
+
     return await ctx.db.insert("ingestion_runs", {
       run_at: Date.now(),
-      status: args.status,
+      status: finalStatus,
       files_processed: args.files_processed,
       rows_inserted: args.rows_inserted,
       rows_skipped: args.rows_skipped,
+      whatsapp_errors: args.whatsapp_errors,
       error_message: args.error_message,
     });
   },
 });
 
 /**
- * Processes parsed CSV rows: creates purchase records and schedules WhatsApp notifications.
- * Returns counts of inserted and skipped rows.
+ * Processes parsed CSV rows: creates purchase records.
+ * Returns counts of inserted and skipped rows, plus the IDs of newly inserted purchases
+ * so the caller (action) can send WhatsApp notifications and track failures.
  */
 export const applyS3CsvRows = mutationGeneric({
   args: {
@@ -48,11 +58,13 @@ export const applyS3CsvRows = mutationGeneric({
   returns: v.object({
     rows_inserted: v.number(),
     rows_skipped: v.number(),
+    purchase_ids: v.array(v.id("purchases")),
   }),
   handler: async (ctx, args) => {
     const now = Date.now();
     let inserted = 0;
     let skipped = 0;
+    const purchaseIds: Id<"purchases">[] = [];
 
     for (const row of args.rows) {
       // Duplicate detection: same order_id + class_id
@@ -85,18 +97,10 @@ export const applyS3CsvRows = mutationGeneric({
         created_at: now,
       });
 
-      // Schedule WhatsApp term acceptance message (US-007)
-      await ctx.scheduler.runAfter(
-        0,
-        makeFunctionReference<"action">(
-          "purchaseConfirmation:sendPurchaseConfirmation"
-        ),
-        { purchase_id: purchaseId }
-      );
-
+      purchaseIds.push(purchaseId);
       inserted += 1;
     }
 
-    return { rows_inserted: inserted, rows_skipped: skipped };
+    return { rows_inserted: inserted, rows_skipped: skipped, purchase_ids: purchaseIds };
   },
 });
