@@ -122,7 +122,7 @@ export function Footer() {
               </p>
               <div className="flex flex-wrap gap-[12px] items-center w-full">
                 {/* Facebook */}
-                <a href="#" className="overflow-clip relative shrink-0 size-[32px] hover:opacity-80 transition-opacity" aria-label="Facebook">
+                <a href="https://www.facebook.com/locobikehk" target="_blank" rel="noopener noreferrer" className="overflow-clip relative shrink-0 size-[32px] hover:opacity-80 transition-opacity" aria-label="Facebook">
                   <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32 32">
                     <path d={svgPaths.p1199c300} fill="white" />
                   </svg>
