@@ -1,80 +1,90 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock convex/server so actionGeneric returns its definition object,
-// allowing us to access .handler directly in tests.
 vi.mock('convex/server', () => ({
   actionGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   makeFunctionReference: (name: string) => name,
 }));
 
-// Mock convex/values — validators only need to not throw during module init.
 vi.mock('convex/values', () => {
   const noop = (..._args: any[]): any => 'schema';
   const v = new Proxy({} as any, { get: () => noop });
   return { v };
 });
 
-// Mock ManyChat lib — sendTermsAcceptanceWhatsApp will be overridden per-test
-vi.mock('../../lib/manychat', () => ({
-  sendTermsAcceptanceWhatsApp: vi.fn(),
+vi.mock('@aws-sdk/client-s3', () => ({
+  S3Client: vi.fn(function(this: any) { this.send = vi.fn(); }),
+  ListObjectsV2Command: vi.fn(function(this: any, args: any) { Object.assign(this, args); this._type = 'ListObjectsV2'; }),
+  GetObjectCommand: vi.fn(function(this: any, args: any) { Object.assign(this, args); }),
+  CopyObjectCommand: vi.fn(function(this: any, args: any) { Object.assign(this, args); }),
+  DeleteObjectCommand: vi.fn(function(this: any, args: any) { Object.assign(this, args); }),
 }));
 
-// Mock appBaseUrl lib
-vi.mock('../../lib/appBaseUrl', () => ({
-  resolveAppBaseUrl: vi.fn().mockReturnValue('https://example.com'),
-  buildTermsUrl: vi.fn((_base: string, token: string) => `https://example.com/terms?token=${token}`),
+vi.mock('../../convex/productMapping', () => ({
+  resolveClassId: vi.fn().mockReturnValue('class-abc-123'),
 }));
 
-import { sendPurchaseConfirmation } from '../../convex/purchaseConfirmation';
-import { sendTermsAcceptanceWhatsApp } from '../../lib/manychat';
+import { S3Client } from '@aws-sdk/client-s3';
+import { processS3File } from '../../convex/s3Ingestion';
+
+const VALID_CSV = [
+  'order_id,product_id,user_phone,qty,unit_price,total',
+  'TC031-001,3,+6591234567,1,100.0000,100.0000',
+].join('\n');
 
 describe('TC-031 WhatsApp failure does not roll back purchase record', () => {
+  let runMutationMock: ReturnType<typeof vi.fn>;
+  let runActionMock: ReturnType<typeof vi.fn>;
   let handler: (ctx: any, args: any) => Promise<any>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    handler = (sendPurchaseConfirmation as any).handler;
+
+    runMutationMock = vi.fn().mockResolvedValue({ rows_inserted: 1, rows_skipped: 0, purchase_ids: ['purchase-tc031-001'] });
+    // sendPurchaseConfirmation fails (WhatsApp error)
+    runActionMock = vi.fn().mockResolvedValue({ success: false });
+
+    vi.mocked(S3Client).mockImplementation(function(this: any) {
+      this.send = vi.fn().mockImplementation(async (cmd: any) => {
+        if (cmd._type === 'ListObjectsV2') return { Contents: [] };
+        return { Body: { transformToString: async () => VALID_CSV } };
+      });
+    } as any);
+
+    handler = (processS3File as any).handler;
   });
 
-  it('TC-031: updatePurchaseStatus mutation is NOT called when sendTermsAcceptanceWhatsApp returns false — purchase stays at pending_terms', async () => {
-    const purchaseId = 'purchases:tc031-purchase-001';
-    const orderId = 'TC031-ORDER-001';
+  it('TC-031: purchase record is inserted even when sendPurchaseConfirmation returns false', async () => {
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
-    // Simulate ManyChat failure — returns false (subscriber not found or API error)
-    (sendTermsAcceptanceWhatsApp as any).mockResolvedValue(false);
+    const result = await handler(ctx, {
+      file_key: 'dev/new/202603300000---test.csv',
+      bucket: 'test-bucket',
+      env: 'dev',
+      purchase_datetime: '2026-03-30T00:00:00',
+    });
 
-    // Purchase exists in pending_terms state (already committed by the prior mutation)
-    const mockPurchase = {
-      _id: purchaseId,
-      order_id: orderId,
-      status: 'pending_terms',
-      customer_mobile: '+6591234567',
-      token: 'terms-token-tc031-abc',
-    };
+    // Purchase was inserted (rows_inserted=1)
+    expect(result.rows_inserted).toBe(1);
 
-    const runQueryMock = vi.fn().mockResolvedValue(mockPurchase);
-    const runMutationMock = vi.fn();
-
-    const ctx = {
-      runQuery: runQueryMock,
-      runMutation: runMutationMock,
-    };
-
-    const result = await handler(ctx, { purchase_id: purchaseId });
-
-    // 1. The action returns { success: false } — WhatsApp failure is reflected
-    expect(result.success).toBe(false);
-
-    // 2. updatePurchaseStatus mutation was NEVER called
-    //    → purchase record stays committed at status='pending_terms'
-    //    → no rollback: the purchase was persisted by the prior applyS3CsvRows mutation
-    expect(runMutationMock).not.toHaveBeenCalled();
-
-    // 3. sendTermsAcceptanceWhatsApp was called once with correct params
-    expect(sendTermsAcceptanceWhatsApp).toHaveBeenCalledTimes(1);
-    expect(sendTermsAcceptanceWhatsApp).toHaveBeenCalledWith(
-      expect.objectContaining({ to: mockPurchase.customer_mobile })
+    // applyS3CsvRows was called — purchase exists in DB
+    expect(runMutationMock).toHaveBeenCalledWith(
+      's3IngestionMutations:applyS3CsvRows',
+      expect.any(Object)
     );
+  });
+
+  it('TC-031: whatsapp_errors is incremented when sendPurchaseConfirmation fails', async () => {
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
+
+    const result = await handler(ctx, {
+      file_key: 'dev/new/202603300000---test.csv',
+      bucket: 'test-bucket',
+      env: 'dev',
+      purchase_datetime: '2026-03-30T00:00:00',
+    });
+
+    // whatsapp_errors should be 1
+    expect(result.whatsapp_errors).toBe(1);
   });
 });

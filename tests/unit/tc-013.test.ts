@@ -47,7 +47,7 @@ describe('TC-013 CSV values with leading/trailing whitespace are trimmed', () =>
   beforeEach(() => {
     vi.clearAllMocks();
 
-    runMutationMock = vi.fn().mockResolvedValue({ rows_inserted: 1, rows_skipped: 0 });
+    runMutationMock = vi.fn().mockResolvedValue({ rows_inserted: 1, rows_skipped: 0, purchase_ids: ['purchase-id-1'] });
 
     vi.mocked(S3Client).mockImplementation(function(this: any) {
       this.send = vi.fn().mockImplementation(async (cmd: any) => {
@@ -65,7 +65,8 @@ describe('TC-013 CSV values with leading/trailing whitespace are trimmed', () =>
   });
 
   it('TC-013: order_id is trimmed to "36"', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',
@@ -80,7 +81,8 @@ describe('TC-013 CSV values with leading/trailing whitespace are trimmed', () =>
   });
 
   it('TC-013: user_phone (customer_mobile) is trimmed to "+85254304789"', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',
@@ -94,7 +96,8 @@ describe('TC-013 CSV values with leading/trailing whitespace are trimmed', () =>
   });
 
   it('TC-013: qty (participant_count) is parsed as integer 1', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',
@@ -108,7 +111,8 @@ describe('TC-013 CSV values with leading/trailing whitespace are trimmed', () =>
   });
 
   it('TC-013: all fields trimmed — row is not skipped', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     const result = await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',

@@ -47,7 +47,7 @@ describe('TC-014 qty is stored as integer participant_count', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    runMutationMock = vi.fn().mockResolvedValue({ rows_inserted: 1, rows_skipped: 0 });
+    runMutationMock = vi.fn().mockResolvedValue({ rows_inserted: 1, rows_skipped: 0, purchase_ids: ['purchase-id-1'] });
 
     vi.mocked(S3Client).mockImplementation(function(this: any) {
       this.send = vi.fn().mockImplementation(async (cmd: any) => {
@@ -64,7 +64,8 @@ describe('TC-014 qty is stored as integer participant_count', () => {
   });
 
   it('TC-014: participant_count is integer 2, not string "2"', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',

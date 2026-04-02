@@ -79,6 +79,7 @@ describe('TC-007 S3 auth failure (403) writes error run record', () => {
       files_processed: 0,
       rows_inserted: 0,
       rows_skipped: 0,
+      whatsapp_errors: 0,
     });
   });
 

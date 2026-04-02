@@ -48,7 +48,7 @@ describe('TC-016 Two rows with same order_id but different product_id produce tw
   beforeEach(() => {
     vi.clearAllMocks();
 
-    runMutationMock = vi.fn().mockResolvedValue({ rows_inserted: 2, rows_skipped: 0 });
+    runMutationMock = vi.fn().mockResolvedValue({ rows_inserted: 2, rows_skipped: 0, purchase_ids: ['purchase-id-1', 'purchase-id-2'] });
 
     vi.mocked(S3Client).mockImplementation(function(this: any) {
       this.send = vi.fn().mockImplementation(async (cmd: any) => {
@@ -65,7 +65,8 @@ describe('TC-016 Two rows with same order_id but different product_id produce tw
   });
 
   it('TC-016: two rows with order_id=36 but different product_id produce two records with distinct class_ids', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     const result = await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',

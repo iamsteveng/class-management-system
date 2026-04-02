@@ -66,6 +66,7 @@ describe('TC-008 S3 error does not crash scheduler', () => {
       files_processed: 0,
       rows_inserted: 0,
       rows_skipped: 0,
+      whatsapp_errors: 0,
     });
   });
 

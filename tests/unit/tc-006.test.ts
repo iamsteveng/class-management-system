@@ -80,6 +80,7 @@ describe('TC-006 S3 ListObjectsV2 network failure writes error run record', () =
       files_processed: 0,
       rows_inserted: 0,
       rows_skipped: 0,
+      whatsapp_errors: 0,
     });
   });
 

@@ -66,7 +66,8 @@ describe('TC-012 Unknown product ID causes row skip with warning log', () => {
   });
 
   it('TC-012: logs console.warn with the unknown product_id', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',
@@ -82,7 +83,8 @@ describe('TC-012 Unknown product ID causes row skip with warning log', () => {
   });
 
   it('TC-012: skips the row — applyS3CsvRows mutation is NOT called', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',
@@ -96,7 +98,8 @@ describe('TC-012 Unknown product ID causes row skip with warning log', () => {
   });
 
   it('TC-012: returns rows_inserted=0 and rows_skipped=1', async () => {
-    const ctx = { runMutation: runMutationMock };
+    const runActionMock = vi.fn().mockResolvedValue({ success: true });
+    const ctx = { runMutation: runMutationMock, runAction: runActionMock };
 
     const result = await handler(ctx, {
       file_key: 'dev/new/202603300000---test.csv',
@@ -105,6 +108,6 @@ describe('TC-012 Unknown product ID causes row skip with warning log', () => {
       purchase_datetime: '2026-03-30T00:00:00',
     });
 
-    expect(result).toEqual({ rows_inserted: 0, rows_skipped: 1 });
+    expect(result).toEqual({ rows_inserted: 0, rows_skipped: 1, whatsapp_errors: 0 });
   });
 });
