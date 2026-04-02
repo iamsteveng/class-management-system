@@ -30,7 +30,7 @@ import { applyS3CsvRows } from '../../convex/s3IngestionMutations';
  * Creates a simple in-memory mock of ctx.db that supports the query pattern
  * used by applyS3CsvRows:
  *   ctx.db.query("purchases")
- *     .withIndex("by_order_id", (q) => q.eq("order_id", value))
+ *     .withIndex("by_order_class_slot", (q) => q.eq("order_id", value))
  *     .filter((q) => q.eq(q.field("class_id"), value))
  *     .first()
  */
@@ -66,6 +66,9 @@ function createMockDb() {
                 field: (name: string) => name,
                 eq: (lhs: string, rhs: any) => ({
                   _check: (r: Record<string, any>) => r[lhs] === rhs,
+                }),
+                and: (...preds: any[]) => ({
+                  _check: (r: Record<string, any>) => preds.every(p => p._check(r)),
                 }),
               };
               const predicate = filterFn(q);
