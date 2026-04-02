@@ -355,6 +355,26 @@
       ],
       "passes": true,
       "priority": 24
+    },
+    {
+      "id": "US-025",
+      "title": "Store ManyChat subscriber ID in DB for reliable repeat-customer handling",
+      "description": "As a developer, I want to store ManyChat subscriber IDs in a dedicated lookup table keyed by WhatsApp phone number, so that repeat customers are found instantly without calling ManyChat API on every purchase.",
+      "acceptanceCriteria": [
+        "Add manychat_subscribers table to convex/schema.ts with fields: whatsapp_phone (string), subscriber_id (string), created_at (number); indexed by by_whatsapp_phone",
+        "Add manychat_subscriber_id: v.optional(v.string()) to purchases table in schema",
+        "Add whatsapp_errors: v.optional(v.number()) to ingestion_runs table in schema",
+        "Add convex/purchases.ts: updateManychatSubscriberId mutation to patch manychat_subscriber_id on a purchase",
+        "Add convex/manychatSubscribers.ts with: getByPhone query (returns subscriber_id or null) and upsertSubscriber mutation",
+        "Simplify lib/manychat.ts: remove all broken lookup chain (findBySystemField, extractWaId, wa_id fallbacks)",
+        "New sendTermsAcceptanceWhatsApp flow: (1) query manychat_subscribers by phone \u2014 if found use stored ID; (2) if not found call createSubscriber and save ID; (3) if 400 already-exists without stored ID log error return false; (4) setCustomFields; (5) sendFlow",
+        "In convex/purchaseConfirmation.ts after successful send: save subscriber ID to purchases.manychat_subscriber_id",
+        "In convex/s3IngestionMutations.ts: track WhatsApp failures with whatsapp_errors counter; set status partial if whatsapp_errors > 0",
+        "Typecheck passes",
+        "Tests: verify stored ID used on repeat sends; verify new ID saved after createSubscriber; verify 400 already-exists logs error and returns false; verify whatsapp_errors incremented on failure"
+      ],
+      "passes": false,
+      "priority": 25
     }
   ]
 }

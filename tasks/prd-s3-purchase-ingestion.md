@@ -500,3 +500,58 @@ Mobile numbers are already in E.164 format (e.g. `+85254304789`) — no normalis
 - [ ] Update page title in `app/layout.tsx` from `"Create Next App"` to `"樂區單車安全學院"`
 - [ ] The favicon must be imported into the source code (not referenced as an external URL)
 - [ ] Typecheck passes
+
+---
+
+## Amendment: Store ManyChat subscriber ID in DB for reliable repeat-customer handling (2026-04-02)
+
+### US-025: Add manychat_subscribers lookup table and store subscriber ID
+
+**Description:** As a developer, I want to store ManyChat subscriber IDs in a dedicated lookup table keyed by WhatsApp phone number, so that repeat customers are found instantly without calling ManyChat's API on every purchase.
+
+**Root cause:** ManyChat has no API endpoint to look up a subscriber by WhatsApp phone number. If a customer makes a second purchase, `createSubscriber` returns 400 "already exists" with no subscriber ID — causing WhatsApp delivery to fail silently.
+
+**Solution:**
+- Add a `manychat_subscribers` table indexed by `whatsapp_phone`
+- On first send: call `createSubscriber` → save subscriber ID to table
+- On repeat sends: query table by phone → use stored ID, skip `createSubscriber`
+- Also store subscriber ID on `purchases.manychat_subscriber_id` for audit trail
+
+**Schema changes:**
+
+1. New table `manychat_subscribers`:
+```ts
+manychat_subscribers: defineTable({
+  whatsapp_phone: v.string(),  // E.164, e.g. "+85262875094"
+  subscriber_id: v.string(),   // ManyChat subscriber ID
+  created_at: v.number(),
+}).index("by_whatsapp_phone", ["whatsapp_phone"])
+```
+
+2. Add to `purchases` table: `manychat_subscriber_id: v.optional(v.string())`
+
+3. Add to `ingestion_runs` table: `whatsapp_errors: v.optional(v.number())` — count of rows where purchase inserted but WhatsApp failed
+
+**Acceptance Criteria:**
+- [ ] Add `manychat_subscribers` table to `convex/schema.ts` with `by_whatsapp_phone` index
+- [ ] Add `manychat_subscriber_id: v.optional(v.string())` to `purchases` table in schema
+- [ ] Add `whatsapp_errors: v.optional(v.number())` to `ingestion_runs` table in schema
+- [ ] Add `convex/purchases.ts: updateManychatSubscriberId` mutation that patches `manychat_subscriber_id` on a purchase
+- [ ] Add `convex/manychatSubscribers.ts` with:
+  - `getByPhone` query: look up subscriber by `whatsapp_phone`, returns `subscriber_id` or null
+  - `upsertSubscriber` mutation: insert or update subscriber record
+- [ ] Simplify `lib/manychat.ts` — remove all broken lookup chain (`findBySystemField`, `extractWaId`, `wa_id` fallbacks)
+- [ ] New `sendTermsAcceptanceWhatsApp` flow:
+  1. Query `manychat_subscribers` by phone via `ctx.runQuery(manychatSubscribers:getByPhone)` — if found, use stored subscriber ID
+  2. If not found → call `createSubscriber(whatsapp_phone, has_opt_in_whatsapp: true, consent_phrase)` → save new subscriber ID via `upsertSubscriber` mutation
+  3. If `createSubscriber` returns 400 "already exists" → log error, return false (unrecoverable without stored ID)
+  4. `setCustomFields` with terms URL
+  5. `sendFlow` with flow NS
+- [ ] In `convex/purchaseConfirmation.ts`, after successful `sendTermsAcceptanceWhatsApp`: save subscriber ID to `purchases.manychat_subscriber_id` via `updateManychatSubscriberId`
+- [ ] In `convex/s3IngestionMutations.ts`, track WhatsApp failures: increment `whatsapp_errors` in the ingestion run record; set status to `"partial"` if `whatsapp_errors > 0`
+- [ ] Typecheck passes
+- [ ] Tests updated/added:
+  - Verify stored subscriber ID is used on repeat sends (no `createSubscriber` call)
+  - Verify new subscriber ID is saved to `manychat_subscribers` after `createSubscriber`
+  - Verify 400 "already exists" without stored ID logs error and returns false
+  - Verify `whatsapp_errors` incremented in ingestion run on WhatsApp failure
