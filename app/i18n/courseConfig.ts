@@ -8,7 +8,8 @@ export interface CourseConfig {
 }
 
 export const COURSE_CONFIG: Record<string, CourseConfig> = {
-  class_cycling_fundamentals: {
+  // Beginner Cycling Course — 單車新手速成班
+  '67261272-c799-4439-9146-4ee12ce51b7c': {
     duration: '2 hours',
     originalPrice: 'HK$560',
     discountPrice: 'HK$400',
@@ -16,7 +17,8 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
     description_zh: '教你由零出發學識踩單車（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）',
     description_en: 'Learn to ride a bike from scratch (includes: bike inspection, handling skills, safety rules, simulation practice)',
   },
-  class_city_guided_tour: {
+  // Guided Bike Tour — 單車導賞團
+  '7fe78618-d6c1-4a35-ad01-a0453a943180': {
     duration: '3 hours',
     originalPrice: 'HK$650',
     discountPrice: 'HK$550',
