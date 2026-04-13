@@ -20,6 +20,7 @@ export const getTermsPageData = queryGeneric({
         v.literal("terms_accepted"),
         v.literal("cancelled")
       ),
+      participant_id: v.optional(v.string()),
       class_name: v.optional(v.string()),
       terms_version: v.string(),
       terms_content: v.string(),
@@ -75,12 +76,13 @@ export const getTermsPageData = queryGeneric({
       }
     }
 
-    const rawSessions = purchase.class_id
-      ? await ctx.db
-          .query("sessions")
-          .withIndex("by_class_id", (q) => q.eq("class_id", purchase.class_id!))
-          .collect()
-      : await ctx.db.query("sessions").collect();
+    const rawSessions =
+      purchase.class_id && purchase.class_id.trim() !== ""
+        ? await ctx.db
+            .query("sessions")
+            .withIndex("by_class_id", (q) => q.eq("class_id", purchase.class_id!))
+            .collect()
+        : [];
 
     const classIds = new Set(rawSessions.map((session) => session.class_id));
     for (const classId of classIds) {
@@ -98,6 +100,7 @@ export const getTermsPageData = queryGeneric({
       }
     }
 
+    const now = new Date();
     const sessions = rawSessions
       .filter((session) => session.status === "scheduled")
       .map((session) => {
@@ -122,16 +125,27 @@ export const getTermsPageData = queryGeneric({
         };
       })
       .filter((session) => session.available_quota > 0)
+      .filter((session) => new Date(`${session.date}T${session.time}`) > now)
       .sort((left, right) => {
         const leftDateTime = `${left.date}T${left.time}`;
         const rightDateTime = `${right.date}T${right.time}`;
         return leftDateTime.localeCompare(rightDateTime);
       });
 
+    let participantId: string | undefined;
+    if (purchase.status === "terms_accepted") {
+      const firstParticipant = await ctx.db
+        .query("participants")
+        .filter((q) => q.eq(q.field("purchase_id"), purchase._id))
+        .first();
+      participantId = firstParticipant?.participant_id;
+    }
+
     return {
       customer_mobile: purchase.customer_mobile,
       participant_count: purchase.participant_count,
       purchase_status: purchase.status,
+      participant_id: participantId,
       class_name: purchase.class_id
         ? (classDocs.get(purchase.class_id)?.name_zh ?? undefined)
         : undefined,
@@ -147,7 +161,7 @@ export const acceptTermsByToken = mutationGeneric({
     token: v.string(),
     session_id: v.string(),
     accepted: v.boolean(),
-    height: v.optional(v.string()),
+    height: v.optional(v.number()),
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),

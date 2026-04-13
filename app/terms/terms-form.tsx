@@ -135,7 +135,8 @@ export function TermsForm({
           </label>
           <input
             id="height"
-            type="text"
+            type="number"
+            min={0}
             name="height"
             value={height}
             onChange={(e) => setHeight(e.target.value)}

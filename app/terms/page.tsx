@@ -2,6 +2,8 @@ import { makeFunctionReference } from "convex/server";
 import { redirect } from "next/navigation";
 
 import { TermsForm } from "./terms-form";
+import { TermsSuccessContent } from "./TermsSuccessContent";
+import { PurchaseDetailsSection } from "./PurchaseDetailsSection";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 import { LanguageProvider } from "../components/LanguageProvider";
 import { LanguageToggleHeader } from "../components/LanguageToggleHeader";
@@ -16,6 +18,7 @@ type TermsPageData = {
   customer_mobile: string;
   participant_count: number;
   purchase_status: "pending_terms" | "confirmation_sent" | "terms_accepted" | "cancelled";
+  participant_id?: string;
   class_name?: string;
   terms_version: string;
   terms_content: string;
@@ -71,8 +74,8 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
   }
 
   const submissionSucceeded = status === "success";
-  const participantId = readSingleQueryParam(params.participant_id);
   const alreadyAccepted = pageData.purchase_status === "terms_accepted";
+  const participantId = readSingleQueryParam(params.participant_id) ?? pageData.participant_id;
 
   async function submitTerms(formData: FormData) {
     "use server";
@@ -101,7 +104,7 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
         session_id: selectedSessionId,
         accepted,
         email: typeof email === "string" ? email.trim() : "",
-        height: typeof height === "string" && height.trim() ? height.trim() : undefined,
+        height: typeof height === "string" && height.trim() ? (parseFloat(height.trim()) || undefined) : undefined,
         age: ageNumber && !isNaN(ageNumber) ? ageNumber : undefined,
         emergency_contact_name:
           typeof emergencyContactName === "string" && emergencyContactName.trim()
@@ -128,36 +131,11 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
     redirect(successUrl);
   }
 
-  if (submissionSucceeded) {
+  if (submissionSucceeded || alreadyAccepted) {
     return (
       <LanguageProvider>
         <LanguageToggleHeader />
-      <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col items-center justify-center space-y-6 px-4 py-8 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="h-12 w-12"
-            aria-hidden="true"
-          >
-            <path
-              fillRule="evenodd"
-              d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 011.04-.207z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </div>
-        <h1 className="text-2xl font-semibold text-zinc-900">Your class application is confirmed</h1>
-        {participantId ? (
-          <a
-            href={`/participant/${encodeURIComponent(participantId)}`}
-            className="inline-flex rounded-md bg-zinc-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-zinc-700"
-          >
-            Open your QR Code
-          </a>
-        ) : null}
-      </main>
+        <TermsSuccessContent participantId={participantId} />
       </LanguageProvider>
     );
   }
@@ -166,23 +144,11 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
     <LanguageProvider>
       <LanguageToggleHeader />
       <main className="mx-auto min-h-screen w-full max-w-3xl space-y-6 px-4 py-8">
-        <section className="rounded-xl border border-zinc-200 p-5">
-          <h2 className="text-lg font-medium text-zinc-900">購買詳情 / Purchase details</h2>
-          <dl className="mt-3 grid gap-2 text-sm text-zinc-700">
-            <div>
-              <dt className="font-medium text-zinc-900">客戶手機 / Customer mobile</dt>
-              <dd>{pageData.customer_mobile}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-zinc-900">參加者人數 / Participants</dt>
-              <dd>{pageData.participant_count}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-zinc-900">課程 / Class</dt>
-              <dd>{pageData.class_name ?? "將根據所選時段確定 / Will be selected based on your chosen session"}</dd>
-            </div>
-          </dl>
-        </section>
+        <PurchaseDetailsSection
+          customer_mobile={pageData.customer_mobile}
+          participant_count={pageData.participant_count}
+          class_name={pageData.class_name}
+        />
 
         <section className="rounded-xl border border-zinc-200 p-5">
           <h2 className="text-lg font-medium text-zinc-900">

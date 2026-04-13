@@ -17,7 +17,6 @@ type SessionOption = {
 
 type ParticipantPageData = {
   participant_id: string;
-  participant_name: string;
   session_id: string;
   session_location: string;
   session_location_en?: string;
@@ -30,6 +29,8 @@ type ParticipantPageData = {
   qr_code_data: string;
   can_change_session: boolean;
   session_options: SessionOption[];
+  terms_version?: string;
+  terms_content?: string;
 };
 
 type Props = {
@@ -67,10 +68,6 @@ export function ParticipantPageContent({
       <section className="rounded-xl border border-zinc-200 p-5">
         <h2 className="text-lg font-medium text-zinc-900">{tr.participantDetailsSection}</h2>
         <dl className="mt-3 grid gap-2 text-sm text-zinc-700">
-          <div>
-            <dt className="font-medium text-zinc-900">{tr.participantNameLabel}</dt>
-            <dd>{pageData.participant_name}</dd>
-          </div>
           <div>
             <dt className="font-medium text-zinc-900">{tr.participantIdLabel}</dt>
             <dd className="break-all">{pageData.participant_id}</dd>
@@ -115,6 +112,14 @@ export function ParticipantPageContent({
           />
         </div>
       </section>
+
+      {pageData.terms_version && pageData.terms_content ? (
+        <section className="rounded-xl border border-zinc-200 p-5">
+          <h2 className="text-lg font-medium text-zinc-900">{tr.acceptedTermsSection}</h2>
+          <p className="mt-1 text-sm font-medium text-zinc-500">{pageData.terms_version}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-700">{pageData.terms_content}</p>
+        </section>
+      ) : null}
 
       {pageData.can_change_session ? (
         <section>

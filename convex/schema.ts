@@ -16,10 +16,17 @@ export default defineSchema({
     token: v.string(),
     class_id: v.optional(v.string()),
     session_id: v.optional(v.string()),
+    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"))),
+    unit_price: v.optional(v.number()),
+    total_price: v.optional(v.number()),
+    manychat_subscriber_id: v.optional(v.string()),
+    slot_index: v.optional(v.number()),
     created_at: v.number(),
   })
     .index("by_order_id", ["order_id"])
-    .index("by_token", ["token"]),
+    .index("by_token", ["token"])
+    .index("by_order_class", ["order_id", "class_id"])
+    .index("by_order_class_slot", ["order_id", "class_id", "slot_index"]),
 
   participants: defineTable({
     participant_id: v.string(),
@@ -30,7 +37,7 @@ export default defineSchema({
     qr_code_data: v.optional(v.string()),
     terms_accepted_at: v.optional(v.number()),
     terms_version_id: v.optional(v.id("terms_versions")),
-    height: v.optional(v.string()),
+    height: v.optional(v.number()),
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),
@@ -130,4 +137,24 @@ export default defineSchema({
     .index("by_attendance_id", ["attendance_id"])
     .index("by_participant_id", ["participant_id"])
     .index("by_session_id", ["session_id"]),
+
+  ingestion_runs: defineTable({
+    run_at: v.number(),
+    status: v.union(
+      v.literal("success"),
+      v.literal("partial"),
+      v.literal("error")
+    ),
+    files_processed: v.number(),
+    rows_inserted: v.number(),
+    rows_skipped: v.number(),
+    whatsapp_errors: v.optional(v.number()),
+    error_message: v.optional(v.string()),
+  }).index("by_run_at", ["run_at"]),
+
+  manychat_subscribers: defineTable({
+    whatsapp_phone: v.string(),
+    subscriber_id: v.string(),
+    created_at: v.number(),
+  }).index("by_whatsapp_phone", ["whatsapp_phone"]),
 });

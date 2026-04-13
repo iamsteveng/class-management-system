@@ -44,6 +44,11 @@ const navItems: NavItem[] = [
     href: "/admin/faq",
     isActive: (pathname) => pathname.startsWith("/admin/faq"),
   },
+  {
+    label: "Ingestion",
+    href: "/admin/ingestion",
+    isActive: (pathname) => pathname.startsWith("/admin/ingestion"),
+  },
 ];
 
 export function AdminNav() {

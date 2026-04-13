@@ -158,7 +158,7 @@ export const getParticipantsFullByToken = queryGeneric({
       participant_id: v.string(),
       session_id: v.string(),
       terms_accepted_at: v.optional(v.number()),
-      height: v.optional(v.string()),
+      height: v.optional(v.float64()),
       age: v.optional(v.number()),
       emergency_contact_name: v.optional(v.string()),
       emergency_contact_phone: v.optional(v.string()),
@@ -384,5 +384,26 @@ export const debugTermsQuery = queryGeneric({
       with_quota_count: withQuota.length,
       sample_session: withQuota[0],
     };
+  },
+});
+
+/** Seeds N ingestion_runs records for testing TC-037. */
+export const seedIngestionRuns = mutationGeneric({
+  args: { count: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const statuses: Array<"success" | "partial" | "error"> = ["success", "partial", "error"];
+    for (let i = 0; i < args.count; i++) {
+      const status = statuses[i % 3];
+      await ctx.db.insert("ingestion_runs", {
+        run_at: Date.now() - i * 60000,
+        status,
+        files_processed: i + 1,
+        rows_inserted: (i + 1) * 10,
+        rows_skipped: i,
+        error_message: status === "error" ? `Test error ${i}` : undefined,
+      });
+    }
+    return null;
   },
 });

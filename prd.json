@@ -1,162 +1,398 @@
 {
   "project": "class-management-system",
-  "branchName": "ralph/bilingual-support",
-  "description": "Add ZH/EN bilingual support to classes, sessions, terms page, participant QR page, WhatsApp messages, and admin portal",
+  "branchName": "feature/prd-s3-purchase-ingestion",
+  "description": "Integrate with AWS S3 to ingest purchase CSV files, map product IDs to class IDs per environment, insert purchase records into Convex DB, trigger WhatsApp term acceptance messages, move processed files, log ingestion runs, and provide an admin UI for monitoring.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Schema migration — rename name/location to name_zh/location_zh, add name_en/location_en/end_time",
-      "description": "As a developer, I need to migrate the Convex schema so classes have bilingual names and sessions have bilingual locations and end times.",
+      "title": "S3 polling scheduled action",
+      "description": "As the system, I want to poll S3 for new CSV files on a schedule so that purchases are ingested automatically.",
       "acceptanceCriteria": [
-        "In convex/schema.ts: rename classes.name → name_zh (string required), add name_en (optional string)",
-        "In convex/schema.ts: rename sessions.location → location_zh (string required), add location_en (optional string), add end_time (optional string)",
-        "Write a Convex migration mutation in convex/migrations.ts (or similar) that copies existing name → name_zh and location → location_zh for all records",
-        "Update all Convex query/mutation files that read or write name or location: convex/adminClasses.ts, convex/adminSessions.ts, convex/homepage.ts, convex/participants.ts, convex/purchaseConfirmation.ts, convex/participantLinks.ts, convex/seed.ts, convex/csvImport.ts, convex/adminParticipants.ts — replace name with name_zh, location with location_zh throughout",
-        "Update all return type validators (v.object) in Convex files to use name_zh/location_zh instead of name/location",
-        "npx convex deploy --yes runs without errors (test with dry-run if needed)",
+        "A Convex scheduled action in convex/s3Ingestion.ts runs every 5 minutes via convex/crons.ts",
+        "It connects to AWS S3 using credentials from Convex env vars: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION",
+        "S3 bucket name is read from Convex env var S3_BUCKET_NAME (value: mart-order-887306483832-ap-southeast-1-an)",
+        "File key prefix is {ENV}/new/ where ENV is read from Convex env var APP_ENV (dev | uat | prod)",
+        "The action uses 'use node' directive (required for AWS SDK)",
         "Typecheck passes"
       ],
-      "priority": 1,
       "passes": true,
-      "notes": "IMPORTANT: This is a schema rename, not an add. Use Convex's patching approach: add new fields alongside old fields first, then remove old. Since this is a breaking rename, the safest approach is: (1) add name_zh as optional with default = name, (2) run migration, (3) make name_zh required and remove name. But in a single migration step: just add name_zh/location_zh as optional fields copying from name/location in the schema, write a migration mutation, and update all code to use new names. The old fields name and location should be removed from schema once migration is written. Files to update: convex/schema.ts, convex/adminClasses.ts, convex/adminSessions.ts, convex/homepage.ts, convex/participants.ts, convex/purchaseConfirmation.ts, convex/participantLinks.ts, convex/seed.ts. Also update all Next.js API routes and page data types that reference class_name or location."
+      "priority": 1
     },
     {
       "id": "US-002",
-      "title": "Update courseConfig.ts — add bilingual descriptions, update CoursesSection to use language context",
-      "description": "As a developer, I want courseConfig.ts to include bilingual descriptions and CoursesSection to display language-aware content.",
+      "title": "S3 error alerting",
+      "description": "As an operator, I want to be alerted when the S3 bucket is unreachable so that I can investigate connectivity or credential issues promptly.",
       "acceptanceCriteria": [
-        "app/i18n/courseConfig.ts: add description_zh (string required) and description_en (optional string) to CourseConfig interface",
-        "Populate description_zh and description_en for both class_cycling_fundamentals and class_city_guided_tour",
-        "app/components/homepage/CoursesSection.tsx: use useLanguage() to get current language",
-        "Display name_zh/name_en with fallback: lang=EN → name_en ?? name_zh, lang=ZH → name_zh",
-        "Display description using courseConfig description_en ?? description_zh for EN, description_zh for ZH",
-        "Display session location_zh/location_en with same fallback logic",
-        "Display session time as start_time–end_time when end_time exists (e.g. '14:00–16:00'), else just start_time",
-        "Update /api/classes route to return name_zh and name_en fields",
-        "Update /api/classes/[classId]/sessions route to return location_zh, location_en, end_time fields",
+        "If the S3 ListObjectsV2 call fails (network error, auth error, bucket not found), the error is logged with full details (error message, timestamp, APP_ENV)",
+        "An ingestion run record is written to the ingestion_runs table with status: 'error' and the error message stored",
+        "The polling continues on the next schedule tick (error does not crash the scheduler)",
         "Typecheck passes"
       ],
-      "priority": 2,
       "passes": true,
-      "notes": "The CoursesSection already uses useLanguage(). The API routes are at app/api/classes/route.ts and app/api/classes/[classId]/sessions/route.ts. Update the response shape to include bilingual fields. The CourseConfig interface is in app/i18n/courseConfig.ts. Descriptions from courseConfig: class_cycling_fundamentals zh='教你由零出發學識踩單車（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）' en='Learn to ride a bike from scratch (includes: bike inspection, handling skills, safety rules, simulation practice)'. class_city_guided_tour zh='帶你探索香港各區美景，享受單車樂趣。導賞團包括：路線規劃、安全講解、景點介紹等' en='Explore Hong Kong scenic districts by bike. Tours include route planning, safety briefing, and sightseeing'."
+      "priority": 2
     },
     {
       "id": "US-003",
-      "title": "WhatsApp messages — bilingual ZH+EN templates",
-      "description": "As a user, I want WhatsApp messages to contain both ZH and EN text so all customers can understand them.",
+      "title": "Product-to-class ID mapping config",
+      "description": "As a developer, I want a per-environment mapping from product IDs to internal class IDs so that purchase records are linked to the correct class.",
       "acceptanceCriteria": [
-        "convex/purchaseConfirmation.ts: message = '你的訂單已確認！請點擊以下連結接受條款及選擇地點時間：{link}\\nYour purchase is confirmed! Please accept terms and select session: {link}'",
-        "convex/participantLinks.ts single participant: message = '你的參加者 QR 連結：{link}\\nYour participant QR link: {link}'",
-        "convex/participantLinks.ts multiple participants: ZH list first then EN list, format: '你的參加者 QR 連結：\\n1. {link1}\\n2. {link2}\\nYour participant QR links:\\n1. {link1}\\n2. {link2}'",
+        "A config file convex/productMapping.ts exports a mapping object keyed by environment (dev, uat, prod)",
+        "Each entry maps external product IDs (strings) to internal class_id strings",
+        "Mapping is used during CSV ingestion to resolve class_id before inserting the purchase",
+        "If a product ID is not found in the mapping, the ingestion logs a warning and skips that row (does not crash)",
+        "File includes a comment with an example mapping structure for developer reference",
         "Typecheck passes"
       ],
-      "priority": 3,
       "passes": true,
-      "notes": "Files: convex/purchaseConfirmation.ts and convex/participantLinks.ts. Simple string template changes. Keep existing logic, just update the message string."
+      "priority": 3
     },
     {
       "id": "US-004",
-      "title": "Create shared LanguageToggleHeader component for terms and participant pages",
-      "description": "As a developer, I want a reusable language toggle header that terms and participant pages can use.",
+      "title": "CSV parsing and purchase insertion",
+      "description": "As the system, I want to parse each row in a purchase CSV and insert a purchase record so that the customer can receive their term acceptance message.",
       "acceptanceCriteria": [
-        "Create app/components/LanguageToggleHeader.tsx: renders a minimal header with ZH and EN toggle buttons",
-        "Active language button is visually highlighted (e.g. font-bold or underline)",
-        "Uses useLanguage() from app/contexts/LanguageContext.tsx",
-        "Create app/components/LanguageProvider.tsx: a simple client wrapper that provides LanguageContext — useful for wrapping individual pages",
+        "CSV columns parsed: order_id, product_id, user_phone, qty, unit_price, total (with trimming of whitespace around values, as the sample CSV has spaces after commas)",
+        "Each row is treated as an independent purchase record (one row = one purchase)",
+        "The same order_id can appear on multiple rows (one per product) \u2014 each gets its own purchase record",
+        "For each valid row, the system calls the shared createPurchase mutation (US-005)",
+        "qty is parsed as an integer and stored as participant_count",
+        "user_phone is stored as-is (already E.164 format, e.g. +85254304789)",
+        "Rows with unknown product IDs are skipped with a warning log (file still continues processing)",
+        "purchase_datetime is parsed from the CSV filename: format is YYYYMMDDHHmm---<uuid>.csv, e.g. 202603271622 \u2192 2026-03-27T16:22:00",
         "Typecheck passes"
       ],
-      "priority": 4,
       "passes": true,
-      "notes": "The LanguageContext already exists at app/contexts/LanguageContext.tsx. This story just creates the UI toggle component and a convenient provider wrapper. Keep it simple — just two buttons styled minimally."
+      "priority": 4
     },
     {
       "id": "US-005",
-      "title": "Terms acceptance page — bilingual UI",
-      "description": "As a user, I want the terms acceptance page to be in ZH by default and switchable to EN.",
+      "title": "Shared createPurchase mutation (payment-gateway ready)",
+      "description": "As a developer, I want a reusable Convex mutation for creating purchases so that both S3 ingestion and the future direct payment gateway share the same logic.",
       "acceptanceCriteria": [
-        "Create app/i18n/termsTranslations.ts with ZH and EN strings for all UI text on the terms page",
-        "Include: page title, all form labels (session selector, name, height, age, emergency contact name, emergency contact phone), placeholder text, submit button, success message, error messages, helper text, terms checkbox label",
-        "Wrap app/terms/page.tsx with LanguageProvider and add LanguageToggleHeader at top",
-        "app/terms/terms-form.tsx: use useLanguage() to display all labels and text in selected language",
-        "Session selector options display class name and location using language fallback (name_en??name_zh, location_en??location_zh)",
-        "Session option format: '{class_name} — {location} ({date} {time}–{end_time})' using language-aware fields",
-        "Update the sessions type in TermsFormProps to include name_zh, name_en, location_zh, location_en, end_time",
-        "Update the Convex query/API that loads sessions for the terms page to return bilingual fields",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "A Convex mutation convex/purchases.ts: createPurchase accepts: order_id (string), customer_mobile (string), participant_count (number), class_id (optional string), source ('s3' | 'payment_gateway'), unit_price (optional number), total_price (optional number), purchase_datetime (string ISO 8601)",
+        "The mutation generates a UUID v4 token, sets status: 'pending_terms', and inserts the purchase",
+        "It returns the new purchase._id",
+        "purchase_datetime is supplied by the caller",
+        "The source field is stored in the purchase record for auditing \u2014 add source: v.optional(v.union(v.literal('s3'), v.literal('payment_gateway'))) to the purchases table in convex/schema.ts",
+        "Duplicate detection: if the same order_id + class_id combination already exists, skip and return existing _id (idempotent \u2014 safe for reprocessing)",
+        "Typecheck passes"
       ],
-      "priority": 5,
       "passes": true,
-      "notes": "The terms page is at app/terms/page.tsx and app/terms/terms-form.tsx. The page is a server component, the form is a client component. LanguageProvider needs to wrap the client part. The sessions come from a Convex query via the API — update that query to return name_zh, name_en, location_zh, location_en, end_time."
+      "priority": 5
     },
     {
       "id": "US-006",
-      "title": "Participant QR code page — bilingual UI",
-      "description": "As a user, I want the participant QR code page to be in ZH by default and switchable to EN.",
+      "title": "Move processed files in S3",
+      "description": "As the system, I want to move successfully processed CSV files to {ENV}/processed/ so that they are not reprocessed on the next poll.",
       "acceptanceCriteria": [
-        "Create app/i18n/participantTranslations.ts with ZH and EN strings for all UI text",
-        "Include: page title ('參加者通行證 / Participant Pass'), section headings, all field labels (participant name, participant ID, class, session, location, date, time), 'Change session' button text, error messages",
-        "Wrap app/participant/[participant_id]/page.tsx with LanguageProvider and add LanguageToggleHeader",
-        "Display class name using language fallback (name_en??name_zh for EN, name_zh for ZH)",
-        "Display session location using language fallback (location_en??location_zh for EN, location_zh for ZH)",
-        "Display session time as start–end_time when end_time available",
-        "Update the Convex query that loads participant page data to return name_zh, name_en, location_zh, location_en, end_time",
-        "Update ParticipantPageData type to include bilingual fields",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "After all rows in a file are attempted, the file is copied to {ENV}/processed/{original-filename} in S3",
+        "The original file is then deleted from {ENV}/new/",
+        "If the copy or delete fails, the error is logged but polling continues (file will be reprocessed next tick \u2014 idempotency in US-005 prevents duplicates)",
+        "Typecheck passes"
       ],
-      "priority": 6,
       "passes": true,
-      "notes": "The participant page is at app/participant/[participant_id]/page.tsx. It loads data via a Convex HTTP client call. Update the underlying Convex query (likely in convex/participants.ts or convex/adminParticipants.ts) to return name_zh, name_en, location_zh, location_en, end_time."
+      "priority": 6
     },
     {
       "id": "US-007",
-      "title": "Admin portal — edit class name_zh and name_en",
-      "description": "As an admin, I want to set both ZH and EN class names in the admin portal.",
+      "title": "Trigger WhatsApp term acceptance message after purchase creation",
+      "description": "As the system, I want to send a WhatsApp message to the customer after a purchase record is created so that they can accept terms and select a session.",
       "acceptanceCriteria": [
-        "app/admin/classes/edit-class-modal.tsx: replace single Name field with two fields — '班級名稱（中文）Class Name (ZH)' (required) and 'Class Name (EN)' (optional)",
-        "Update the server action that calls adminClasses:updateClass to pass name_zh and name_en",
-        "Update convex/adminClasses.ts updateClass mutation args to accept name_zh (required) and name_en (optional)",
-        "Admin class list table shows name_zh and name_en (e.g. '單車新手速成班 (Cycling Crash Course)')",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "After createPurchase succeeds, the ingestion action calls the existing purchaseConfirmation:sendPurchaseConfirmation action with the new purchase_id",
+        "If WhatsApp sending fails, the purchase record remains in the database with status: 'pending_terms' (not rolled back)",
+        "The WhatsApp failure is logged with order_id and error details",
+        "Typecheck passes"
       ],
-      "priority": 7,
       "passes": true,
-      "notes": "The edit modal is at app/admin/classes/edit-class-modal.tsx. The server action is likely in app/admin/classes/actions.ts or similar. The adminClasses.ts mutation needs to be updated to accept name_zh and name_en instead of name."
+      "priority": 7
     },
     {
       "id": "US-008",
-      "title": "Admin portal — edit session location_zh, location_en, and end_time",
-      "description": "As an admin, I want to set bilingual session locations and end times in the admin portal.",
+      "title": "Ingestion run logging in database",
+      "description": "As the system, I want to persist a log of every ingestion run so that admins can audit history.",
       "acceptanceCriteria": [
-        "Session create and edit forms: replace single Location field with '地點（中文）Location (ZH)' (required) and 'Location (EN)' (optional)",
-        "Add 'End Time' field (optional, HH:MM format, placeholder '16:00')",
-        "Update adminSessions.ts createSession and updateSession mutations to accept location_zh, location_en (optional), end_time (optional)",
-        "Session list in admin shows location_zh (location_en if set) and time–end_time range",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
+        "Add ingestion_runs table to convex/schema.ts with fields: run_at (number), status ('success' | 'partial' | 'error'), files_processed (number), rows_inserted (number), rows_skipped (number), error_message (optional string)",
+        "Every S3 poll writes one ingestion_runs record on completion (success or error)",
+        "status: 'partial' is used when some rows failed/were skipped but others succeeded",
+        "Typecheck passes"
       ],
-      "priority": 8,
       "passes": true,
-      "notes": "Session forms are in app/admin/sessions/ directory. The mutations are in convex/adminSessions.ts. Update both create and update flows."
+      "priority": 8
     },
     {
       "id": "US-009",
-      "title": "Tests — bilingual fallback, WhatsApp messages, page language toggle",
-      "description": "As a developer, I want tests covering the bilingual fallback logic and key bilingual features.",
+      "title": "Admin ingestion monitoring UI",
+      "description": "As a super admin, I want to see a log of recent S3 ingestion runs and trigger a manual poll so that I can diagnose issues without waiting for the next scheduled run.",
       "acceptanceCriteria": [
-        "Unit test: language fallback function — getLocalizedText(zh, en, 'zh') returns zh, getLocalizedText(zh, undefined, 'en') returns zh (fallback), getLocalizedText(zh, en, 'en') returns en",
-        "Unit test: bilingual WhatsApp purchase confirmation message contains both ZH and EN text",
-        "Unit test: bilingual WhatsApp participant links message (single and multiple) contains both ZH and EN",
-        "Unit test: courseConfig description fallback — EN returns description_en when set, falls back to description_zh",
-        "All new tests pass",
-        "Existing tests still pass",
+        "New admin page at /admin/ingestion/page.tsx",
+        "Page shows a table of the last 20 ingestion runs with columns: timestamp, status (colour-coded: green=success, yellow=partial, red=error), files processed, rows inserted, rows skipped, error message",
+        "A 'Poll Now' button triggers an immediate S3 poll (calls the ingestion action directly)",
+        "The 'Poll Now' button is only visible and functional to users with role: 'super_admin' \u2014 determined using the existing admin auth context",
+        "Page is linked from the admin nav (app/admin/admin-nav.tsx)",
         "Typecheck passes"
       ],
-      "priority": 9,
       "passes": true,
-      "notes": "Tests go in tests/unit/. Use the existing vitest setup. A helper function getLocalizedText(zh: string, en: string | undefined, lang: 'zh' | 'en'): string may be worth extracting to app/lib/i18n.ts and testing directly."
+      "priority": 9
+    },
+    {
+      "id": "US-010",
+      "title": "Filter sessions to upcoming dates only in terms acceptance form",
+      "description": "As a customer, I want to only see upcoming (future) sessions when accepting terms, so I do not accidentally select a past session.",
+      "acceptanceCriteria": [
+        "In convex/terms.ts getTermsPageData, after filtering by status === \"scheduled\" and available_quota > 0, add a filter to exclude sessions where date+time is in the past",
+        "A session is considered upcoming if new Date(`${session.date}T${session.time}`) > new Date() at query time",
+        "Past sessions (even if still scheduled with available quota) are excluded from the list",
+        "All existing filters remain: status === \"scheduled\", available_quota > 0, sorted by date+time ascending",
+        "Typecheck passes",
+        "Tests pass: add a test verifying past sessions are excluded from results"
+      ],
+      "passes": true,
+      "priority": 10
+    },
+    {
+      "id": "US-011",
+      "title": "Return empty session list when purchase has no class_id",
+      "description": "As a customer, I should not see sessions from unrelated classes if my purchase has no valid class_id, so I am not confused by irrelevant options.",
+      "acceptanceCriteria": [
+        "In convex/terms.ts getTermsPageData, if purchase.class_id is null/undefined/empty string, return an empty sessions array instead of querying all sessions",
+        "No sessions are shown when there is no class mapping on the purchase",
+        "The terms form still renders with a no-available-sessions message \u2014 it does not error",
+        "Typecheck passes",
+        "Test added verifying empty sessions array returned when purchase has no class_id"
+      ],
+      "passes": true,
+      "priority": 11
+    },
+    {
+      "id": "US-012",
+      "title": "Change height field to number type and update bilingual label",
+      "description": "As a customer, I want the height field to accept a number in centimetres with a clear bilingual label, so the expected format is unambiguous.",
+      "acceptanceCriteria": [
+        "In convex/schema.ts, change height in the participants table from v.optional(v.string()) to v.optional(v.number())",
+        "In convex/terms.ts acceptTermsByToken, parse submitted height as a number (parseFloat) before storing; store undefined if not a valid number",
+        "In app/terms/terms-form.tsx, change height input type from text to number with min=0",
+        "Update height field label in i18n translations to display: \u8eab\u9ad8\uff08\u5398\u7c73\uff09 Height (cm) \u2014 shown bilingually regardless of selected language",
+        "Typecheck passes",
+        "Test added/updated to verify height is stored as a number in the purchase record"
+      ],
+      "passes": true,
+      "priority": 12
+    },
+    {
+      "id": "US-013",
+      "title": "Fix height type in all Convex validators and frontend types",
+      "description": "As a developer, I want all Convex validators and frontend TypeScript types for height to use number instead of string, so the participant page and admin panel do not throw ReturnsValidationError.",
+      "acceptanceCriteria": [
+        "convex/participants.ts: update getParticipantPageData return validator height from v.optional(v.string()) to v.optional(v.float64())",
+        "convex/adminParticipants.ts: update participant detail return validator height from v.optional(v.string()) to v.optional(v.float64())",
+        "convex/testPurchase.ts: update return validator height from v.optional(v.string()) to v.optional(v.float64())",
+        "app/admin/participants/[participant_id]/page.tsx: update TypeScript interface height?: string to height?: number",
+        "/participant/[participant_id] page loads without ReturnsValidationError for participants with numeric height",
+        "Typecheck passes",
+        "Tests pass; add/update test verifying getParticipantPageData returns height as number"
+      ],
+      "passes": true,
+      "priority": 13
+    },
+    {
+      "id": "US-014",
+      "title": "Show success state when user revisits terms page after submission",
+      "description": "As a customer, when I revisit the terms page after already submitting, I want to see the success state with the Open QR Code button, not the form again.",
+      "acceptanceCriteria": [
+        "In convex/terms.ts getTermsPageData, when purchase.status === \"terms_accepted\", include participant_id in the returned data",
+        "In app/terms/page.tsx, when pageData.purchase_status === \"terms_accepted\", render the success UI directly (without requiring ?status=success in URL)",
+        "Success UI includes Open your QR Code button linking to /participant/{participant_id}",
+        "If multiple participants exist for the purchase, link to the first participant page",
+        "Typecheck passes"
+      ],
+      "passes": true,
+      "priority": 14
+    },
+    {
+      "id": "US-015",
+      "title": "Remove participant name field from participant pass page",
+      "description": "As a developer, I want to remove the participant name field from the participant pass page since participant names are not stored in the database.",
+      "acceptanceCriteria": [
+        "In app/participant/[participant_id]/ParticipantPageContent.tsx, remove the participant name dt/dd row from the participant details section",
+        "Remove or hide the participantNameLabel i18n entry if no longer used",
+        "Participant details section still renders correctly without the name row",
+        "Typecheck passes"
+      ],
+      "passes": true,
+      "priority": 15
+    },
+    {
+      "id": "US-016",
+      "title": "Show accepted terms content on participant pass page",
+      "description": "As a customer, I want to see the terms I accepted on my participant pass page so I can reference what I agreed to.",
+      "acceptanceCriteria": [
+        "In convex/participants.ts getParticipantPageData, fetch terms_versions document via participant.terms_version_id; include terms_version and terms_content in returned data",
+        "If participant has no terms_version_id, omit terms section gracefully (no error)",
+        "In app/participant/[participant_id]/ParticipantPageContent.tsx, add a section below the QR code section showing accepted terms",
+        "Section heading is bilingual: ZH: \u5df2\u63a5\u53d7\u689d\u6b3e, EN: Accepted Terms, following the existing language toggle",
+        "Terms version string (e.g. v1.0) shown above the full terms text in a readable block",
+        "Typecheck passes"
+      ],
+      "passes": true,
+      "priority": 16
+    },
+    {
+      "id": "US-017",
+      "title": "Bilingual success state on /terms page",
+      "description": "As a customer, I want the success state on the terms page to display in my selected language (default Traditional Chinese).",
+      "acceptanceCriteria": [
+        "Success state in app/terms/page.tsx (post-submission and revisit) uses useLanguage context / LanguageProvider to determine active language",
+        "All success state text uses existing bilingual termsTranslations (zh-TW / en)",
+        "Default language is zh-TW when no language has been selected",
+        "Language toggle in header works on success state \u2014 switching language updates all text",
+        "Typecheck passes"
+      ],
+      "passes": true,
+      "priority": 17
+    },
+    {
+      "id": "US-018",
+      "title": "Replace Twilio WhatsApp provider with ManyChat",
+      "description": "As a developer, I want to send WhatsApp messages via ManyChat using an approved template instead of Twilio free-form messages.",
+      "acceptanceCriteria": [
+        "Create lib/manychat.ts with sendTermsAcceptanceWhatsApp({ to, termsUrl }) function",
+        "Function calls POST /fb/subscriber/findBySystemField with field_name=whatsapp_phone to resolve subscriber ID from E.164 phone number",
+        "If subscriber not found, logs warning and returns false",
+        "Function calls POST /fb/sending/sendContent with template name \"Terms acceptance\" and custom field cuf_14438749 set to termsUrl",
+        "Returns true on success, false on any error; reads MANYCHAT_API_KEY from env",
+        "Update convex/purchaseConfirmation.ts to use sendTermsAcceptanceWhatsApp from lib/manychat.ts instead of sendWhatsApp from lib/twilio.ts",
+        "Remove all TWILIO_* credential references from convex/purchaseConfirmation.ts",
+        "convex/participantLinks.ts \u2014 remove WhatsApp sending entirely; keep Convex mutation logic only",
+        "Delete lib/twilio.ts",
+        "Remove twilio npm package from package.json",
+        "Typecheck passes",
+        "Test added verifying sendTermsAcceptanceWhatsApp calls correct ManyChat endpoints with correct payload (mock fetch)"
+      ],
+      "passes": true,
+      "priority": 18
+    },
+    {
+      "id": "US-019",
+      "title": "Handle ManyChat subscriber already exists error and resolve subscriber ID",
+      "description": "As a developer, I want the ManyChat integration to handle the case where createSubscriber returns 400 \"WhatsApp ID already exists\", so WhatsApp messages are sent reliably.",
+      "acceptanceCriteria": [
+        "In lib/manychat.ts, when createSubscriber returns HTTP 400 with \"WhatsApp ID already exists\": extract the wa_id from the error response and retry findBySystemField with field_name=\"wa_id\" and the extracted value (without + prefix)",
+        "If wa_id lookup fails, also retry findBySystemField with field_name=\"whatsapp_phone\" and phone without + prefix (e.g. 85262875094)",
+        "Update initial findBySystemField to also try phone without + prefix as a fallback if the first attempt fails",
+        "Log each lookup attempt and result clearly",
+        "If subscriber ID resolved via any path, proceed to sendContent as normal",
+        "If all lookups fail, log error and return false",
+        "Typecheck passes",
+        "Test added covering the already-exists error path that successfully resolves subscriber ID"
+      ],
+      "passes": true,
+      "priority": 19
+    },
+    {
+      "id": "US-020",
+      "title": "Set phone field on createSubscriber so findBySystemField works for future lookups",
+      "description": "As a developer, I want the ManyChat subscriber to have the phone field set at creation so findBySystemField can find them on subsequent sends.",
+      "acceptanceCriteria": [
+        "In lib/manychat.ts createSubscriber call, add phone: to alongside whatsapp_phone: to in the request body",
+        "Update the initial findBySystemField call to use field_name: \"phone\" for the lookup (phone field is reliably set)",
+        "Lookup flow: findBySystemField(field_name=phone) \u2192 if not found \u2192 createSubscriber(phone + whatsapp_phone) \u2192 send",
+        "Keep the US-019 already-exists fallback as a safety net",
+        "Typecheck passes",
+        "Test updated to reflect new phone field in createSubscriber payload and findBySystemField using phone field"
+      ],
+      "passes": true,
+      "priority": 20
+    },
+    {
+      "id": "US-021",
+      "title": "Switch from sendContent to sendFlow for WhatsApp template delivery",
+      "description": "As a developer, I want to send terms acceptance WhatsApp via ManyChat sendFlow (flow NS: content20260331095255_664930) instead of sendContent which does not support WhatsApp templates.",
+      "acceptanceCriteria": [
+        "In lib/manychat.ts, after resolving subscriberId, set custom field cuf_14438749 to termsUrl via POST /fb/subscriber/setCustomFieldByName with { subscriber_id, field_name: \"cuf_14438749\", field_value: termsUrl }",
+        "Replace sendContent call with POST /fb/sending/sendFlow with body { subscriber_id, flow_ns: \"content20260331095255_664930\" }",
+        "Store flow NS as constant TERMS_FLOW_NS in lib/manychat.ts; optionally read from env var MANYCHAT_TERMS_FLOW_NS with fallback to hardcoded value",
+        "Log the sendFlow response for debugging",
+        "Remove old sendContent code and TERMS_TEMPLATE_NAME constant",
+        "Typecheck passes",
+        "Test updated to verify setCustomFieldByName and sendFlow called with correct args"
+      ],
+      "passes": true,
+      "priority": 21
+    },
+    {
+      "id": "US-022",
+      "title": "Make purchase details section on /terms page bilingual",
+      "description": "As a customer, I want the purchase details section labels to display in my selected language.",
+      "acceptanceCriteria": [
+        "In app/terms/page.tsx, replace hardcoded bilingual strings in the purchase details section with i18n translations from termsTranslations (tr.purchaseDetails, tr.customerMobileLabel, tr.participantsLabel, tr.classLabel, tr.classNotSelected)",
+        "Use the LanguageProvider / useLanguage context already present on the page",
+        "Typecheck passes"
+      ],
+      "passes": true,
+      "priority": 22
+    },
+    {
+      "id": "US-023",
+      "title": "Update QR code note wording on /terms page",
+      "description": "As a customer, I want the QR code note to say the QR code is available on this page, not via WhatsApp.",
+      "acceptanceCriteria": [
+        "Update qrCodeNote zh-TW: \u78ba\u8a8d\u8ab2\u7a0b\u6642\u6bb5\u4e26\u63a5\u53d7\u689d\u6b3e\u5f8c\uff0c\u4f60\u53ef\u5728\u6b64\u9801\u9762\u53d6\u5f97 QR \u78bc\u3002",
+        "Update qrCodeNote en: After confirming your class session and accepting the terms, your QR code will be available on this page.",
+        "Typecheck passes"
+      ],
+      "passes": true,
+      "priority": 23
+    },
+    {
+      "id": "US-024",
+      "title": "Update favicon and page title",
+      "description": "As an admin, I want the site to use the correct favicon and page title.",
+      "acceptanceCriteria": [
+        "Download favicon from https://mart-uat.loco.hk/image/catalog/favicon.ico and save to app/favicon.ico (replacing existing)",
+        "Update page title in app/layout.tsx to \u6a02\u5340\u55ae\u8eca\u5b89\u5168\u5b78\u9662",
+        "Favicon imported into source code, not referenced as external URL",
+        "Typecheck passes"
+      ],
+      "passes": true,
+      "priority": 24
+    },
+    {
+      "id": "US-025",
+      "title": "Store ManyChat subscriber ID in DB for reliable repeat-customer handling",
+      "description": "As a developer, I want to store ManyChat subscriber IDs in a dedicated lookup table keyed by WhatsApp phone number, so that repeat customers are found instantly without calling ManyChat API on every purchase.",
+      "acceptanceCriteria": [
+        "Add manychat_subscribers table to convex/schema.ts with fields: whatsapp_phone (string), subscriber_id (string), created_at (number); indexed by by_whatsapp_phone",
+        "Add manychat_subscriber_id: v.optional(v.string()) to purchases table in schema",
+        "Add whatsapp_errors: v.optional(v.number()) to ingestion_runs table in schema",
+        "Add convex/purchases.ts: updateManychatSubscriberId mutation to patch manychat_subscriber_id on a purchase",
+        "Add convex/manychatSubscribers.ts with: getByPhone query (returns subscriber_id or null) and upsertSubscriber mutation",
+        "Simplify lib/manychat.ts: remove all broken lookup chain (findBySystemField, extractWaId, wa_id fallbacks)",
+        "New sendTermsAcceptanceWhatsApp flow: (1) query manychat_subscribers by phone \u2014 if found use stored ID; (2) if not found call createSubscriber and save ID; (3) if 400 already-exists without stored ID log error return false; (4) setCustomFields; (5) sendFlow",
+        "In convex/purchaseConfirmation.ts after successful send: save subscriber ID to purchases.manychat_subscriber_id",
+        "In convex/s3IngestionMutations.ts: track WhatsApp failures with whatsapp_errors counter; set status partial if whatsapp_errors > 0",
+        "Typecheck passes",
+        "Tests: verify stored ID used on repeat sends; verify new ID saved after createSubscriber; verify 400 already-exists logs error and returns false; verify whatsapp_errors incremented on failure"
+      ],
+      "passes": true,
+      "priority": 25
+    },
+    {
+      "id": "US-026",
+      "title": "Split CSV row with qty > 1 into multiple purchase records",
+      "description": "As a customer purchasing multiple participant slots, I want to receive a separate WhatsApp terms acceptance message for each slot, each with its own unique terms URL.",
+      "acceptanceCriteria": [
+        "Add slot_index: v.optional(v.number()) to purchases table in convex/schema.ts",
+        "Add index by_order_class_slot on [\"order_id\", \"class_id\", \"slot_index\"] to purchases table",
+        "Update convex/purchases.ts createPurchase: accept slot_index argument (default 0); use by_order_class_slot for duplicate detection; store slot_index on record",
+        "Update convex/s3IngestionMutations.ts applyS3CsvRows: for each CSV row, loop participant_count times; call createPurchase once per slot with slot_index=i and participant_count=1; all slots share same order_id, customer_mobile, class_id, purchase_datetime",
+        "sendPurchaseConfirmation and s3Ingestion require no changes",
+        "Existing qty=1 records remain idempotent \u2014 no migration needed",
+        "Typecheck passes",
+        "Test: CSV row with qty=2 produces 2 purchase records each with participant_count=1 and distinct tokens",
+        "Test: reprocessing same file does not create duplicate records (idempotency with slot_index)"
+      ],
+      "passes": true,
+      "priority": 26
     }
   ]
 }
