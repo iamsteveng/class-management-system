@@ -51,7 +51,8 @@ export default async function AdminClassesPage({
   async function addClassAction(formData: FormData) {
     "use server";
 
-    const nameZh = (formData.get("name") as string | null)?.trim() ?? "";
+    const nameZh = (formData.get("name_zh") as string | null)?.trim() ?? "";
+    const nameEn = (formData.get("name_en") as string | null)?.trim() || undefined;
     const description =
       (formData.get("description") as string | null)?.trim() || undefined;
     const paymentUrl =
@@ -67,7 +68,7 @@ export default async function AdminClassesPage({
       const client = createConvexHttpClient();
       await client.mutation(
         makeFunctionReference<"mutation">("adminClasses:createClass"),
-        { name_zh: nameZh, description, payment_url: paymentUrl, admin_username: adminUsername }
+        { name_zh: nameZh, name_en: nameEn, description, payment_url: paymentUrl, admin_username: adminUsername }
       );
     } catch {
       redirect(
