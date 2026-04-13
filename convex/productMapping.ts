@@ -31,7 +31,8 @@ export const productMapping: Record<string, Record<string, string>> = {
     "7": "class_city_guided_tour",
   },
   prod: {
-    // Add prod mappings here when ready
+    "26": "67261272-c799-4439-9146-4ee12ce51b7c", // Beginner Cycling Course
+    "27": "7fe78618-d6c1-4a35-ad01-a0453a943180", // Guided Bike Tour
   },
 };
 
