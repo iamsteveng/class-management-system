@@ -184,6 +184,10 @@ export default async function AdminIngestionPage() {
             No failed WhatsApp sends.
           </p>
         ) : (
+          <>
+            <p className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-sm text-yellow-800">
+              Need to delete the subscriber of the mobile number below in ManyChat, then click Resend button.
+            </p>
           <div className="overflow-x-auto rounded-xl border border-zinc-200">
             <table className="min-w-full text-sm">
               <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600">
@@ -217,6 +221,7 @@ export default async function AdminIngestionPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 
