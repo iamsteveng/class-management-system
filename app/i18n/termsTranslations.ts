@@ -10,6 +10,8 @@ export interface TermsTranslations {
   selectSession: string;
   chooseSession: string;
   participantDetails: string;
+  nameLabel: string;
+  namePlaceholder: string;
   heightLabel: string;
   heightPlaceholder: string;
   ageLabel: string;
@@ -47,6 +49,8 @@ export const termsTranslations: Record<'zh-TW' | 'en', TermsTranslations> = {
     selectSession: '選擇時段',
     chooseSession: '請選擇時段',
     participantDetails: '參加者資料',
+    nameLabel: '姓名',
+    namePlaceholder: '請輸入你的全名',
     heightLabel: '身高（厘米）',
     heightPlaceholder: '例如：170',
     ageLabel: '年齡（歲）',
@@ -82,6 +86,8 @@ export const termsTranslations: Record<'zh-TW' | 'en', TermsTranslations> = {
     selectSession: 'Select session',
     chooseSession: 'Choose a session',
     participantDetails: 'Participant details',
+    nameLabel: 'Name',
+    namePlaceholder: 'Enter your full name',
     heightLabel: 'Height (cm)',
     heightPlaceholder: 'e.g. 170',
     ageLabel: 'Age (years)',

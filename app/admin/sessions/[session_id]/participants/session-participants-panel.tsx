@@ -278,6 +278,7 @@ export function SessionParticipantsPanel({
               <thead className="bg-zinc-50 text-zinc-700">
                 <tr>
                   <th className="px-4 py-3 font-medium">Participant ID</th>
+                  <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Mobile</th>
                   <th className="px-4 py-3 font-medium">Terms Accepted</th>
                   <th className="px-4 py-3 font-medium">Terms Version</th>
@@ -288,7 +289,7 @@ export function SessionParticipantsPanel({
               <tbody>
                 {participants.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-zinc-600">
+                    <td colSpan={7} className="px-4 py-6 text-center text-zinc-600">
                       No participants found for this session.
                     </td>
                   </tr>
@@ -298,6 +299,7 @@ export function SessionParticipantsPanel({
                       <td className="px-4 py-3 font-mono text-xs text-zinc-700">
                         {participant.participant_id}
                       </td>
+                      <td className="px-4 py-3 text-zinc-700">{participant.name || "—"}</td>
                       <td className="px-4 py-3 text-zinc-700">{participant.mobile}</td>
                       <td className="px-4 py-3 text-zinc-700">
                         {participant.terms_accepted ? "Yes" : "No"}
