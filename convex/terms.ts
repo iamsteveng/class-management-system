@@ -161,6 +161,7 @@ export const acceptTermsByToken = mutationGeneric({
     token: v.string(),
     session_id: v.string(),
     accepted: v.boolean(),
+    name: v.string(),
     height: v.optional(v.number()),
     age: v.optional(v.number()),
     emergency_contact_name: v.optional(v.string()),
@@ -177,6 +178,13 @@ export const acceptTermsByToken = mutationGeneric({
       return {
         success: false,
         error_message: "Please accept the terms before submitting.",
+      };
+    }
+
+    if (!args.name.trim()) {
+      return {
+        success: false,
+        error_message: "Name is required.",
       };
     }
 
@@ -258,6 +266,7 @@ export const acceptTermsByToken = mutationGeneric({
         purchase_id: purchase._id,
         session_id: session.session_id,
         mobile: purchase.customer_mobile,
+        name: args.name,
         qr_code_data: participantId,
         terms_accepted_at: acceptedAt,
         terms_version_id: currentTerms._id,

@@ -17,6 +17,7 @@ type SessionOption = {
 
 type ParticipantPageData = {
   participant_id: string;
+  participant_name: string;
   session_id: string;
   session_location: string;
   session_location_en?: string;
@@ -71,6 +72,10 @@ export function ParticipantPageContent({
           <div>
             <dt className="font-medium text-zinc-900">{tr.participantIdLabel}</dt>
             <dd className="break-all">{pageData.participant_id}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-zinc-900">{tr.nameLabel}</dt>
+            <dd>{pageData.participant_name}</dd>
           </div>
           <div>
             <dt className="font-medium text-zinc-900">{tr.classLabel}</dt>
