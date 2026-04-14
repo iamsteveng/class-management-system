@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getServerAuthSession } from "@/lib/auth";
+import { LogoutButton } from "./logout-button";
 
 export default async function AdminDashboardPage() {
   const session = await getServerAuthSession();
@@ -15,12 +15,7 @@ export default async function AdminDashboardPage() {
       <p className="text-sm text-zinc-700">
         Signed in as <span className="font-medium">{session.user.username}</span> ({session.user.role})
       </p>
-      <Link
-        href="/admin/login"
-        className="inline-flex rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-100"
-      >
-        Back to Login
-      </Link>
+      <LogoutButton />
     </main>
   );
 }
