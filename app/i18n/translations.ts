@@ -137,7 +137,7 @@ export const translations: Record<Language, Translations> = {
     about: {
       tag: '關於我們',
       title: '安全騎行，樂在社區',
-      description: '「樂區單車安全學院」致力透過系統化訓練，陪伴你發展恆久又安全的踩車能力 。我們堅信「人人有車練」，旨在推動安全騎行與互讓文化，攜手打造對行人及單車更友善的城市 。不論是初學者或想穿梭市區的車友，我們專業的認證導師都會提供耐心指導 ，助你由零建立自信，安全享受踩車的自由。我們相信，當每個人都具備正確的騎行知識與禮讓態度，這座城市將會變得更加美好 。',
+      description: '「樂區單車安全教室」致力透過系統化訓練，陪伴你發展恆久又安全的踩車能力 。我們堅信「人人有車練」，旨在推動安全騎行與互讓文化，攜手打造對行人及單車更友善的城市 。不論是初學者或想穿梭市區的車友，我們專業的認證導師都會提供耐心指導 ，助你由零建立自信，安全享受踩車的自由。我們相信，當每個人都具備正確的騎行知識與禮讓態度，這座城市將會變得更加美好 。',
       statsNumber: '1,000',
       statsText1: '超過',
       statsText2: '學員\n成功發掘踩車樂趣',
@@ -226,7 +226,7 @@ export const translations: Record<Language, Translations> = {
     footer: {
       followUs: '關注我們',
       poweredBy: '由 LocoBike 提供',
-      copyright: '版權所有 © 2026 Loco Cycling Safety Academy',
+      copyright: '版權所有 © 2026 Loco Cycling Safety Centre',
       privacyPolicy: '隱私政策',
       termsConditions: '使用條款',
       scrollToTop: '返回頂部',
@@ -248,7 +248,7 @@ export const translations: Record<Language, Translations> = {
     about: {
       tag: 'About Us',
       title: 'Safe Cycling, Community Joy',
-      description: 'The "Loco Cycling Safety Academy" is dedicated to developing sustainable and safe cycling abilities through systematic training. We believe in "everyone has a bike to practice," aiming to promote safe cycling and mutual courtesy culture, working together to create a more pedestrian and bicycle-friendly city. Whether you are a beginner or an experienced cyclist navigating the city, our professional certified instructors will provide patient guidance to help you build confidence from scratch and safely enjoy the freedom of cycling. We believe that when everyone has the correct cycling knowledge and courteous attitude, this city will become even better.',
+      description: 'The "Loco Cycling Safety Centre" is dedicated to developing sustainable and safe cycling abilities through systematic training. We believe in "everyone has a bike to practice," aiming to promote safe cycling and mutual courtesy culture, working together to create a more pedestrian and bicycle-friendly city. Whether you are a beginner or an experienced cyclist navigating the city, our professional certified instructors will provide patient guidance to help you build confidence from scratch and safely enjoy the freedom of cycling. We believe that when everyone has the correct cycling knowledge and courteous attitude, this city will become even better.',
       statsNumber: '1,000',
       statsText1: 'Over',
       statsText2: 'Students\nSuccessfully Discovered the Joy of Cycling',
@@ -337,7 +337,7 @@ export const translations: Record<Language, Translations> = {
     footer: {
       followUs: 'Follow Us',
       poweredBy: 'Powered by LocoBike',
-      copyright: 'Copyright © 2026 Loco Cycling Safety Academy',
+      copyright: 'Copyright © 2026 Loco Cycling Safety Centre',
       privacyPolicy: 'Privacy Policy',
       termsConditions: 'Terms & Conditions',
       scrollToTop: 'Scroll to Top',

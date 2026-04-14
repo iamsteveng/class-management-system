@@ -1,4 +1,5 @@
 import { useLanguage } from '../../contexts/LanguageContext';
+import Logo from './Logo';
 import svgPaths from './imports/svg-2gr9t1i5ns';
 
 export function Footer() {
@@ -18,100 +19,7 @@ export function Footer() {
             {/* Logo */}
             <div className="flex flex-col items-start justify-center flex-1 min-w-0">
               <div className="h-[132px] w-[150px] relative overflow-clip" data-name="logo">
-                <div className="absolute inset-[59.56%_0_16%_78.09%]" data-name="Group">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32.8692 32.2539">
-                    <g>
-                      <path d={svgPaths.p2830dde0} fill="#FFED92" />
-                      <path d={svgPaths.p369e3b00} fill="#0C0014" />
-                    </g>
-                  </svg>
-                </div>
-                <div className="absolute inset-[59.56%_78.09%_16%_0]" data-name="Group">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 32.8694 32.2539">
-                    <g>
-                      <path d={svgPaths.pb82eb00} fill="#FFED92" />
-                      <path d={svgPaths.p16431c00} fill="#0C0014" />
-                    </g>
-                  </svg>
-                </div>
-                <div className="absolute inset-[66.58%_9.14%_0_9.14%]" data-name="Group">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 122.571 44.1144">
-                    <g>
-                      <path d={svgPaths.p1bfc9c00} fill="#FFED92" />
-                      <path d={svgPaths.p3d71ee80} fill="#0C0014" />
-                    </g>
-                  </svg>
-                </div>
-                <div className="absolute inset-[0_22.14%_21.47%_22.14%]" data-name="Vector">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 83.577 103.666">
-                    <path d={svgPaths.p18b43a00} fill="#0C0014" />
-                  </svg>
-                </div>
-                <div className="absolute inset-[3.69%_25.39%_25.16%_25.39%]" data-name="Vector">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 73.8353 93.9172">
-                    <path d={svgPaths.p29ad3bf0} fill="#0C0014" />
-                  </svg>
-                </div>
-                <div className="absolute inset-[33.53%_25.39%_25.15%_25.39%]" data-name="Vector">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 73.8363 54.5389">
-                    <path d={svgPaths.p1d1bcb80} fill="#5FC8A7" />
-                  </svg>
-                </div>
-                <div className="absolute inset-[3.69%_51.62%_70.16%_25.39%]">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 34.483 34.5123">
-                    <g>
-                      <path d={svgPaths.p4d3100} fill="#60B4E5" />
-                      <path d={svgPaths.p35eb1100} fill="white" />
-                      <path d={svgPaths.p3b2ac780} fill="white" />
-                    </g>
-                  </svg>
-                </div>
-                <div className="absolute inset-[3.69%_25.39%_70.16%_51.62%]">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 34.483 34.5123">
-                    <g>
-                      <path d={svgPaths.p4d3100} fill="#FF8D81" />
-                      <g>
-                        <path d={svgPaths.p1b86f500} fill="white" />
-                        <path d={svgPaths.p3e0f5f70} fill="white" />
-                        <path d={svgPaths.p2a29ba00} fill="white" />
-                        <path d={svgPaths.p1ed1e370} fill="white" />
-                        <path d={svgPaths.p2b490e00} fill="#FF8D81" />
-                        <path d={svgPaths.pedae780} fill="#FF8D81" />
-                        <path d={svgPaths.p3529a980} fill="#FF8D81" />
-                      </g>
-                    </g>
-                  </svg>
-                </div>
-                <div className="absolute inset-[36.29%_27.02%_31.81%_27.29%]" data-name="Group">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 68.5332 42.1061">
-                    <g>
-                      <path d={svgPaths.p1e69ec40} fill="white" />
-                      <path d={svgPaths.p13cc8d00} fill="white" />
-                      <path d={svgPaths.p1956d880} fill="white" />
-                      <path d={svgPaths.p33955a00} fill="white" />
-                      <path d={svgPaths.p26e3a680} fill="white" />
-                    </g>
-                  </svg>
-                </div>
-                <div className="absolute inset-[36.3%_66.13%_56.29%_27.02%]" data-name="Vector">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 10.2802 9.78552">
-                    <path d={svgPaths.p833ff00} fill="#FFED92" />
-                  </svg>
-                </div>
-                <div className="absolute inset-[74.89%_16.53%_5.63%_16.64%]" data-name="Group">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 100.238 25.7193">
-                    <g>
-                      <path d={svgPaths.p36aa8830} fill="#0C0014" />
-                      <path d={svgPaths.p54560f2} fill="#0C0014" />
-                      <path d={svgPaths.p375ebc80} fill="#0C0014" />
-                      <path d={svgPaths.p1513f700} fill="#0C0014" />
-                      <path d={svgPaths.pe84f680} fill="#0C0014" />
-                      <path d={svgPaths.pe25680} fill="#0C0014" />
-                      <path d={svgPaths.p9a67700} fill="#0C0014" />
-                      <path d={svgPaths.p4ca5000} fill="#0C0014" />
-                    </g>
-                  </svg>
-                </div>
+                <Logo />
               </div>
             </div>
 
