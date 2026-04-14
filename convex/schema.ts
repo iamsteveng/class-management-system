@@ -26,7 +26,8 @@ export default defineSchema({
     .index("by_order_id", ["order_id"])
     .index("by_token", ["token"])
     .index("by_order_class", ["order_id", "class_id"])
-    .index("by_order_class_slot", ["order_id", "class_id", "slot_index"]),
+    .index("by_order_class_slot", ["order_id", "class_id", "slot_index"])
+    .index("by_status", ["status"]),
 
   participants: defineTable({
     participant_id: v.string(),
