@@ -60,6 +60,12 @@ export const getSessionManagementPageData = queryGeneric({
       google_maps_url: s.google_maps_url,
     }));
 
+    sessionRows.sort((a, b) => {
+      const aDateTime = `${a.date}T${a.time}`;
+      const bDateTime = `${b.date}T${b.time}`;
+      return bDateTime.localeCompare(aDateTime);
+    });
+
     return {
       class_id: classRecord.class_id,
       class_name: classRecord.name_zh ?? "",
