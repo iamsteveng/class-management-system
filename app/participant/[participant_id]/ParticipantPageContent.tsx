@@ -118,14 +118,6 @@ export function ParticipantPageContent({
         </div>
       </section>
 
-      {pageData.terms_version && pageData.terms_content ? (
-        <section className="rounded-xl border border-zinc-200 p-5">
-          <h2 className="text-lg font-medium text-zinc-900">{tr.acceptedTermsSection}</h2>
-          <p className="mt-1 text-sm font-medium text-zinc-500">{pageData.terms_version}</p>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-700">{pageData.terms_content}</p>
-        </section>
-      ) : null}
-
       {pageData.can_change_session ? (
         <section>
           <SessionChangeModal
@@ -134,6 +126,14 @@ export function ParticipantPageContent({
             errorMessage={errorMessage}
             success={changeSucceeded}
           />
+        </section>
+      ) : null}
+
+      {pageData.terms_version && pageData.terms_content ? (
+        <section className="rounded-xl border border-zinc-200 p-5">
+          <h2 className="text-lg font-medium text-zinc-900">{tr.acceptedTermsSection}</h2>
+          <p className="mt-1 text-sm font-medium text-zinc-500">{pageData.terms_version}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-zinc-700">{pageData.terms_content}</p>
         </section>
       ) : null}
     </main>

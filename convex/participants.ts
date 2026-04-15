@@ -72,6 +72,7 @@ export const getParticipantPageData = queryGeneric({
 
     const canChangeSession = isMoreThanTwoDaysAway(session.date, session.time);
 
+    const now = new Date();
     const availableOptions = canChangeSession
       ? (
           await ctx.db
@@ -85,7 +86,8 @@ export const getParticipantPageData = queryGeneric({
             return (
               candidateSession.status === "scheduled" &&
               candidateSession.session_id !== session.session_id &&
-              availableQuota > 0
+              availableQuota > 0 &&
+              new Date(`${candidateSession.date}T${candidateSession.time}`) > now
             );
           })
           .map((candidateSession) => ({
