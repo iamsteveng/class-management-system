@@ -40,6 +40,7 @@ export function TermsForm({
   const [sessionId, setSessionId] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [name, setName] = useState("");
+  const [participantMobile, setParticipantMobile] = useState("");
   const [email, setEmail] = useState("");
   const [height, setHeight] = useState("");
   const [age, setAge] = useState("");
@@ -53,6 +54,7 @@ export function TermsForm({
     sessionId.length > 0 &&
     accepted &&
     name.trim().length > 0 &&
+    participantMobile.trim().length > 0 &&
     email.trim().length > 0 &&
     height.trim().length > 0 &&
     age.trim().length > 0 &&
@@ -126,6 +128,23 @@ export function TermsForm({
             onChange={(e) => setName(e.target.value)}
             disabled={disableForm}
             placeholder={tr.namePlaceholder}
+            required
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="participant_mobile" className="block text-sm font-medium text-zinc-900">
+            {tr.mobileLabel}
+          </label>
+          <input
+            id="participant_mobile"
+            type="tel"
+            name="participant_mobile"
+            value={participantMobile}
+            onChange={(e) => setParticipantMobile(e.target.value)}
+            disabled={disableForm}
+            placeholder={tr.mobilePlaceholder}
             required
             className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 disabled:cursor-not-allowed disabled:bg-zinc-100"
           />
