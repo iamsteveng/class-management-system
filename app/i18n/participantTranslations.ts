@@ -14,6 +14,15 @@ export interface ParticipantTranslations {
   qrCodeSection: string;
   qrCodeAlt: string;
   changeSessionButton: string;
+  noSessionsAvailable: string;
+  sessionChangedSuccess: string;
+  changeSessionModalTitle: string;
+  changeSessionModalSubtitle: string;
+  newSessionLabel: string;
+  chooseSessionPlaceholder: string;
+  cancelButton: string;
+  saveButton: string;
+  savingButton: string;
   notFoundError: string;
   acceptedTermsSection: string;
 }
@@ -35,6 +44,15 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     qrCodeSection: '報到 QR 碼',
     qrCodeAlt: '參加者 QR 碼',
     changeSessionButton: '更改時段',
+    noSessionsAvailable: '目前沒有其他可用名額的時段。',
+    sessionChangedSuccess: '時段已成功更改。',
+    changeSessionModalTitle: '更改時段',
+    changeSessionModalSubtitle: '請選擇同一課程的可用時段。',
+    newSessionLabel: '新時段',
+    chooseSessionPlaceholder: '請選擇時段',
+    cancelButton: '取消',
+    saveButton: '確認',
+    savingButton: '儲存中...',
     notFoundError: '找不到此連結對應的參加者資料。',
     acceptedTermsSection: '已接受條款',
   },
@@ -54,6 +72,15 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     qrCodeSection: 'Check-in QR code',
     qrCodeAlt: 'QR code for participant',
     changeSessionButton: 'Change Session',
+    noSessionsAvailable: 'No alternate sessions with available quota are currently available.',
+    sessionChangedSuccess: 'Session changed successfully.',
+    changeSessionModalTitle: 'Change Session',
+    changeSessionModalSubtitle: 'Select an available session for the same class.',
+    newSessionLabel: 'New session',
+    chooseSessionPlaceholder: 'Choose a session',
+    cancelButton: 'Cancel',
+    saveButton: 'Save',
+    savingButton: 'Saving...',
     notFoundError: 'We could not find participant details for this link.',
     acceptedTermsSection: 'Accepted Terms',
   },

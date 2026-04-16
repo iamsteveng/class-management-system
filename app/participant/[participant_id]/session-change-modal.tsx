@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { participantTranslations } from "../../i18n/participantTranslations";
 
 type SessionOption = {
   session_id: string;
@@ -28,6 +29,7 @@ export function SessionChangeModal({
   success,
 }: SessionChangeModalProps) {
   const { language } = useLanguage();
+  const tr = participantTranslations[language];
   const isEn = language === 'en';
   const [open, setOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState("");
@@ -56,12 +58,12 @@ export function SessionChangeModal({
         disabled={noOptions}
         className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-500"
       >
-        Change Session
+        {tr.changeSessionButton}
       </button>
 
       {noOptions ? (
         <p className="mt-2 rounded-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-700">
-          No alternate sessions with available quota are currently available.
+          {tr.noSessionsAvailable}
         </p>
       ) : null}
 
@@ -76,16 +78,16 @@ export function SessionChangeModal({
           role="status"
           className="fixed bottom-5 right-5 z-50 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-lg"
         >
-          Session changed successfully.
+          {tr.sessionChangedSuccess}
         </div>
       ) : null}
 
       {open ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-semibold text-zinc-900">Change Session</h3>
+            <h3 className="text-lg font-semibold text-zinc-900">{tr.changeSessionModalTitle}</h3>
             <p className="mt-1 text-sm text-zinc-700">
-              Select an available session for the same class.
+              {tr.changeSessionModalSubtitle}
             </p>
 
             <form action={submitAction} className="mt-4 space-y-4">
@@ -94,7 +96,7 @@ export function SessionChangeModal({
                   htmlFor="new_session_id"
                   className="block text-sm font-medium text-zinc-900"
                 >
-                  New session
+                  {tr.newSessionLabel}
                 </label>
                 <select
                   id="new_session_id"
@@ -104,7 +106,7 @@ export function SessionChangeModal({
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
                   required
                 >
-                  <option value="">Choose a session</option>
+                  <option value="">{tr.chooseSessionPlaceholder}</option>
                   {sessionOptions.map((option) => {
                     const loc = isEn ? (option.location_en ?? option.location_zh) : option.location_zh;
                     const timeDisplay = option.end_time ? `${option.time}–${option.end_time}` : option.time;
@@ -124,11 +126,13 @@ export function SessionChangeModal({
                   onClick={() => setOpen(false)}
                   className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100"
                 >
-                  Cancel
+                  {tr.cancelButton}
                 </button>
                 <SubmitButton
                   disabled={selectedSessionId.length === 0}
                   onComplete={() => setOpen(false)}
+                  saveLabel={tr.saveButton}
+                  savingLabel={tr.savingButton}
                 />
               </div>
             </form>
@@ -142,9 +146,13 @@ export function SessionChangeModal({
 function SubmitButton({
   disabled,
   onComplete,
+  saveLabel,
+  savingLabel,
 }: {
   disabled: boolean;
   onComplete: () => void;
+  saveLabel: string;
+  savingLabel: string;
 }) {
   const { pending } = useFormStatus();
   const isDisabled = pending || disabled;
@@ -163,7 +171,7 @@ function SubmitButton({
       disabled={isDisabled}
       className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
     >
-      {pending ? "Saving..." : "Save"}
+      {pending ? savingLabel : saveLabel}
     </button>
   );
 }
