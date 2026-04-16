@@ -10,7 +10,7 @@ export interface CourseConfig {
 export const COURSE_CONFIG: Record<string, CourseConfig> = {
   // Beginner Cycling Course — 單車新手速成班 (UAT slug)
   class_cycling_fundamentals: {
-    duration: '2 hours',
+    duration: '3 hours',
     originalPrice: 'HK$560',
     discountPrice: 'HK$400',
     image: '/images/homepage/30c657383d224670b9671a2f703069965543dc7c.png',
@@ -19,7 +19,7 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
   },
   // Beginner Cycling Course — 單車新手速成班 (production UUID)
   '67261272-c799-4439-9146-4ee12ce51b7c': {
-    duration: '2 hours',
+    duration: '3 hours',
     originalPrice: 'HK$400',
     discountPrice: 'HK$298',
     image: '/images/homepage/30c657383d224670b9671a2f703069965543dc7c.png',
@@ -28,7 +28,7 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
   },
   // Guided Bike Tour — 單車導賞團 (UAT slug)
   class_city_guided_tour: {
-    duration: '3 hours',
+    duration: '2 hours',
     originalPrice: 'HK$650',
     discountPrice: 'HK$550',
     image: '/images/homepage/1b6dde4eac8d4c724b5927af3ad2e95753044659.png',
@@ -37,7 +37,7 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
   },
   // Guided Bike Tour — 單車導賞團 (production UUID)
   '7fe78618-d6c1-4a35-ad01-a0453a943180': {
-    duration: '3 hours',
+    duration: '2 hours',
     originalPrice: 'HK$200',
     discountPrice: 'HK$150',
     image: '/images/homepage/1b6dde4eac8d4c724b5927af3ad2e95753044659.png',
