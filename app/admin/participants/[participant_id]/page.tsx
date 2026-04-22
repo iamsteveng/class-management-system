@@ -15,6 +15,7 @@ type ParticipantDetails = {
   participant_id: string;
   name?: string;
   mobile?: string;
+  email?: string;
   session_id: string;
   class_id: string;
   session_location: string;
@@ -136,6 +137,10 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
           <div>
             <dt className="font-medium text-zinc-600">Mobile</dt>
             <dd className="mt-0.5 text-zinc-900">{details.mobile?.trim() || "—"}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-zinc-600">Email</dt>
+            <dd className="mt-0.5 text-zinc-900">{details.email?.trim() || "—"}</dd>
           </div>
           <div>
             <dt className="font-medium text-zinc-600">Height</dt>
