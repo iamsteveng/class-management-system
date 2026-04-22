@@ -4,6 +4,8 @@ export interface ParticipantTranslations {
   participantDetailsSection: string;
   participantIdLabel: string;
   nameLabel: string;
+  emailLabel: string;
+  mobileLabel: string;
   classLabel: string;
   sessionLabel: string;
   locationLabel: string;
@@ -34,6 +36,8 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     participantDetailsSection: '參加者資料',
     participantIdLabel: '參加者編號',
     nameLabel: '姓名',
+    emailLabel: '電郵',
+    mobileLabel: '電話',
     classLabel: '課程',
     sessionLabel: '時段',
     locationLabel: '地點',
@@ -62,6 +66,8 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     participantDetailsSection: 'Participant details',
     participantIdLabel: 'Participant ID',
     nameLabel: 'Name',
+    emailLabel: 'Email',
+    mobileLabel: 'Mobile',
     classLabel: 'Class',
     sessionLabel: 'Session',
     locationLabel: 'Location',

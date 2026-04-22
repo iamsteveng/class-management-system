@@ -18,6 +18,8 @@ type SessionOption = {
 type ParticipantPageData = {
   participant_id: string;
   participant_name: string;
+  mobile?: string;
+  email?: string;
   session_id: string;
   session_location: string;
   session_location_en?: string;
@@ -77,6 +79,18 @@ export function ParticipantPageContent({
             <dt className="font-medium text-zinc-900">{tr.nameLabel}</dt>
             <dd>{pageData.participant_name}</dd>
           </div>
+          {pageData.mobile ? (
+            <div>
+              <dt className="font-medium text-zinc-900">{tr.mobileLabel}</dt>
+              <dd>{pageData.mobile}</dd>
+            </div>
+          ) : null}
+          {pageData.email ? (
+            <div>
+              <dt className="font-medium text-zinc-900">{tr.emailLabel}</dt>
+              <dd>{pageData.email}</dd>
+            </div>
+          ) : null}
           <div>
             <dt className="font-medium text-zinc-900">{tr.classLabel}</dt>
             <dd>{className}</dd>
