@@ -2,6 +2,8 @@ import { makeFunctionReference } from "convex/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 import { SessionParticipantsPanel } from "./session-participants-panel";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
