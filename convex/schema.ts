@@ -74,6 +74,7 @@ export default defineSchema({
       v.literal("cancelled")
     ),
     google_maps_url: v.optional(v.string()),
+    cancellation_reason: v.optional(v.literal("rain")),
     created_at: v.number(),
   })
     .index("by_session_id", ["session_id"])

@@ -31,6 +31,7 @@ type ParticipantPageData = {
   class_name_en?: string;
   qr_code_data: string;
   can_change_session: boolean;
+  is_rain_cancelled?: boolean;
   session_options: SessionOption[];
   terms_version?: string;
   terms_content?: string;
@@ -131,6 +132,13 @@ export function ParticipantPageContent({
           />
         </div>
       </section>
+
+      {pageData.is_rain_cancelled ? (
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="text-base font-semibold text-amber-900">{tr.rainCancelledBannerTitle}</h2>
+          <p className="mt-1 text-sm text-amber-800">{tr.rainCancelledBannerMessage}</p>
+        </section>
+      ) : null}
 
       {pageData.can_change_session ? (
         <section>

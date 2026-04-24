@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { AddSessionModal } from "./add-session-modal";
 import { CancelSessionButton } from "./cancel-session-button";
+import { RainCancelSessionButton } from "./rain-cancel-session-button";
 import { EditSessionModal } from "./edit-session-modal";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
@@ -20,6 +21,7 @@ type SessionRow = {
   quota_available: number;
   status: "scheduled" | "completed" | "cancelled";
   google_maps_url?: string;
+  cancellation_reason?: "rain";
 };
 
 type PageData = {
@@ -48,6 +50,7 @@ export default async function AdminClassSessionsPage({
   const sessionCreated = sp.status === "session_created";
   const sessionUpdated = sp.status === "session_updated";
   const sessionCancelled = sp.status === "session_cancelled";
+  const sessionRainCancelled = sp.status === "session_rain_cancelled";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
 
@@ -205,6 +208,38 @@ export default async function AdminClassSessionsPage({
     redirect(`/admin/classes/${classId}/sessions?status=session_cancelled`);
   }
 
+  async function rainCancelSessionAction(formData: FormData) {
+    "use server";
+
+    const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
+    if (!sessionId) {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          "Session ID is required."
+        )}`
+      );
+    }
+
+    try {
+      const client = createConvexHttpClient();
+      await client.mutation(
+        makeFunctionReference<"mutation">("adminSessions:markSessionRainCancelled"),
+        {
+          session_id: sessionId,
+          admin_username: adminUsername,
+        }
+      );
+    } catch {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          "Failed to mark session as rain-cancelled. Please try again."
+        )}`
+      );
+    }
+
+    redirect(`/admin/classes/${classId}/sessions?status=session_rain_cancelled`);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl space-y-6 px-4 py-8">
       <section className="flex flex-wrap items-center justify-between gap-4">
@@ -240,6 +275,11 @@ export default async function AdminClassSessionsPage({
       {sessionCancelled ? (
         <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
           Session cancelled successfully.
+        </p>
+      ) : null}
+      {sessionRainCancelled ? (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
+          Session marked as rain-cancelled. Participants can now change to another session.
         </p>
       ) : null}
 
@@ -295,10 +335,12 @@ export default async function AdminClassSessionsPage({
                           ? "bg-blue-100 text-blue-800"
                           : s.status === "completed"
                             ? "bg-emerald-100 text-emerald-800"
-                            : "bg-zinc-100 text-zinc-600"
+                            : s.cancellation_reason === "rain"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-zinc-100 text-zinc-600"
                       }`}
                     >
-                      {s.status}
+                      {s.cancellation_reason === "rain" ? "cancelled (rain)" : s.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -328,6 +370,12 @@ export default async function AdminClassSessionsPage({
                           disabled={s.status === "cancelled"}
                           submitAction={cancelSessionAction}
                         />
+                        {s.status === "scheduled" ? (
+                          <RainCancelSessionButton
+                            sessionId={s.session_id}
+                            submitAction={rainCancelSessionAction}
+                          />
+                        ) : null}
                       </div>
                     </td>
                   ) : null}
