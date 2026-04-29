@@ -44,6 +44,15 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
     description_zh: '專為青少年設計的單車入門課程，由淺入深學習踩單車技巧（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）',
     description_en: 'Beginner cycling course designed for teenagers, covering bike inspection, handling skills, safety rules, and simulation practice',
   },
+  // Middle Kids Beginner Cycling Course — 中童單車新手速成班 (production UUID)
+  '9e415878-038b-42ae-b6e6-91873c32dd15': {
+    duration: '3 hours',
+    originalPrice: 'HK$400',
+    discountPrice: 'HK$298',
+    image: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/midkid.jpg',
+    description_zh: '專為中童（10-12歲）設計的單車入門課程，由淺入深學習踩單車技巧（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）',
+    description_en: 'Beginner cycling course designed for children aged 10–12, covering bike inspection, handling skills, safety rules, and simulation practice',
+  },
   // Young Kids Beginner Cycling Course — 幼兒單車新手速成班 (production UUID)
   '087ff81e-737a-42f9-957c-192a23de30dc': {
     duration: '3 hours',
