@@ -65,6 +65,16 @@ npx convex function-spec --prod
 npx convex function-spec
 ```
 
+### After deploying to Vercel preview
+
+After every `vercel` (preview) deployment, update `APP_BASE_URL` in Convex dev with the new preview URL:
+
+```bash
+npx convex env set APP_BASE_URL <preview-url>
+```
+
+This keeps Convex dev pointing at the latest preview so QR codes, redirect URLs, and other absolute-URL features work correctly during testing.
+
 ### env.local warning
 
 `vercel env pull` **overwrites `.env.local`** and removes the Convex deployment config. After any `vercel env pull`, restore `.env.local` with:
