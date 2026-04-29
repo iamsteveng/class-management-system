@@ -62,6 +62,33 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
     description_zh: '專為幼兒設計的單車入門課程，以趣味方式引導小朋友學習踩單車技巧（包括：平衡感訓練、單車操控技巧、單車安全守則）',
     description_en: 'Fun beginner cycling course designed for young children, covering balance training, bike handling skills, and safety rules',
   },
+  // Teen Beginner Cycling Course — 青少年單車新手速成班 (13-17歲) (production UUID)
+  'a7a53c64-8cf0-4b71-9749-7f1076045f99': {
+    duration: '3 hours',
+    originalPrice: 'HK$400',
+    discountPrice: 'HK$298',
+    image: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/teen.jpg',
+    description_zh: '專為青少年設計的單車入門課程，由淺入深學習踩單車技巧（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）',
+    description_en: 'Beginner cycling course designed for teenagers, covering bike inspection, handling skills, safety rules, and simulation practice',
+  },
+  // Young Kids Beginner Cycling Course — 幼兒單車新手速成班 (6-9歲) (production UUID)
+  'a07413ca-9be9-4492-94d3-da01a93a3e04': {
+    duration: '3 hours',
+    originalPrice: 'HK$400',
+    discountPrice: 'HK$298',
+    image: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/smallkid.jpg',
+    description_zh: '專為幼兒設計的單車入門課程，以趣味方式引導小朋友學習踩單車技巧（包括：平衡感訓練、單車操控技巧、單車安全守則）',
+    description_en: 'Fun beginner cycling course designed for young children, covering balance training, bike handling skills, and safety rules',
+  },
+  // Middle Kids Beginner Cycling Course — 中童單車新手速成班 (10-12歲) (production UUID)
+  'a2f45f61-4f3f-4345-84b6-6241c4adb532': {
+    duration: '3 hours',
+    originalPrice: 'HK$400',
+    discountPrice: 'HK$298',
+    image: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/midkid.jpg',
+    description_zh: '專為中童（10-12歲）設計的單車入門課程，由淺入深學習踩單車技巧（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）',
+    description_en: 'Beginner cycling course designed for children aged 10–12, covering bike inspection, handling skills, safety rules, and simulation practice',
+  },
   // Guided Bike Tour — 單車導賞團 (production UUID)
   '7fe78618-d6c1-4a35-ad01-a0453a943180': {
     duration: '2 hours',
