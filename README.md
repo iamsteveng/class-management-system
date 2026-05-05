@@ -45,6 +45,27 @@ npx convex env set APP_BASE_URL "https://<preview-url>.vercel.app"
 
 ---
 
+## Adding a New Class
+
+### 1. Admin Portal
+- [ ] Create the class in the admin portal (`/admin/classes`) — set name, description, payment URL (the payment URL should be the Loco Mart product page URL for that class)
+- [ ] Add sessions for the class (`/admin/classes/{class_id}/sessions`)
+
+### 2. Loco Mart Portal
+- [ ] Create the corresponding product in the Loco Mart portal
+- [ ] Add the new product ID to the Loco Events module: **Extensions → Extensions → Modules → Loco Events**
+
+### 3. Homepage Image
+- [ ] Prepare an image for the class and add it to the project (e.g. `/public/images/homepage/` or an S3 URL)
+
+### 4. Code Changes
+- [ ] **`app/i18n/courseConfig.ts`** — add a `COURSE_CONFIG` entry for the new `class_id` with `duration`, `originalPrice`, `discountPrice`, `image`, `description_zh`, `description_en`
+- [ ] **`convex/productMapping.ts`** — add the product ID → class ID mapping under `prod` (and `uat` if applicable)
+- [ ] Run `npx tsc --noEmit` to verify no type errors
+- [ ] Commit and deploy: `npx convex deploy --yes`
+
+---
+
 ## Common Ops Issues
 
 ### WhatsApp message send failed
