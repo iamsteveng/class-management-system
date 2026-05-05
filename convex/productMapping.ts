@@ -33,6 +33,9 @@ export const productMapping: Record<string, Record<string, string>> = {
   prod: {
     "26": "67261272-c799-4439-9146-4ee12ce51b7c", // Beginner Cycling Course
     "27": "7fe78618-d6c1-4a35-ad01-a0453a943180", // Guided Bike Tour
+    "31": "a7a53c64-8cf0-4b71-9749-7f1076045f99", // 青少年單車新手速成班 (13-17歲)
+    "32": "a07413ca-9be9-4492-94d3-da01a93a3e04", // 幼兒單車新手速成班 (6-9歲)
+    "33": "a2f45f61-4f3f-4345-84b6-6241c4adb532", // 中童單車新手速成班 (10-12歲)
   },
 };
 
