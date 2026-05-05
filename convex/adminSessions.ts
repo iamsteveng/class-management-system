@@ -306,6 +306,11 @@ export const markSessionRainCancelled = mutationGeneric({
       throw new Error("Cannot rain-cancel a completed session.");
     }
 
+    // Idempotency: already rain-cancelled — return without re-notifying participants
+    if (sessionRecord.status === "cancelled" && sessionRecord.cancellation_reason === "rain") {
+      return { session_id: sessionRecord.session_id };
+    }
+
     const now = Date.now();
     await ctx.db.patch(sessionRecord._id, {
       status: "cancelled",
@@ -331,18 +336,11 @@ export const markSessionRainCancelled = mutationGeneric({
       .collect();
 
     for (const participant of participants) {
-      const purchase = await ctx.db.get(participant.purchase_id);
-      const customerMobile = purchase?.customer_mobile ?? participant.mobile;
-      if (customerMobile) {
-        await ctx.scheduler.runAfter(
-          0,
-          makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
-          {
-            customer_mobile: customerMobile,
-            participant_ids: [participant.participant_id],
-          }
-        );
-      }
+      await ctx.scheduler.runAfter(
+        0,
+        makeFunctionReference<"action">("rainCancellationNotification:sendRainCancellationNotification"),
+        { participant_id: participant.participant_id }
+      );
     }
 
     return { session_id: sessionRecord.session_id };

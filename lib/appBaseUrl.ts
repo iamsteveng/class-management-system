@@ -18,3 +18,7 @@ export function resolveAppBaseUrl(baseUrlFromEnv: string | undefined): string {
 export function buildTermsUrl(baseUrl: string, token: string): string {
   return `${baseUrl}/terms?token=${encodeURIComponent(token)}`;
 }
+
+export function buildParticipantPassUrl(baseUrl: string, participantId: string): string {
+  return `${baseUrl}/participant/${encodeURIComponent(participantId)}`;
+}

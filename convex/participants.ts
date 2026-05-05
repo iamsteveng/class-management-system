@@ -280,6 +280,26 @@ export const changeParticipantSession = mutationGeneric({
   },
 });
 
+export const getParticipantMobileById = queryGeneric({
+  args: {
+    participant_id: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({ mobile: v.union(v.string(), v.null()) })
+  ),
+  handler: async (ctx, args) => {
+    const record = await ctx.db
+      .query("participants")
+      .withIndex("by_participant_id", (q) =>
+        q.eq("participant_id", args.participant_id)
+      )
+      .first();
+    if (!record) return null;
+    return { mobile: record.mobile ?? null };
+  },
+});
+
 function isMoreThanTwoDaysAway(date: string, time: string): boolean {
   const sessionStartsAt = Date.parse(`${date}T${time}:00`);
   const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
