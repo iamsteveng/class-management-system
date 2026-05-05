@@ -93,7 +93,7 @@ export const getParticipantPageData = queryGeneric({
               candidateSession.status === "scheduled" &&
               candidateSession.session_id !== session.session_id &&
               availableQuota > 0 &&
-              (isRainCancelled || isFutureSession)
+              isFutureSession
             );
           })
           .map((candidateSession) => ({
