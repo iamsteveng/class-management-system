@@ -6,6 +6,7 @@ export const createTestPurchase = mutationGeneric({
   args: {
     customer_mobile: v.string(),
     participant_count: v.optional(v.number()),
+    class_id: v.optional(v.string()),
   },
   returns: v.object({
     purchase_id: v.id("purchases"),
@@ -23,6 +24,7 @@ export const createTestPurchase = mutationGeneric({
       participant_count: args.participant_count ?? 2,
       status: "pending_terms",
       token: token,
+      class_id: args.class_id,
       created_at: now,
     });
 
