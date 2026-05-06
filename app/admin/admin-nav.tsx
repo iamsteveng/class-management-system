@@ -45,6 +45,11 @@ const navItems: NavItem[] = [
     isActive: (pathname) => pathname.startsWith("/admin/faq"),
   },
   {
+    label: "Purchases",
+    href: "/admin/purchases",
+    isActive: (pathname) => pathname.startsWith("/admin/purchases"),
+  },
+  {
     label: "Ingestion",
     href: "/admin/ingestion",
     isActive: (pathname) => pathname.startsWith("/admin/ingestion"),
