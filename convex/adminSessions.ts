@@ -1,4 +1,4 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { makeFunctionReference, mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
 export const getSessionManagementPageData = queryGeneric({
@@ -27,6 +27,7 @@ export const getSessionManagementPageData = queryGeneric({
             v.literal("cancelled")
           ),
           google_maps_url: v.optional(v.string()),
+          cancellation_reason: v.optional(v.literal("rain")),
         })
       ),
     })
@@ -58,6 +59,7 @@ export const getSessionManagementPageData = queryGeneric({
       quota_available: Math.max(0, s.quota_defined - s.quota_used),
       status: s.status,
       google_maps_url: s.google_maps_url,
+      cancellation_reason: s.cancellation_reason,
     }));
 
     sessionRows.sort((a, b) => {
@@ -268,6 +270,78 @@ export const cancelSession = mutationGeneric({
       },
       created_at: now,
     });
+
+    return { session_id: sessionRecord.session_id };
+  },
+});
+
+export const markSessionRainCancelled = mutationGeneric({
+  args: {
+    session_id: v.string(),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    session_id: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const sessionRecord = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+      .first();
+
+    if (!sessionRecord) {
+      throw new Error("Session not found.");
+    }
+
+    const admin = await ctx.db
+      .query("admins")
+      .withIndex("by_username", (q) => q.eq("username", args.admin_username))
+      .first();
+
+    if (!admin || admin.role !== "super_admin") {
+      throw new Error("Only super admins can mark sessions as rain-cancelled.");
+    }
+
+    if (sessionRecord.status === "completed") {
+      throw new Error("Cannot rain-cancel a completed session.");
+    }
+
+    // Idempotency: already rain-cancelled — return without re-notifying participants
+    if (sessionRecord.status === "cancelled" && sessionRecord.cancellation_reason === "rain") {
+      return { session_id: sessionRecord.session_id };
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(sessionRecord._id, {
+      status: "cancelled",
+      cancellation_reason: "rain",
+    });
+
+    await ctx.db.insert("audit_logs", {
+      admin_id: admin._id,
+      action: "session_rain_cancelled",
+      entity_type: "sessions",
+      entity_id: sessionRecord.session_id,
+      metadata: {
+        previous_status: sessionRecord.status,
+      },
+      created_at: now,
+    });
+
+    const participants = await ctx.db
+      .query("participants")
+      .withIndex("by_session_id", (q) =>
+        q.eq("session_id", sessionRecord.session_id)
+      )
+      .collect();
+
+    for (const participant of participants) {
+      await ctx.scheduler.runAfter(
+        0,
+        makeFunctionReference<"action">("rainCancellationNotification:sendRainCancellationNotification"),
+        { participant_id: participant.participant_id }
+      );
+    }
 
     return { session_id: sessionRecord.session_id };
   },

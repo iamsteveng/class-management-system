@@ -5,6 +5,7 @@ import { v } from "convex/values";
 
 import { sendTermsAcceptanceWhatsApp } from "../lib/manychat";
 import { buildTermsUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
+import { normalizeToE164 } from "../lib/phone";
 
 export const sendPurchaseConfirmation = actionGeneric({
   args: {
@@ -31,25 +32,28 @@ export const sendPurchaseConfirmation = actionGeneric({
       return { success: true };
     }
 
+    // Normalize to E.164 for consistent subscriber cache lookup and ManyChat API
+    const normalizedMobile = normalizeToE164(purchase.customer_mobile) ?? purchase.customer_mobile;
+
     // Look up any stored ManyChat subscriber ID for this phone number
     const storedSubscriberId = await ctx.runQuery(
       makeFunctionReference<"query">("manychatSubscribers:getByPhone"),
-      { whatsapp_phone: purchase.customer_mobile }
+      { whatsapp_phone: normalizedMobile }
     );
 
     const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
     const termsUrl = buildTermsUrl(baseUrl, purchase.token);
 
     console.log(
-      `[purchaseConfirmation] Sending WhatsApp to=${purchase.customer_mobile} termsUrl=${termsUrl} purchase_id=${purchase._id} storedSubscriberId=${storedSubscriberId ?? "none"}`
+      `[purchaseConfirmation] Sending WhatsApp to=${normalizedMobile} termsUrl=${termsUrl} purchase_id=${purchase._id} storedSubscriberId=${storedSubscriberId ?? "none"}`
     );
     const result = await sendTermsAcceptanceWhatsApp({
-      to: purchase.customer_mobile,
+      to: normalizedMobile,
       termsUrl,
       subscriberId: storedSubscriberId,
     });
     console.log(
-      `[purchaseConfirmation] WhatsApp send result: success=${result.success} subscriberId=${result.subscriberId ?? "null"} to=${purchase.customer_mobile}`
+      `[purchaseConfirmation] WhatsApp send result: success=${result.success} subscriberId=${result.subscriberId ?? "null"} to=${normalizedMobile}`
     );
 
     if (result.success && result.subscriberId) {
@@ -57,7 +61,7 @@ export const sendPurchaseConfirmation = actionGeneric({
       await ctx.runMutation(
         makeFunctionReference<"mutation">("manychatSubscribers:upsertSubscriber"),
         {
-          whatsapp_phone: purchase.customer_mobile,
+          whatsapp_phone: normalizedMobile,
           subscriber_id: result.subscriberId,
         }
       );

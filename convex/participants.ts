@@ -21,6 +21,7 @@ export const getParticipantPageData = queryGeneric({
       class_name_en: v.optional(v.string()),
       qr_code_data: v.string(),
       can_change_session: v.boolean(),
+      is_rain_cancelled: v.boolean(),
       mobile: v.optional(v.string()),
       email: v.optional(v.string()),
       height: v.optional(v.float64()),
@@ -72,7 +73,8 @@ export const getParticipantPageData = queryGeneric({
       return null;
     }
 
-    const canChangeSession = isMoreThanTwoDaysAway(session.date, session.time);
+    const isRainCancelled = session.cancellation_reason === "rain";
+    const canChangeSession = isMoreThanTwoDaysAway(session.date, session.time) || isRainCancelled;
 
     const now = new Date();
     const availableOptions = canChangeSession
@@ -85,11 +87,13 @@ export const getParticipantPageData = queryGeneric({
           .filter((candidateSession) => {
             const availableQuota =
               candidateSession.quota_defined - candidateSession.quota_used;
+            const isFutureSession =
+              new Date(`${candidateSession.date}T${candidateSession.time}`) > now;
             return (
               candidateSession.status === "scheduled" &&
               candidateSession.session_id !== session.session_id &&
               availableQuota > 0 &&
-              new Date(`${candidateSession.date}T${candidateSession.time}`) > now
+              isFutureSession
             );
           })
           .map((candidateSession) => ({
@@ -131,6 +135,7 @@ export const getParticipantPageData = queryGeneric({
       class_name_en: classRecord.name_en,
       qr_code_data: participant.qr_code_data ?? participant.participant_id,
       can_change_session: canChangeSession,
+      is_rain_cancelled: isRainCancelled,
       mobile: participant.mobile,
       email: participant.email,
       height: participant.height,
@@ -178,7 +183,10 @@ export const changeParticipantSession = mutationGeneric({
       };
     }
 
-    if (!isMoreThanTwoDaysAway(currentSession.date, currentSession.time)) {
+    if (
+      !isMoreThanTwoDaysAway(currentSession.date, currentSession.time) &&
+      currentSession.cancellation_reason !== "rain"
+    ) {
       return {
         success: false,
         error_message:
@@ -269,6 +277,26 @@ export const changeParticipantSession = mutationGeneric({
     }
 
     return { success: true };
+  },
+});
+
+export const getParticipantMobileById = queryGeneric({
+  args: {
+    participant_id: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({ mobile: v.union(v.string(), v.null()) })
+  ),
+  handler: async (ctx, args) => {
+    const record = await ctx.db
+      .query("participants")
+      .withIndex("by_participant_id", (q) =>
+        q.eq("participant_id", args.participant_id)
+      )
+      .first();
+    if (!record) return null;
+    return { mobile: record.mobile ?? null };
   },
 });
 

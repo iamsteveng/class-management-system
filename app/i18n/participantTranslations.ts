@@ -27,6 +27,8 @@ export interface ParticipantTranslations {
   savingButton: string;
   notFoundError: string;
   acceptedTermsSection: string;
+  rainCancelledBannerTitle: string;
+  rainCancelledBannerMessage: string;
 }
 
 export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslations> = {
@@ -59,6 +61,8 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     savingButton: '儲存中...',
     notFoundError: '找不到此連結對應的參加者資料。',
     acceptedTermsSection: '已接受條款',
+    rainCancelledBannerTitle: '課堂因惡劣天氣取消',
+    rainCancelledBannerMessage: '您的課堂時段已因大雨或颱風取消。請在下方選擇另一個時段。',
   },
   en: {
     pageTitle: 'Participant Pass',
@@ -89,5 +93,7 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     savingButton: 'Saving...',
     notFoundError: 'We could not find participant details for this link.',
     acceptedTermsSection: 'Accepted Terms',
+    rainCancelledBannerTitle: 'Session Cancelled Due to Weather',
+    rainCancelledBannerMessage: 'Your session has been cancelled due to rain or typhoon. Please select a new session below.',
   },
 };

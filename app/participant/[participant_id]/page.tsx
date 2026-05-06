@@ -32,6 +32,7 @@ type ParticipantPageData = {
   class_name_en?: string;
   qr_code_data: string;
   can_change_session: boolean;
+  is_rain_cancelled?: boolean;
   session_options: Array<{
     session_id: string;
     location_zh: string;

@@ -40,7 +40,7 @@ export function TermsForm({
   const [sessionId, setSessionId] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [name, setName] = useState("");
-  const [participantMobile, setParticipantMobile] = useState("");
+  const [participantMobile, setParticipantMobile] = useState("+852");
   const [email, setEmail] = useState("");
   const [height, setHeight] = useState("");
   const [age, setAge] = useState("");
