@@ -38,7 +38,7 @@ test('TC-048: Terms form mobile input is pre-filled with "+852" and label hints 
   const mobileLabel = page.locator('label[for="participant_mobile"]');
   await expect(mobileLabel).toBeVisible();
   const labelText = await mobileLabel.textContent() ?? '';
-  const hasCountryCodeHint = labelText.includes('country code') || labelText.includes('含國碼');
+  const hasCountryCodeHint = labelText.includes('country code') || labelText.includes('含國家碼');
   expect(hasCountryCodeHint).toBe(true);
 
   await page.screenshot({ path: 'tc048-evidence.png', fullPage: false });

@@ -61,7 +61,7 @@ export const termsTranslations: Record<'zh-TW' | 'en', TermsTranslations> = {
     emergencyContactNamePlaceholder: '全名',
     emergencyContactPhoneLabel: '緊急聯絡人電話',
     emergencyContactPhonePlaceholder: '電話號碼',
-    mobileLabel: '手機號碼（含國碼）',
+    mobileLabel: '手機號碼（含國家碼）',
     mobilePlaceholder: '+852XXXXXXXX',
     email: '電子郵件',
     emailPlaceholder: '請輸入你的電子郵件',
