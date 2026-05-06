@@ -3,6 +3,7 @@ import {
   mutationGeneric,
   queryGeneric,
 } from "convex/server";
+import { normalizeToE164 } from "../lib/phone";
 import { v } from "convex/values";
 
 export const getTermsPageData = queryGeneric({
@@ -189,6 +190,13 @@ export const acceptTermsByToken = mutationGeneric({
       };
     }
 
+    if (!normalizeToE164(args.participant_mobile)) {
+      return {
+        success: false,
+        error_message: "Please enter a valid mobile number including country code (e.g. +85254304789).",
+      };
+    }
+
     const purchase = await ctx.db
       .query("purchases")
       .withIndex("by_token", (q) => q.eq("token", args.token))
@@ -266,7 +274,7 @@ export const acceptTermsByToken = mutationGeneric({
         participant_id: participantId,
         purchase_id: purchase._id,
         session_id: session.session_id,
-        mobile: args.participant_mobile,
+        mobile: normalizeToE164(args.participant_mobile) ?? args.participant_mobile.trim(),
         name: args.name,
         qr_code_data: participantId,
         terms_accepted_at: acceptedAt,

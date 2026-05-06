@@ -5,6 +5,7 @@ import { v } from "convex/values";
 
 import { sendRainCancellationWhatsApp } from "../lib/manychat";
 import { buildParticipantPassUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
+import { normalizeToE164 } from "../lib/phone";
 
 export const sendRainCancellationNotification = actionGeneric({
   args: {
@@ -30,21 +31,24 @@ export const sendRainCancellationNotification = actionGeneric({
       return { success: false };
     }
 
+    // Safety-net: normalize to E.164 for existing records stored without country code
+    const normalizedMobile = normalizeToE164(participant.mobile) ?? participant.mobile;
+
     // Look up stored ManyChat subscriber ID (avoids createSubscriber on repeat sends)
     const storedSubscriberId = await ctx.runQuery(
       makeFunctionReference<"query">("manychatSubscribers:getByPhone"),
-      { whatsapp_phone: participant.mobile }
+      { whatsapp_phone: normalizedMobile }
     );
 
     const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
     const participantPassUrl = buildParticipantPassUrl(baseUrl, args.participant_id);
 
     console.log(
-      `[rainCancel] Sending WhatsApp to=${participant.mobile} passUrl=${participantPassUrl} participant_id=${args.participant_id} storedSubscriberId=${storedSubscriberId ?? "none"}`
+      `[rainCancel] Sending WhatsApp to=${normalizedMobile} passUrl=${participantPassUrl} participant_id=${args.participant_id} storedSubscriberId=${storedSubscriberId ?? "none"}`
     );
 
     const result = await sendRainCancellationWhatsApp({
-      to: participant.mobile,
+      to: normalizedMobile,
       participantPassUrl,
       subscriberId: storedSubscriberId,
     });
@@ -57,7 +61,7 @@ export const sendRainCancellationNotification = actionGeneric({
       await ctx.runMutation(
         makeFunctionReference<"mutation">("manychatSubscribers:upsertSubscriber"),
         {
-          whatsapp_phone: participant.mobile,
+          whatsapp_phone: normalizedMobile,
           subscriber_id: result.subscriberId,
         }
       );
