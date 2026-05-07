@@ -1,4 +1,5 @@
 import { makeFunctionReference } from "convex/server";
+import { Info } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -18,6 +19,10 @@ type PurchaseRow = {
   class_name?: string;
   class_id?: string;
   session_id?: string;
+  session_location_zh?: string;
+  session_location_en?: string;
+  session_date?: string;
+  session_time?: string;
   status: "pending_terms" | "confirmation_sent" | "terms_accepted" | "cancelled";
 };
 
@@ -37,6 +42,7 @@ const STATUS_LABELS: Record<PurchaseRow["status"], string> = {
 
 function formatDateTime(epochMs: number): string {
   return new Date(epochMs).toLocaleString("en-GB", {
+    timeZone: "Asia/Hong_Kong",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -81,7 +87,15 @@ export default async function AdminPurchasesPage() {
                 <th className="px-4 py-3 whitespace-nowrap">Participants</th>
                 <th className="px-4 py-3 whitespace-nowrap">Slot</th>
                 <th className="px-4 py-3 whitespace-nowrap">Class</th>
-                <th className="px-4 py-3 whitespace-nowrap">Session</th>
+                <th className="px-4 py-3 whitespace-nowrap">
+                  <span className="group relative inline-flex items-center gap-1">
+                    Session
+                    <Info className="h-3 w-3 cursor-help text-zinc-400" />
+                    <span className="pointer-events-none absolute top-full right-0 z-10 mt-1 w-80 whitespace-normal rounded bg-zinc-800 px-3 py-2 text-xs font-normal normal-case tracking-normal text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                      This column only reflects the initial Session selection, any subsequent session changes is not reflected here.
+                    </span>
+                  </span>
+                </th>
                 <th className="px-4 py-3 whitespace-nowrap">Terms Form</th>
                 <th className="px-4 py-3 whitespace-nowrap">Status</th>
               </tr>
@@ -110,14 +124,15 @@ export default async function AdminPurchasesPage() {
                   <td className="px-4 py-3 text-zinc-800">
                     {p.class_name ?? "—"}
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
+                  <td className="px-4 py-3">
                     {p.session_id ? (
                       <Link
                         href={`/admin/sessions/${p.session_id}/participants`}
-                        className="font-mono text-xs text-blue-600 hover:underline"
+                        className="text-xs text-blue-600 hover:underline"
                         title={p.session_id}
                       >
-                        {p.session_id.slice(0, 8)}…
+                        <div>{p.session_location_zh}{p.session_location_en ? ` / ${p.session_location_en}` : ""}</div>
+                        <div className="text-zinc-500">{p.session_date} {p.session_time}</div>
                       </Link>
                     ) : (
                       <span className="text-zinc-400">—</span>
