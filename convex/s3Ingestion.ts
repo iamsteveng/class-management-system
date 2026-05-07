@@ -37,7 +37,8 @@ function getAppEnv(): string {
 
 /**
  * Parses purchase_datetime from filename.
- * Format: YYYYMMDDHHmm---<uuid>.csv  →  "2026-03-27T16:22:00"
+ * Format: YYYYMMDDHHmm---<uuid>.csv  →  "2026-03-27T16:22:00+08:00"
+ * The timestamp in the filename is in Hong Kong time (UTC+8).
  */
 export function parseDatetimeFromFilename(filename: string): string {
   // Strip directory prefix if present
@@ -48,7 +49,7 @@ export function parseDatetimeFromFilename(filename: string): string {
     return new Date().toISOString();
   }
   const [, yyyy, mm, dd, hh, min] = match;
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00`;
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00+08:00`;
 }
 
 /**
