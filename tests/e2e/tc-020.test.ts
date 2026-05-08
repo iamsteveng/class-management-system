@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
 const BASE_URL = 'https://class-management-system-teal.vercel.app';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {

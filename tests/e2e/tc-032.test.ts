@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
