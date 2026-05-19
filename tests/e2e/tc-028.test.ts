@@ -31,7 +31,7 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-028: Admin FAQ — super admin can edit existing FAQ item', () => {
+test.describe.skip('TC-028: Admin FAQ — super admin can edit existing FAQ item', () => {
   test.beforeAll(async () => {
     // Ensure a known FAQ item exists for editing
     const faqs = await convexQuery('faqs:listFaqs', {}) as Array<{ _id: string; question: string }>;

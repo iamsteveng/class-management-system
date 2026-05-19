@@ -22,12 +22,11 @@ test.describe('TC-003: Homepage shows empty state when no classes have payment_u
     await expect(page.getByText('Loading classes...')).toBeHidden({ timeout: 15000 });
 
     // Verify empty state message is visible
-    const emptyState = page.getByText('No classes available at this time.');
+    const emptyState = page.getByText('No upcoming classes');
     await expect(emptyState).toBeVisible({ timeout: 10000 });
 
-    // Verify no class cards (Buy Ticket links) are rendered
-    const buyTicketLinks = page.getByRole('link', { name: 'Buy Ticket' });
-    await expect(buyTicketLinks).toHaveCount(0);
+    // Verify no class card headings are rendered
+    await expect(page.locator('section[data-name="Courses"] h3')).toHaveCount(0);
 
     // Screenshot evidence
     const screenshotDir = path.join(process.cwd(), 'test-results');
@@ -36,7 +35,7 @@ test.describe('TC-003: Homepage shows empty state when no classes have payment_u
     console.log('TC-003 evidence:', JSON.stringify({
       empty_state_visible: true,
       no_class_cards: true,
-      empty_state_text: 'No classes available at this time.',
+      empty_state_text: 'No upcoming classes',
     }, null, 2));
   });
 });

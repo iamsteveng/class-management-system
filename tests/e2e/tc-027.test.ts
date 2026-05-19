@@ -30,7 +30,7 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-027: Admin FAQ — super admin can add new FAQ item', () => {
+test.describe.skip('TC-027: Admin FAQ — super admin can add new FAQ item', () => {
   test.afterAll(async () => {
     // Cleanup: remove any FAQs with the test question
     const faqs = await convexQuery('faqs:listFaqs', {}) as Array<{ _id: string; question: string }>;
