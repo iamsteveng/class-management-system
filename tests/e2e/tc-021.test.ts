@@ -64,7 +64,7 @@ test.describe('TC-021: Admin participant detail — shows height, age, emergency
       name: 'Test Participant',
       participant_mobile: '+60123456789',
       email: 'test@example.com',
-      height: '170cm',
+      height: 170,
       age: 28,
       emergency_contact_name: 'Jane Doe',
       emergency_contact_phone: '+60123456789',
@@ -106,7 +106,7 @@ test.describe('TC-021: Admin participant detail — shows height, age, emergency
     const heightLabel = page.locator('dt').filter({ hasText: 'Height' });
     await expect(heightLabel).toBeVisible({ timeout: 10_000 });
     const heightValue = heightLabel.locator('~ dd');
-    await expect(heightValue).toContainText('170cm');
+    await expect(heightValue).toContainText('170');
 
     // Age: label "Age" and value "28 years"
     const ageLabel = page.locator('dt').filter({ hasText: 'Age' });

@@ -37,7 +37,7 @@ test.describe('TC-014: Terms page shows instructional wording about QR code What
 
     // Pass criteria: note appears above the submit button
     const noteElement = page.locator('p.italic');
-    const submitButton = page.getByRole('button', { name: 'Accept Terms' });
+    const submitButton = page.getByRole('button', { name: '接受條款' });
 
     const noteBox = await noteElement.boundingBox();
     const buttonBox = await submitButton.boundingBox();

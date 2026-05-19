@@ -84,7 +84,7 @@ test.describe('TC-031: Attendance record — contains correct adminUsername and 
     await page.getByRole('button', { name: 'Mark' }).click();
 
     // Step 8: Wait for attendance status to update in the row
-    await expect(participantRow.locator('td').nth(5)).toContainText('✓', { timeout: 15_000 });
+    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 15_000 });
 
     // Record time after marking
     const afterScanTs = Date.now();

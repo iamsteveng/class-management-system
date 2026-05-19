@@ -59,8 +59,13 @@ test.describe('TC-030: Terms form — emergency contact phone accepts valid inte
     await page.locator('select[name="session_id"]').selectOption({ value: createdSession.session_id });
     console.log('TC-030: selected session');
 
+    // Step 4b: Fill required participant fields
+    await page.locator('input#name').fill('Test Participant');
+    await page.locator('input#participant_mobile').fill('+60123456789');
+    await page.locator('input#email').fill('test@example.com');
+
     // Step 5: Fill in height
-    await page.locator('input[name="height"]').fill('170cm');
+    await page.locator('input[name="height"]').fill('170');
 
     // Step 6: Fill in age
     await page.locator('input[name="age"]').fill('30');
@@ -79,7 +84,7 @@ test.describe('TC-030: Terms form — emergency contact phone accepts valid inte
     await page.screenshot({ path: path.join(screenshotDir, 'tc-030-form-filled.png'), fullPage: true });
 
     // Step 10: Assert submit button is enabled (no phone validation error blocking it)
-    const submitButton = page.getByRole('button', { name: 'Accept Terms' });
+    const submitButton = page.getByRole('button', { name: '接受條款' });
     await expect(submitButton).toBeEnabled({ timeout: 5_000 });
     console.log('TC-030: submit button is enabled — international phone format accepted');
 

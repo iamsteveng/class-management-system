@@ -80,7 +80,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     await page.getByRole('button', { name: 'Mark' }).click();
 
     // Wait for green tick to appear after first scan
-    await expect(participantRow.locator('td').nth(5)).toContainText('✓', { timeout: 15_000 });
+    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 15_000 });
 
     // Screenshot after first scan
     await page.screenshot({ path: path.join(screenshotDir, 'tc-020-after-first-scan.png'), fullPage: true });
@@ -98,7 +98,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     await page.screenshot({ path: path.join(screenshotDir, 'tc-020-after-second-scan.png'), fullPage: true });
 
     // Step 8: Green tick must still be visible (no crash, UI intact)
-    await expect(participantRow.locator('td').nth(5)).toContainText('✓', { timeout: 10_000 });
+    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 10_000 });
 
     // Step 9: Assert only ONE attendance record exists in Convex (idempotency)
     const attendanceRecords = await convexQuery('adminSessions:getSessionAttendance', {
