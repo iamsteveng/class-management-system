@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -28,7 +28,7 @@ test.describe('TC-032: Cancel session backend guard — direct mutation call rej
 
     // Step 1: Create a class
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC032 Class ${testId}`,
+      name_zh: `TC032 Class ${testId}`,
       description: 'Cancel session guard test',
       admin_username: 'admin',
     });
@@ -38,7 +38,7 @@ test.describe('TC-032: Cancel session backend guard — direct mutation call rej
     // Step 2: Create a session for that class
     const createdSession = await convexMutation('adminSessions:createSession', {
       class_id,
-      location: `TC032 Studio ${testId}`,
+      location_zh: `TC032 Studio ${testId}`,
       date: '2030-12-25',
       time: '10:00',
       quota_defined: 10,

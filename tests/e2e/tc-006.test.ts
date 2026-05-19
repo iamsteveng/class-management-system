@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -21,14 +21,14 @@ test.describe('TC-006: Class listing defaults to Active filter on page load', ()
 
     // Step 1: Create an active class
     const activeClass = await convexMutation('adminClasses:createClass', {
-      name: `TC006 Active Class ${testId}`,
+      name_zh: `TC006 Active Class ${testId}`,
       description: 'TC-006 active class seed',
       admin_username: 'admin',
     }) as { class_id: string };
 
     // Step 2: Create a class and then cancel it (making it inactive)
     const inactiveClass = await convexMutation('adminClasses:createClass', {
-      name: `TC006 Inactive Class ${testId}`,
+      name_zh: `TC006 Inactive Class ${testId}`,
       description: 'TC-006 inactive class seed',
       admin_username: 'admin',
     }) as { class_id: string };

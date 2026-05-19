@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -33,7 +33,7 @@ test.describe('TC-031: Attendance record — contains correct adminUsername and 
 
     // Step 1: Create a class via Convex API
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC031 Class ${testId}`,
+      name_zh: `TC031 Class ${testId}`,
       description: 'Attendance record fields test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -41,7 +41,7 @@ test.describe('TC-031: Attendance record — contains correct adminUsername and 
     // Step 2: Create a session for that class
     const createdSession = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC031 Studio ${testId}`,
+      location_zh: `TC031 Studio ${testId}`,
       date: '2030-12-25',
       time: '10:00',
       quota_defined: 10,
@@ -84,7 +84,7 @@ test.describe('TC-031: Attendance record — contains correct adminUsername and 
     await page.getByRole('button', { name: 'Mark' }).click();
 
     // Step 8: Wait for attendance status to update in the row
-    await expect(participantRow.locator('td').nth(5)).toContainText('✓', { timeout: 15_000 });
+    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 15_000 });
 
     // Record time after marking
     const afterScanTs = Date.now();

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -19,7 +19,7 @@ test.describe('TC-004: Super admin sees payment URL field in class edit form', (
   test('TC-004 payment URL input is visible in class edit form for super_admin', async ({ page }) => {
     // Step 1: Create a test class via Convex mutation to ensure there is a class to edit
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC004 PaymentURL Class ${Date.now()}`,
+      name_zh: `TC004 PaymentURL Class ${Date.now()}`,
       description: 'TC-004 payment URL visibility test',
       admin_username: 'admin',
     }) as { class_id: string };

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -21,7 +21,7 @@ test.describe('TC-013: Change Session selector excludes full sessions (quota = 0
 
     // Step 1: Create a class
     const cls = await convexMutation('adminClasses:createClass', {
-      name: `TC013 Class ${testId}`,
+      name_zh: `TC013 Class ${testId}`,
       description: 'TC013 full session exclusion test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -29,7 +29,7 @@ test.describe('TC-013: Change Session selector excludes full sessions (quota = 0
     // Step 2: Create participant's current session
     const currentSession = await convexMutation('adminSessions:createSession', {
       class_id: cls.class_id,
-      location: `TC013-Current-${testId}`,
+      location_zh: `TC013-Current-${testId}`,
       date: '2030-11-10',
       time: '09:00',
       quota_defined: 10,
@@ -39,7 +39,7 @@ test.describe('TC-013: Change Session selector excludes full sessions (quota = 0
     // Step 3: Create an eligible session (has available quota) — SHOULD appear in selector
     await convexMutation('adminSessions:createSession', {
       class_id: cls.class_id,
-      location: `TC013-Available-${testId}`,
+      location_zh: `TC013-Available-${testId}`,
       date: '2030-11-20',
       time: '10:00',
       quota_defined: 5,
@@ -49,7 +49,7 @@ test.describe('TC-013: Change Session selector excludes full sessions (quota = 0
     // Step 4: Create a full session (quota_used = quota_defined) — should NOT appear
     const fullSession = await convexMutation('adminSessions:createSession', {
       class_id: cls.class_id,
-      location: `TC013-Full-${testId}`,
+      location_zh: `TC013-Full-${testId}`,
       date: '2030-11-25',
       time: '11:00',
       quota_defined: 3,

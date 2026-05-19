@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 test.describe('TC-026: Admin FAQ — "FAQ" menu entry navigates to management page', () => {
   test('TC-026 FAQ link is visible in admin nav and navigates to /admin/faq', async ({ page }) => {

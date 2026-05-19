@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -33,7 +33,7 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
 
     // Step 1: Create a test class
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC019 WA Notify Class ${testId}`,
+      name_zh: `TC019 WA Notify Class ${testId}`,
       description: 'Change session WhatsApp notification test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -42,7 +42,7 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
     // Step 2: Create session 1 (>2 days away — participant starts here)
     const session1 = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC019 Studio A ${testId}`,
+      location_zh: `TC019 Studio A ${testId}`,
       date: '2030-06-15',
       time: '10:00',
       quota_defined: 10,
@@ -53,7 +53,7 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
     // Step 3: Create session 2 (target session — also >2 days away, same class)
     const session2 = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC019 Studio B ${testId}`,
+      location_zh: `TC019 Studio B ${testId}`,
       date: '2030-06-22',
       time: '10:00',
       quota_defined: 10,

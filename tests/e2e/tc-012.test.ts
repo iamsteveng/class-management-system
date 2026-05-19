@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -21,7 +21,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
 
     // Step 1: Create Class A — the participant's class
     const classA = await convexMutation('adminClasses:createClass', {
-      name: `TC012 Class A ${testId}`,
+      name_zh: `TC012 Class A ${testId}`,
       description: 'TC012 eligible sessions test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -29,7 +29,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
     // Step 2: Session A1 in Class A — participant's current session (should NOT appear — excluded as current)
     const sessionA1 = await convexMutation('adminSessions:createSession', {
       class_id: classA.class_id,
-      location: `TC012-A1-Current-${testId}`,
+      location_zh: `TC012-A1-Current-${testId}`,
       date: '2030-12-20',
       time: '09:00',
       quota_defined: 10,
@@ -39,7 +39,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
     // Step 3: Session A2 in Class A — eligible (scheduled, quota available) — SHOULD appear
     const sessionA2 = await convexMutation('adminSessions:createSession', {
       class_id: classA.class_id,
-      location: `TC012-A2-Eligible-${testId}`,
+      location_zh: `TC012-A2-Eligible-${testId}`,
       date: '2030-12-25',
       time: '10:00',
       quota_defined: 10,
@@ -49,7 +49,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
     // Step 4: Session A3 in Class A — full (quota_used = quota_defined) — should NOT appear
     const sessionA3 = await convexMutation('adminSessions:createSession', {
       class_id: classA.class_id,
-      location: `TC012-A3-Full-${testId}`,
+      location_zh: `TC012-A3-Full-${testId}`,
       date: '2030-12-27',
       time: '11:00',
       quota_defined: 5,
@@ -64,7 +64,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
     // Step 5: Session A4 in Class A — cancelled — should NOT appear
     const sessionA4 = await convexMutation('adminSessions:createSession', {
       class_id: classA.class_id,
-      location: `TC012-A4-Cancelled-${testId}`,
+      location_zh: `TC012-A4-Cancelled-${testId}`,
       date: '2030-12-28',
       time: '12:00',
       quota_defined: 10,
@@ -77,7 +77,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
 
     // Step 6: Create Class B — different class, its sessions should NOT appear
     const classB = await convexMutation('adminClasses:createClass', {
-      name: `TC012 Class B ${testId}`,
+      name_zh: `TC012 Class B ${testId}`,
       description: 'TC012 different class',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -85,7 +85,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
     // Step 7: Session B1 in Class B — should NOT appear (different class)
     await convexMutation('adminSessions:createSession', {
       class_id: classB.class_id,
-      location: `TC012-B1-DiffClass-${testId}`,
+      location_zh: `TC012-B1-DiffClass-${testId}`,
       date: '2030-12-26',
       time: '14:00',
       quota_defined: 10,

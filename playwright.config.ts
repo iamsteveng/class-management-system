@@ -6,7 +6,7 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   use: {
-    baseURL: process.env.BASE_URL || 'https://class-management-system-teal.vercel.app',
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
     headless: true,
     ignoreHTTPSErrors: true,
   },

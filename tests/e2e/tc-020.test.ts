@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -33,7 +33,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
 
     // Step 1: Create a class via Convex
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC020 Class ${testId}`,
+      name_zh: `TC020 Class ${testId}`,
       description: 'Idempotent attendance scan test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -41,7 +41,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     // Step 2: Create a session for that class
     const createdSession = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC020 Studio ${testId}`,
+      location_zh: `TC020 Studio ${testId}`,
       date: '2030-12-25',
       time: '10:00',
       quota_defined: 10,
@@ -80,7 +80,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     await page.getByRole('button', { name: 'Mark' }).click();
 
     // Wait for green tick to appear after first scan
-    await expect(participantRow.locator('td').nth(5)).toContainText('✓', { timeout: 15_000 });
+    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 15_000 });
 
     // Screenshot after first scan
     await page.screenshot({ path: path.join(screenshotDir, 'tc-020-after-first-scan.png'), fullPage: true });
@@ -98,7 +98,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     await page.screenshot({ path: path.join(screenshotDir, 'tc-020-after-second-scan.png'), fullPage: true });
 
     // Step 8: Green tick must still be visible (no crash, UI intact)
-    await expect(participantRow.locator('td').nth(5)).toContainText('✓', { timeout: 10_000 });
+    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 10_000 });
 
     // Step 9: Assert only ONE attendance record exists in Convex (idempotency)
     const attendanceRecords = await convexQuery('adminSessions:getSessionAttendance', {

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const CONVEX_URL = 'https://colorless-raven-523.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -21,7 +21,7 @@ test.describe('TC-010: Super admin sees Change Session button on participant det
 
     // Step 1: Create a class via Convex
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC010 Class ${testId}`,
+      name_zh: `TC010 Class ${testId}`,
       description: 'Change Session button visibility test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -29,7 +29,7 @@ test.describe('TC-010: Super admin sees Change Session button on participant det
     // Step 2: Create a session via Convex
     const createdSession = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC010 Studio ${testId}`,
+      location_zh: `TC010 Studio ${testId}`,
       date: '2030-12-25',
       time: '09:00',
       quota_defined: 10,
