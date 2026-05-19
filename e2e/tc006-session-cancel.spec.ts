@@ -69,7 +69,7 @@ test("BUG-TC-006: Super admin can cancel a session and cancelled session is excl
   await page.goto("/admin/login");
   await page.getByLabel("Username").fill("admin");
   await page.getByLabel("Password").fill("admin123");
-  await page.getByRole("button", { name_zh: "Sign In" }).click();
+  await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
   await page.goto(`/admin/classes/${createdClass.class_id}/sessions`);
@@ -78,10 +78,10 @@ test("BUG-TC-006: Super admin can cancel a session and cancelled session is excl
     hasText: sessionLocation,
   });
   await expect(sessionRow).toHaveCount(1);
-  await expect(sessionRow.getByRole("button", { name_zh: "Cancel" })).toBeVisible();
+  await expect(sessionRow.getByRole("button", { name: "Cancel" })).toBeVisible();
 
   page.on("dialog", (dialog) => dialog.accept());
-  await sessionRow.getByRole("button", { name_zh: "Cancel" }).click();
+  await sessionRow.getByRole("button", { name: "Cancel" }).click();
 
   await page.waitForURL(
     new RegExp(
@@ -95,7 +95,7 @@ test("BUG-TC-006: Super admin can cancel a session and cancelled session is excl
   });
   await expect(cancelledRow.getByText("cancelled")).toBeVisible();
   await expect(
-    cancelledRow.getByRole("button", { name_zh: "Cancel" })
+    cancelledRow.getByRole("button", { name: "Cancel" })
   ).toBeDisabled();
 
   const updatedPageData = await convexQuery<SessionManagementPageData>(

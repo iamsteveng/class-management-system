@@ -34,7 +34,7 @@ type ParticipantsPageData = {
   session_time: string;
   participants: Array<{
     participant_id: string;
-    name_zh: string;
+    name: string;
     mobile: string;
     terms_accepted: boolean;
     terms_version?: string;
@@ -126,7 +126,7 @@ async function loginAsSuperAdmin(page: Page) {
 
 async function openParticipantsPage(page: Page, sessionId: string) {
   await page.goto(`/admin/sessions/${encodeURIComponent(sessionId)}/participants`);
-  await expect(page.getByRole('heading', { name_zh: /Session Participants/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Session Participants/i })).toBeVisible();
 }
 
 async function getSessionRow(classId: string, sessionId: string) {
@@ -202,10 +202,10 @@ test('TC-024: Super Admin can create class', async ({ page }) => {
   await page.goto('/admin/classes');
 
   const className = `TC24 Class ${Date.now()}`;
-  await page.getByRole('button', { name_zh: /Add Class/i }).click();
+  await page.getByRole('button', { name: /Add Class/i }).click();
   await page.fill('#name', className);
   await page.fill('#description', 'created by TC-024');
-  await page.getByRole('button', { name_zh: /^Create$/ }).click();
+  await page.getByRole('button', { name: /^Create$/ }).click();
 
   await expect(page.getByText(className)).toBeVisible();
 
@@ -227,7 +227,7 @@ test('TC-025: Regular Admin cannot create class', async ({ page }) => {
   await login(page, 'staff', 'staff123');
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20000 });
   await page.goto('/admin/classes');
-  await expect(page.getByRole('button', { name_zh: /Add Class/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Add Class/i })).toHaveCount(0);
 });
 
 test('TC-026: Super Admin can cancel class', async () => {
@@ -257,14 +257,14 @@ test('TC-027: Super Admin can create session', async ({ page }) => {
   const classId = await getFirstClassId();
 
   await page.goto(`/admin/classes/${encodeURIComponent(classId)}/sessions`);
-  await page.getByRole('button', { name_zh: /Add Session/i }).click();
+  await page.getByRole('button', { name: /Add Session/i }).click();
 
   const location = `TC27 Location ${Date.now()}`;
   await page.fill('#location', location);
   await page.fill('#date', getFutureDate(12));
   await page.fill('#time', '10:00');
   await page.fill('#quota_defined', '20');
-  await page.getByRole('button', { name_zh: /^Create$/ }).click();
+  await page.getByRole('button', { name: /^Create$/ }).click();
 
   await expect(page.getByText(location)).toBeVisible();
 
@@ -340,10 +340,10 @@ test('TC-031: Admin can view participant list', async ({ page }) => {
   await loginAsSuperAdmin(page);
   await openParticipantsPage(page, sessionId);
 
-  await expect(page.getByRole('columnheader', { name_zh: /Participant ID/i })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name_zh: /^Name$/i })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name_zh: /^Mobile$/i })).toBeVisible();
-  await expect(page.getByRole('columnheader', { name_zh: /Terms Accepted/i })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: /Participant ID/i })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: /^Name$/i })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: /^Mobile$/i })).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: /Terms Accepted/i })).toBeVisible();
 
   await expect(page.getByText(participants[0].participant_id)).toBeVisible();
   await expect(page.getByText('+6590003131')).toBeVisible();
@@ -432,7 +432,7 @@ test('TC-035: Regular Admin cannot change participant session', async ({ page })
   await login(page, 'staff', 'staff123');
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20000 });
   await page.goto('/admin/sessions/session_cycling_2026_03_15_0900/participants');
-  await expect(page.getByRole('button', { name_zh: /Change Session/i })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Change Session/i })).toHaveCount(0);
 });
 
 test('TC-036: Admin session change sends WhatsApp', async () => {
@@ -576,7 +576,7 @@ test('TC-043: Admin can scan QR and mark attendance', async ({ page }) => {
   await openParticipantsPage(page, sessionId);
 
   await page.getByPlaceholder(/Paste participant ID/i).fill(participants[0].participant_id);
-  await page.getByRole('button', { name_zh: /^Mark$/ }).click();
+  await page.getByRole('button', { name: /^Mark$/ }).click();
 
   await expect(page.locator('[role="status"]')).toContainText(/marked as attended/i);
   await expect(page.locator('tbody')).toContainText(/Attended at/i);
@@ -674,7 +674,7 @@ test('TC-047: Regular Admin can mark attendance', async ({ page }) => {
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20000 });
   await openParticipantsPage(page, sessionId);
 
-  await page.getByRole('button', { name_zh: /Scan QR Code/i }).click();
+  await page.getByRole('button', { name: /Scan QR Code/i }).click();
   await expect(page.getByText(/Point the camera at a participant QR code/i)).toBeVisible();
 
   console.log('TC-047 Evidence:', JSON.stringify({
@@ -717,7 +717,7 @@ test('TC-049: Camera permission denied shows error', async ({ page, context }) =
   await loginAsSuperAdmin(page);
   await openParticipantsPage(page, sessionId);
 
-  await page.getByRole('button', { name_zh: /Scan QR Code/i }).click();
+  await page.getByRole('button', { name: /Scan QR Code/i }).click();
   await expect(page.locator('body')).toContainText(/Unable to access camera for QR scanning\.|Scan Participant QR Code/i);
 
   console.log('TC-049 Evidence:', JSON.stringify({

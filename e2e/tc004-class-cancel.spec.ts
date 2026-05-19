@@ -49,14 +49,14 @@ test("BUG-TC-006: Super admin can cancel class only when no active future sessio
   await page.goto("/admin/login");
   await page.getByLabel("Username").fill("admin");
   await page.getByLabel("Password").fill("admin123");
-  await page.getByRole("button", { name_zh: "Sign In" }).click();
+  await page.getByRole("button", { name: "Sign In" }).click();
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
   await page.goto("/admin/classes");
 
   const blockedRow = page.locator("tbody tr").filter({ hasText: blockedClass.class_id });
   await expect(blockedRow).toHaveCount(1);
   page.once("dialog", (dialog) => dialog.accept());
-  await blockedRow.getByRole("button", { name_zh: "Cancel" }).click();
+  await blockedRow.getByRole("button", { name: "Cancel" }).click();
   await page.waitForURL(/\/admin\/classes\?error=/, { timeout: 20_000 });
   await expect(page.getByText(/Failed to cancel class/i)).toBeVisible();
 
@@ -72,11 +72,11 @@ test("BUG-TC-006: Super admin can cancel class only when no active future sessio
   await expect(cancellableRow).toHaveCount(1);
 
   page.once("dialog", (dialog) => dialog.accept());
-  await cancellableRow.getByRole("button", { name_zh: "Cancel" }).click();
+  await cancellableRow.getByRole("button", { name: "Cancel" }).click();
   await page.waitForURL(/\/admin\/classes\?status=class_cancelled/, { timeout: 20_000 });
   await expect(page.getByText("Class cancelled successfully.")).toBeVisible();
   await expect(cancellableRow.getByText("cancelled")).toBeVisible();
-  await expect(cancellableRow.getByRole("button", { name_zh: "Cancel" })).toHaveCount(0);
+  await expect(cancellableRow.getByRole("button", { name: "Cancel" })).toHaveCount(0);
 
   const afterCancelled = await convexQuery<ClassRow[]>(
     "adminClasses:getClassListPageData",
