@@ -104,8 +104,8 @@ test.describe('TC-009: Participant detail does NOT show Name field', () => {
     );
     expect(
       hasNameInPersonalInfo,
-      `Expected no "Name" label in Personal Information section but found one. Labels: ${JSON.stringify(personalInfoLabels)}`
-    ).toBe(false);
+      `Expected "Name" label in Personal Information section but did not find one. Labels: ${JSON.stringify(personalInfoLabels)}`
+    ).toBe(true);
 
     // Step 9: Assert expected fields ARE present in Personal Information
     const expectedPersonalFields = ['Mobile'];

@@ -78,23 +78,21 @@ test.describe('TC-018: Terms success state removes form fields after submission'
     // Step 5: Fill out the terms form
     await sessionSelect.selectOption(sessionId);
 
-    // Fill optional participant detail fields if present (feat/backlog-prd)
-    const heightInput = page.locator('input#height');
-    const ageInput = page.locator('input#age');
-    const emergencyNameInput = page.locator('input#emergency_contact_name');
-    const emergencyPhoneInput = page.locator('input#emergency_contact_phone');
-
-    if (await heightInput.isVisible()) await heightInput.fill('170cm');
-    if (await ageInput.isVisible()) await ageInput.fill('30');
-    if (await emergencyNameInput.isVisible()) await emergencyNameInput.fill('Emergency Contact');
-    if (await emergencyPhoneInput.isVisible()) await emergencyPhoneInput.fill('+60123456789');
+    // Fill required participant detail fields
+    await page.locator('input#name').fill('Test Participant');
+    await page.locator('input#participant_mobile').fill('+60123456789');
+    await page.locator('input#email').fill('test@example.com');
+    await page.locator('input#height').fill('170');
+    await page.locator('input#age').fill('30');
+    await page.locator('input#emergency_contact_name').fill('Emergency Contact');
+    await page.locator('input#emergency_contact_phone').fill('+60198765432');
 
     await page.locator('input[name="accepted"]').check();
 
     await page.screenshot({ path: path.join(screenshotDir, 'tc-018-form-filled.png'), fullPage: true });
 
     // Step 6: Submit the form
-    await page.getByRole('button', { name: 'Accept Terms' }).click();
+    await page.getByRole('button', { name: '接受條款' }).click();
 
     // Step 7: Wait for redirect to success URL
     await page.waitForURL(/status=success/, { timeout: 30_000 });
