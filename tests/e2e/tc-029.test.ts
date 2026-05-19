@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 test.describe('TC-029: Regular admin cannot add or edit FAQ items', () => {
   test('TC-029 regular admin sees FAQ page in view-only mode (no Add/Edit controls)', async ({ page }) => {

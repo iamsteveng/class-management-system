@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -30,10 +30,27 @@ test.describe('TC-018: Terms success state removes form fields after submission'
   test('TC-018 after submitting terms form, form fields are absent and success state is shown', async ({ page }) => {
     const screenshotDir = path.join(process.cwd(), 'test-results');
 
+    // Step 0: Create a class and session so getTermsPageData returns sessions
+    const testId = Date.now();
+    const createdClass = await convexMutation('adminClasses:createClass', {
+      name_zh: `TC018 Class ${testId}`,
+      admin_username: 'admin',
+    }) as { class_id: string };
+    await convexMutation('adminSessions:createSession', {
+      class_id: createdClass.class_id,
+      location_zh: `TC018 Studio ${testId}`,
+      date: '2030-12-25',
+      time: '10:00',
+      quota_defined: 10,
+      admin_username: 'admin',
+    });
+    console.log(`TC-018 setup: class=${createdClass.class_id}`);
+
     // Step 1: Create a test purchase
     const purchase = await convexMutation('testPurchase:createTestPurchase', {
       customer_mobile: '+6599018018',
       participant_count: 1,
+      class_id: createdClass.class_id,
     }) as { purchase_id: string; token: string };
     const token = purchase.token;
     console.log(`TC-018 created test purchase with token: ${token}`);
@@ -103,9 +120,9 @@ test.describe('TC-018: Terms success state removes form fields after submission'
     await expect(page.locator('form')).toHaveCount(0);
 
     // Step 11: Assert success state is shown (SVG tick + message + button)
-    // The page shows: green check SVG + "Your class application is confirmed" h1 + "Open your QR Code" link
-    await expect(page.getByRole('heading', { name: 'Your class application is confirmed' })).toBeVisible({ timeout: 10_000 });
-    const qrButton = page.getByRole('link', { name: 'Open your QR Code' });
+    // The page shows: green check SVG + zh-TW heading + QR Code link
+    await expect(page.getByRole('heading', { name: '你的課程申請已確認' })).toBeVisible({ timeout: 10_000 });
+    const qrButton = page.getByRole('link', { name: '開啟你的 QR 碼' });
     await expect(qrButton).toBeVisible({ timeout: 10_000 });
 
     // Step 12: Verify URL contains status=success (client-side redirect, not full reload indicator)

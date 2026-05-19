@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 const TEST_QUESTION = 'TC-027 What is the test FAQ question?';
 const TEST_ANSWER = 'TC-027 This is the test FAQ answer for automated testing.';

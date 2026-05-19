@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 type FaqItem = {
   _id: string;

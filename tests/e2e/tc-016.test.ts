@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -33,8 +33,8 @@ test.describe('TC-016: Terms success state shows Open your QR Code button', () =
     const screenshotDir = path.join(process.cwd(), 'test-results');
     await page.screenshot({ path: path.join(screenshotDir, 'tc-016-success-state.png'), fullPage: true });
 
-    // Pass criteria: 'Open your QR Code' button is visible
-    const qrButton = page.getByRole('link', { name: 'Open your QR Code' });
+    // Pass criteria: QR Code button is visible (zh-TW default text)
+    const qrButton = page.getByRole('link', { name: '開啟你的 QR 碼' });
     await expect(qrButton).toBeVisible({ timeout: 15_000 });
 
     // Verify the link href points to the participant page

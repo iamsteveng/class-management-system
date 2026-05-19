@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -23,7 +23,7 @@ test.describe('TC-001: Homepage only shows classes with payment URL', () => {
 
     // Step 1: Seed — Class A (active, has payment_url)
     const classA = await convexMutation('adminClasses:createClass', {
-      name: classAName,
+      name_zh: classAName,
       description: 'TC-001 test class with payment URL',
       payment_url: 'https://example.com/pay-tc001',
       admin_username: 'admin',
@@ -31,7 +31,7 @@ test.describe('TC-001: Homepage only shows classes with payment URL', () => {
 
     // Step 2: Seed — Class B (active, NO payment_url)
     const classB = await convexMutation('adminClasses:createClass', {
-      name: classBName,
+      name_zh: classBName,
       description: 'TC-001 test class without payment URL',
       admin_username: 'admin',
     }) as { class_id: string };

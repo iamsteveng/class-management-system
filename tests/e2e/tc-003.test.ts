@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 test.describe('TC-003: Homepage shows empty state when no classes have payment_url', () => {
   test('TC-003 homepage displays empty state message when API returns no classes', async ({ page }) => {

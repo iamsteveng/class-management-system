@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -23,7 +23,7 @@ test.describe('TC-002: Buy Ticket button opens payment_url in new tab', () => {
 
     // Step 1: Seed — create a class with a payment_url
     const classResult = await convexMutation('adminClasses:createClass', {
-      name: className,
+      name_zh: className,
       description: 'TC-002 test class for Buy Ticket button',
       payment_url: paymentUrl,
       admin_username: 'admin',

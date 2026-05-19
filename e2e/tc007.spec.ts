@@ -20,7 +20,7 @@ test("BUG-TC-007: Role-based visibility and mutation guards for class/session ac
   const createdClass = await convexMutation<{ class_id: string }>(
     "adminClasses:createClass",
     {
-      name: className,
+      name_zh: className,
       description: "Role visibility verification class",
       admin_username: "admin",
     }
@@ -42,14 +42,14 @@ test("BUG-TC-007: Role-based visibility and mutation guards for class/session ac
   await page.goto("/admin/login");
   await page.getByLabel("Username").fill("staff");
   await page.getByLabel("Password").fill("staff123");
-  await page.getByRole("button", { name: "Sign In" }).click();
+  await page.getByRole("button", { name_zh: "Sign In" }).click();
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
   await page.goto("/admin/classes");
   const classRowAsRegular = page.locator("tbody tr").filter({ hasText: className });
   await expect(classRowAsRegular).toHaveCount(1);
-  await expect(classRowAsRegular.getByRole("button", { name: "Edit" })).toHaveCount(0);
-  await expect(classRowAsRegular.getByRole("button", { name: "Cancel" })).toHaveCount(0);
+  await expect(classRowAsRegular.getByRole("button", { name_zh: "Edit" })).toHaveCount(0);
+  await expect(classRowAsRegular.getByRole("button", { name_zh: "Cancel" })).toHaveCount(0);
 
   // regular_admin should not see Edit/Cancel on sessions list
   await page.goto(`/admin/classes/${createdClass.class_id}/sessions`);
@@ -57,14 +57,14 @@ test("BUG-TC-007: Role-based visibility and mutation guards for class/session ac
     hasText: sessionLocation,
   });
   await expect(sessionRowAsRegular).toHaveCount(1);
-  await expect(sessionRowAsRegular.getByRole("button", { name: "Edit" })).toHaveCount(0);
-  await expect(sessionRowAsRegular.getByRole("button", { name: "Cancel" })).toHaveCount(0);
+  await expect(sessionRowAsRegular.getByRole("button", { name_zh: "Edit" })).toHaveCount(0);
+  await expect(sessionRowAsRegular.getByRole("button", { name_zh: "Cancel" })).toHaveCount(0);
 
   // server-side mutation guards: regular_admin cannot update/cancel class/session
   await expect(
     convexMutation("adminClasses:updateClass", {
       class_id: createdClass.class_id,
-      name: `${className} blocked`,
+      name_zh: `${className} blocked`,
       description: "should fail",
       admin_username: "staff",
     })
@@ -82,22 +82,22 @@ test("BUG-TC-007: Role-based visibility and mutation guards for class/session ac
   await page.goto("/admin/login");
   await page.getByLabel("Username").fill("admin");
   await page.getByLabel("Password").fill("admin123");
-  await page.getByRole("button", { name: "Sign In" }).click();
+  await page.getByRole("button", { name_zh: "Sign In" }).click();
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
   await page.goto("/admin/classes");
   const classRowAsSuper = page.locator("tbody tr").filter({ hasText: className });
   await expect(classRowAsSuper).toHaveCount(1);
-  await expect(classRowAsSuper.getByRole("button", { name: "Edit" })).toBeVisible();
-  await expect(classRowAsSuper.getByRole("button", { name: "Cancel" })).toBeVisible();
+  await expect(classRowAsSuper.getByRole("button", { name_zh: "Edit" })).toBeVisible();
+  await expect(classRowAsSuper.getByRole("button", { name_zh: "Cancel" })).toBeVisible();
 
   await page.goto(`/admin/classes/${createdClass.class_id}/sessions`);
   const sessionRowAsSuper = page.locator("tbody tr").filter({
     hasText: sessionLocation,
   });
   await expect(sessionRowAsSuper).toHaveCount(1);
-  await expect(sessionRowAsSuper.getByRole("button", { name: "Edit" })).toBeVisible();
-  await expect(sessionRowAsSuper.getByRole("button", { name: "Cancel" })).toBeVisible();
+  await expect(sessionRowAsSuper.getByRole("button", { name_zh: "Edit" })).toBeVisible();
+  await expect(sessionRowAsSuper.getByRole("button", { name_zh: "Cancel" })).toBeVisible();
 
   await page.screenshot({ path: "e2e/tc007-screenshot.png", fullPage: true });
 });

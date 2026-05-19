@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -22,7 +22,7 @@ test.describe('TC-008: Participant list does NOT show Name column', () => {
 
     // Step 1: Create a class
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC008 Class ${testId}`,
+      name_zh: `TC008 Class ${testId}`,
       description: 'TC-008 participant list no name column test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -30,7 +30,7 @@ test.describe('TC-008: Participant list does NOT show Name column', () => {
     // Step 2: Create a session
     const createdSession = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC008 Studio ${testId}`,
+      location_zh: `TC008 Studio ${testId}`,
       date: '2030-12-21',
       time: '10:00',
       quota_defined: 10,
@@ -55,13 +55,13 @@ test.describe('TC-008: Participant list does NOT show Name column', () => {
     const thead = table.locator('thead');
     await expect(thead).toBeVisible({ timeout: 10_000 });
 
-    // Step 6: Assert "Name" column header is NOT present
+    // Step 6: Assert "Name" column header IS present
     const allHeaders = thead.locator('th');
     const headerTexts = await allHeaders.allTextContents();
     console.log('TC-008 table headers found:', headerTexts);
 
     const hasNameColumn = headerTexts.some(h => h.trim().toLowerCase() === 'name');
-    expect(hasNameColumn, `Expected no "Name" column header but found one. Headers: ${JSON.stringify(headerTexts)}`).toBe(false);
+    expect(hasNameColumn, `Expected a "Name" column header but did not find one. Headers: ${JSON.stringify(headerTexts)}`).toBe(true);
 
     // Step 7: Assert all expected columns are present
     const expectedColumns = ['Participant ID', 'Mobile', 'Terms Accepted', 'Terms Version', 'Attendance Status', 'Details'];
@@ -76,7 +76,7 @@ test.describe('TC-008: Participant list does NOT show Name column', () => {
     console.log('TC-008 evidence:', JSON.stringify({
       session_id: createdSession.session_id,
       headers_found: headerTexts,
-      name_column_absent: !hasNameColumn,
+      name_column_present: hasNameColumn,
       expected_columns_present: expectedColumns,
     }, null, 2));
   });

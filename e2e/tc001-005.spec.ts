@@ -156,7 +156,7 @@ test('TC-005: WhatsApp contains valid terms link', async () => {
   });
 
   const possibleDomains = [
-    'https://class-management-system-teal.vercel.app',
+    'http://localhost:3000',
     'https://example.com',
   ];
   const candidateLinks = possibleDomains.map((domain) => `${domain}/terms?token=${created.token}`);

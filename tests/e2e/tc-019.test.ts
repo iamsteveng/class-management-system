@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -33,7 +33,7 @@ test.describe('TC-019: Attendance scanning — scanning unknown QR shows error',
 
     // Step 1: Create a class via Convex
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC019 Class ${testId}`,
+      name_zh: `TC019 Class ${testId}`,
       description: 'Unknown QR error test',
       admin_username: 'admin',
     }) as { class_id: string };
@@ -41,7 +41,7 @@ test.describe('TC-019: Attendance scanning — scanning unknown QR shows error',
     // Step 2: Create a session for that class
     const createdSession = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC019 Studio ${testId}`,
+      location_zh: `TC019 Studio ${testId}`,
       date: '2030-12-25',
       time: '10:00',
       quota_defined: 10,

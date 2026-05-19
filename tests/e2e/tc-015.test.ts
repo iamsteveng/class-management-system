@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -39,8 +39,8 @@ test.describe('TC-015: Terms success state shows green tick and confirmation mes
     const tickSvg = greenTickContainer.locator('svg');
     await expect(tickSvg).toBeVisible({ timeout: 10_000 });
 
-    // Pass criteria 2: confirmation message text is displayed
-    const confirmationText = page.getByText('Your class application is confirmed');
+    // Pass criteria 2: confirmation message text is displayed (zh-TW default)
+    const confirmationText = page.getByText('你的課程申請已確認');
     await expect(confirmationText).toBeVisible({ timeout: 10_000 });
 
     console.log('TC-015 evidence:', JSON.stringify({

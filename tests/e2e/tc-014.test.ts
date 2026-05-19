@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -31,8 +31,8 @@ test.describe('TC-014: Terms page shows instructional wording about QR code What
     const screenshotDir = path.join(process.cwd(), 'test-results');
     await page.screenshot({ path: path.join(screenshotDir, 'tc-014-terms-qr-note.png'), fullPage: true });
 
-    // Pass criteria: page contains the instructional text
-    const instructionalNote = page.locator('text=After confirming your class session and accepting the terms, you will receive a QR code via a WhatsApp message.');
+    // Pass criteria: page contains the instructional text (zh-TW default)
+    const instructionalNote = page.locator('text=確認課程時段並接受條款後，你可在此頁面取得 QR 碼。');
     await expect(instructionalNote).toBeVisible({ timeout: 15_000 });
 
     // Pass criteria: note appears above the submit button

@@ -10,7 +10,7 @@ test("TC-014: Clicked terms link loads valid page for that token", async ({ page
     participant_count: 1,
   });
 
-  const baseURL = String(test.info().project.use.baseURL ?? "https://class-management-system-teal.vercel.app");
+  const baseURL = String(test.info().project.use.baseURL ?? "http://localhost:3000");
   const termsLink = buildTermsUrl(resolveAppBaseUrl(baseURL), purchase.token);
   await page.goto(termsLink);
   await expect(page).toHaveURL(new RegExp(`/terms\\?token=${purchase.token}`));

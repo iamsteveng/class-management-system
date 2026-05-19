@@ -13,7 +13,7 @@ test("TC-013: Terms link is absolute URL and tokenized", async () => {
   });
 
   const termsLink = buildTermsUrl(
-    resolveAppBaseUrl("class-management-system-teal.vercel.app"),
+    resolveAppBaseUrl("http://localhost:3000"),
     purchase.token
   );
   expect(termsLink).toMatch(/^https?:\/\/[^\s/]+(?:\/[^\s?]*)?\/terms\?token=/i);

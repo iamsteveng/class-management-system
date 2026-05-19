@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'https://class-management-system-teal.vercel.app';
+const BASE_URL = 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -22,14 +22,14 @@ test.describe('TC-030: Terms form — emergency contact phone accepts valid inte
 
     // Step 1: Create a class and session for selection in the form
     const createdClass = await convexMutation('adminClasses:createClass', {
-      name: `TC030 Class ${testId}`,
+      name_zh: `TC030 Class ${testId}`,
       description: 'International phone format test',
       admin_username: 'admin',
     }) as { class_id: string };
 
     const createdSession = await convexMutation('adminSessions:createSession', {
       class_id: createdClass.class_id,
-      location: `TC030 Studio ${testId}`,
+      location_zh: `TC030 Studio ${testId}`,
       date: '2030-12-25',
       time: '10:00',
       quota_defined: 10,
@@ -39,9 +39,11 @@ test.describe('TC-030: Terms form — emergency contact phone accepts valid inte
     console.log(`TC-030 setup: class=${createdClass.class_id} session=${createdSession.session_id}`);
 
     // Step 2: Create a test purchase (pending_terms) to get a valid token
+    // Pass class_id so getTermsPageData returns sessions for the session select
     const purchase = await convexMutation('testPurchase:createTestPurchase', {
       customer_mobile: `+6030${testId.toString().slice(-7)}`,
       participant_count: 1,
+      class_id: createdClass.class_id,
     }) as { purchase_id: string; token: string };
 
     console.log(`TC-030 created test purchase token: ${purchase.token}`);
@@ -91,8 +93,8 @@ test.describe('TC-030: Terms form — emergency contact phone accepts valid inte
     // Screenshot as evidence of successful submission
     await page.screenshot({ path: path.join(screenshotDir, 'tc-030-success.png'), fullPage: true });
 
-    // Step 13: Assert success message is shown
-    await expect(page.getByText('Terms accepted successfully.')).toBeVisible({ timeout: 10_000 });
+    // Step 13: Assert success message is shown (zh-TW default)
+    await expect(page.getByText('你的課程申請已確認')).toBeVisible({ timeout: 10_000 });
 
     console.log('TC-030 evidence: form accepted international phone +447700900000 and submission succeeded');
     console.log('TC-030 PASS: emergency contact phone accepts valid international format');

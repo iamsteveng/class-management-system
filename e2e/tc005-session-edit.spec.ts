@@ -33,7 +33,7 @@ test("BUG-TC-005: Super admin can edit session details from class session list",
   const createdClass = await convexMutation<{ class_id: string }>(
     "adminClasses:createClass",
     {
-      name: `TC005 Class ${Date.now()}`,
+      name_zh: `TC005 Class ${Date.now()}`,
       description: "Session edit class",
       admin_username: "admin",
     }
@@ -54,7 +54,7 @@ test("BUG-TC-005: Super admin can edit session details from class session list",
   await page.goto("/admin/login");
   await page.getByLabel("Username").fill("admin");
   await page.getByLabel("Password").fill("admin123");
-  await page.getByRole("button", { name: "Sign In" }).click();
+  await page.getByRole("button", { name_zh: "Sign In" }).click();
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
   await page.goto(`/admin/classes/${createdClass.class_id}/sessions`);
@@ -63,9 +63,9 @@ test("BUG-TC-005: Super admin can edit session details from class session list",
     hasText: "TC005 Original Location",
   });
   await expect(sessionRow).toHaveCount(1);
-  await sessionRow.getByRole("button", { name: "Edit" }).click();
+  await sessionRow.getByRole("button", { name_zh: "Edit" }).click();
 
-  await expect(page.getByRole("heading", { name: "Edit Session" })).toBeVisible();
+  await expect(page.getByRole("heading", { name_zh: "Edit Session" })).toBeVisible();
   await expect(
     page.locator(`input[name="session_id"][value="${createdSession.session_id}"]`)
   ).toHaveCount(1);
@@ -85,7 +85,7 @@ test("BUG-TC-005: Super admin can edit session details from class session list",
   await page.locator('input[name="date"]').fill(updatedDate);
   await page.locator('input[name="time"]').fill(updatedTime);
   await page.locator('input[name="quota_defined"]').fill(updatedQuota);
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name_zh: "Save" }).click();
 
   await page.waitForURL(
     new RegExp(`/admin/classes/${createdClass.class_id}/sessions\\?status=session_updated`),

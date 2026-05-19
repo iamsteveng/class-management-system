@@ -15,7 +15,7 @@ test("BUG-TC-005: Super admin can edit class details from classes list", async (
 
   const baseName = `TC003 Class ${Date.now()}`;
   const created = await convexMutation<{ class_id: string }>("adminClasses:createClass", {
-    name: baseName,
+    name_zh: baseName,
     description: "Original description",
     admin_username: "admin",
   });
@@ -23,16 +23,16 @@ test("BUG-TC-005: Super admin can edit class details from classes list", async (
   await page.goto("/admin/login");
   await page.getByLabel("Username").fill("admin");
   await page.getByLabel("Password").fill("admin123");
-  await page.getByRole("button", { name: "Sign In" }).click();
+  await page.getByRole("button", { name_zh: "Sign In" }).click();
   await page.waitForURL(/\/admin\/dashboard/, { timeout: 20_000 });
 
   await page.goto("/admin/classes");
 
   const classRow = page.locator("tbody tr").filter({ hasText: created.class_id });
   await expect(classRow).toHaveCount(1);
-  await classRow.getByRole("button", { name: "Edit" }).click();
+  await classRow.getByRole("button", { name_zh: "Edit" }).click();
 
-  const modal = page.getByRole("heading", { name: "Edit Class" });
+  const modal = page.getByRole("heading", { name_zh: "Edit Class" });
   await expect(modal).toBeVisible();
   await expect(page.locator(`input[name="class_id"][value="${created.class_id}"]`)).toHaveCount(1);
   await expect(page.locator('input[name="name"]')).toHaveValue(baseName);
@@ -43,11 +43,11 @@ test("BUG-TC-005: Super admin can edit class details from classes list", async (
 
   await page.locator('input[name="name"]').fill(updatedName);
   await page.locator('textarea[name="description"]').fill(updatedDescription);
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name_zh: "Save" }).click();
 
   await page.waitForURL(/\/admin\/classes\?status=class_updated/, { timeout: 20_000 });
   await expect(page.getByText("Class updated successfully.")).toBeVisible();
-  await expect(page.getByRole("link", { name: updatedName })).toBeVisible();
+  await expect(page.getByRole("link", { name_zh: updatedName })).toBeVisible();
 
   const classes = await convexQuery<ClassRow[]>("adminClasses:getClassListPageData", {});
   const updated = classes.find((cls) => cls.class_id === created.class_id);

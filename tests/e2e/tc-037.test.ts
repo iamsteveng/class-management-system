@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = 'http://localhost:3000';
 
 test('TC-037: Run history table shows last 20 runs with correct columns', async ({ page }) => {
   // Login as admin
