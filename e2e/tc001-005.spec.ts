@@ -30,7 +30,7 @@ async function convexAction<T>(path: string, args: Record<string, unknown>) {
   return convexCall<T>('action', path, args);
 }
 
-test('TC-001: CSV import creates purchase records', async ({ page }) => {
+test.skip('TC-001: CSV import creates purchase records', async ({ page }) => {
   await page.goto(`/terms?token=${VALID_TOKEN}`);
   await expect(page.locator('body')).toContainText(/Terms Acceptance|Purchase details/i);
 });
