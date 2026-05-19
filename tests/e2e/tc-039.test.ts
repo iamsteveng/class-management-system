@@ -21,11 +21,12 @@ test("TC-039: Poll Now triggers immediate ingestion action", async ({
   // Take screenshot before clicking Poll Now
   await page.screenshot({ path: "tc039-before.png", fullPage: true });
 
-  // Count current rows and record latest timestamp
-  const rowsBefore = await page.locator("tbody tr").count();
+  // Scope to the ingestion runs table (second table — has Timestamp header)
+  const runsTable = page.locator('table').nth(1);
+  const rowsBefore = await runsTable.locator("tbody tr").count();
   let latestTimestampBefore = "";
   if (rowsBefore > 0) {
-    latestTimestampBefore = await page
+    latestTimestampBefore = await runsTable
       .locator("tbody tr:first-child td:first-child")
       .innerText();
   }
@@ -50,11 +51,11 @@ test("TC-039: Poll Now triggers immediate ingestion action", async ({
   await page.waitForTimeout(2000);
 
   // Step 4: Assert new ingestion_runs record appears
-  const rowsAfter = await page.locator("tbody tr").count();
+  const rowsAfter = await runsTable.locator("tbody tr").count();
 
   let latestTimestampAfter = "";
   if (rowsAfter > 0) {
-    latestTimestampAfter = await page
+    latestTimestampAfter = await runsTable
       .locator("tbody tr:first-child td:first-child")
       .innerText();
   }
