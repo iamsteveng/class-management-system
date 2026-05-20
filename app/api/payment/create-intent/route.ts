@@ -7,12 +7,15 @@ const AIRWALLEX_BASE_URL =
     ? "https://api.airwallex.com"
     : "https://api-demo.airwallex.com";
 
+const AIRWALLEX_API_VERSION = "2025-06-16";
+
 async function getAirwallexToken(): Promise<string> {
   const res = await fetch(`${AIRWALLEX_BASE_URL}/api/v1/authentication/login`, {
     method: "POST",
     headers: {
       "x-client-id": process.env.AIRWALLEX_CLIENT_ID!,
       "x-api-key": process.env.AIRWALLEX_API_KEY!,
+      "x-api-version": AIRWALLEX_API_VERSION,
       "Content-Type": "application/json",
     },
   });
@@ -42,6 +45,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "x-api-version": AIRWALLEX_API_VERSION,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
