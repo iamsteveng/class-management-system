@@ -12,32 +12,73 @@ interface ClassInfo {
   airwallex_currency?: string;
 }
 
+type Lang = "zh-TW" | "en";
+
+const t = {
+  "zh-TW": {
+    step1: "付款",
+    step2: "報名表格",
+    notAvailable: "此課程不支援網上付款。",
+    backToHome: "返回主頁",
+    loading: "載入中…",
+    whatsappLabel: "WhatsApp 號碼",
+    whatsappPlaceholder: "+852 9123 4567",
+    whatsappHint: "您將透過發送至此 WhatsApp 號碼的連結選擇所需時段，每位參加者需單獨填寫一份表格。",
+    cardLabel: "信用卡資料",
+    pay: (currency: string, price: string) => `付款 ${currency} ${price}`,
+    processing: "處理中…",
+    errorNoMobile: "請輸入您的 WhatsApp 號碼。",
+    errorCardNotReady: "付款表格尚未就緒，請稍候。",
+    errorPaymentFailed: "付款失敗，請重試。",
+    errorLoadFailed: "載入課程資料失敗。",
+  },
+  en: {
+    step1: "Payment",
+    step2: "Application Form",
+    notAvailable: "This class is not available for online payment.",
+    backToHome: "Back to home",
+    loading: "Loading…",
+    whatsappLabel: "WhatsApp Mobile Number",
+    whatsappPlaceholder: "+852 9123 4567",
+    whatsappHint: "You will select the desired session through the link sent to this WhatsApp number. Each participant needs to fill in a separate form.",
+    cardLabel: "Card Details",
+    pay: (currency: string, price: string) => `Pay ${currency} ${price}`,
+    processing: "Processing…",
+    errorNoMobile: "Please enter your WhatsApp mobile number.",
+    errorCardNotReady: "Payment form is not ready yet. Please wait.",
+    errorPaymentFailed: "Payment failed. Please try again.",
+    errorLoadFailed: "Failed to load class information.",
+  },
+};
+
 export default function ApplyPage({ params }: { params: Promise<{ class_id: string }> }) {
   const router = useRouter();
+  const [lang, setLang] = useState<Lang>("zh-TW");
   const [classId, setClassId] = useState<string | null>(null);
-  const [mobile, setMobile] = useState("");
+  const [mobile, setMobile] = useState("+852");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [cardReady, setCardReady] = useState(false);
   const cardRef = useRef<any>(null);
   const sdkInitRef = useRef(false);
+  const copy = t[lang];
 
   // Unwrap params (Next.js 15 async params)
   useEffect(() => {
     params.then((p) => setClassId(p.class_id));
   }, [params]);
 
-  // Fetch class info
+  // Fetch class info — cache-busted so updated prices are always fresh
   useEffect(() => {
     if (!classId) return;
-    fetch("/api/classes")
+    fetch(`/api/classes?t=${Date.now()}`)
       .then((r) => r.json())
       .then((data) => {
         const cls = (data.classes as ClassInfo[])?.find((c) => c.class_id === classId);
         setClassInfo(cls ?? null);
       })
-      .catch(() => setError("Failed to load class information."));
+      .catch(() => setError(copy.errorLoadFailed));
   }, [classId]);
 
   // Initialize Airwallex SDK and mount card element
@@ -58,25 +99,24 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
         card.mount("airwallex-card-container");
       } catch (e) {
         console.error("[apply] SDK init error:", e);
-        setError("Failed to load payment form. Please refresh.");
+        setError(lang === "zh-TW" ? "載入付款表格失敗，請重新整理頁面。" : "Failed to load payment form. Please refresh.");
       }
     })();
   }, [classInfo]);
 
   const handlePay = async () => {
     if (!mobile.trim()) {
-      setError("Please enter your WhatsApp mobile number.");
+      setError(copy.errorNoMobile);
       return;
     }
     if (!cardRef.current) {
-      setError("Payment form is not ready yet. Please wait.");
+      setError(copy.errorCardNotReady);
       return;
     }
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Create Airwallex payment intent
       const intentRes = await fetch("/api/payment/create-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,28 +124,28 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       });
       if (!intentRes.ok) {
         const { error: msg } = await intentRes.json();
-        throw new Error(msg ?? "Failed to initialise payment.");
+        throw new Error(msg ?? copy.errorPaymentFailed);
       }
       const { intent_id, client_secret } = await intentRes.json();
 
-      // 2. Confirm via Airwallex SDK (handles 3DS internally)
       await cardRef.current.confirm({ intent_id, client_secret });
 
-      // 3. Create purchase record + trigger WhatsApp
       const confirmRes = await fetch("/api/payment/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ intent_id, class_id: classId, mobile: mobile.trim() }),
       });
       if (!confirmRes.ok) {
-        throw new Error("Payment succeeded but your application record could not be created. Please contact support.");
+        throw new Error(
+          lang === "zh-TW"
+            ? "付款成功但報名記錄未能建立，請聯絡我們。"
+            : "Payment succeeded but your application record could not be created. Please contact support."
+        );
       }
       const { token } = await confirmRes.json();
-
-      // 4. Redirect to terms form (Step 2)
       router.push(`/terms?token=${token}`);
     } catch (err: any) {
-      setError(err.message ?? "Payment failed. Please try again.");
+      setError(err.message ?? copy.errorPaymentFailed);
     } finally {
       setLoading(false);
     }
@@ -114,7 +154,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   if (!classInfo && !error) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f5f5f0]">
-        <p className="text-zinc-500 text-sm">Loading…</p>
+        <p className="text-zinc-500 text-sm">{copy.loading}</p>
       </main>
     );
   }
@@ -122,17 +162,36 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   if (!classInfo?.airwallex_price) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-[#f5f5f0] gap-4">
-        <p className="text-zinc-600 text-sm">This class is not available for online payment.</p>
-        <Link href="/" className="text-sm text-zinc-900 underline">Back to home</Link>
+        <p className="text-zinc-600 text-sm">{copy.notAvailable}</p>
+        <Link href="/" className="text-sm text-zinc-900 underline">{copy.backToHome}</Link>
       </main>
     );
   }
 
   const currency = classInfo.airwallex_currency ?? "HKD";
-  const displayName = classInfo.name_en ?? classInfo.name_zh;
+  const displayName = lang === "zh-TW" ? classInfo.name_zh : (classInfo.name_en ?? classInfo.name_zh);
+  const priceFormatted = classInfo.airwallex_price.toLocaleString();
 
   return (
     <main className="min-h-screen bg-[#f5f5f0] flex flex-col items-center justify-center p-4">
+      {/* Language toggle */}
+      <div className="w-full max-w-md flex justify-end mb-2">
+        <div className="flex rounded-lg border border-zinc-300 overflow-hidden text-xs font-medium">
+          <button
+            onClick={() => setLang("zh-TW")}
+            className={`px-3 py-1.5 transition-colors ${lang === "zh-TW" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+          >
+            中文
+          </button>
+          <button
+            onClick={() => setLang("en")}
+            className={`px-3 py-1.5 transition-colors ${lang === "en" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+          >
+            EN
+          </button>
+        </div>
+      </div>
+
       {/* Step indicator */}
       <div className="w-full max-w-md mb-6">
         <div className="flex items-center gap-3">
@@ -140,14 +199,14 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white">
               1
             </span>
-            <span className="text-sm font-medium text-zinc-900">Payment</span>
+            <span className="text-sm font-medium text-zinc-900">{copy.step1}</span>
           </div>
           <div className="h-px flex-1 bg-zinc-300" />
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-400">
               2
             </span>
-            <span className="text-sm text-zinc-400">Application Form</span>
+            <span className="text-sm text-zinc-400">{copy.step2}</span>
           </div>
         </div>
       </div>
@@ -157,35 +216,30 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">{displayName}</h1>
           <p className="mt-1 text-3xl font-bold text-zinc-900">
-            {currency} {classInfo.airwallex_price.toLocaleString()}
+            {currency} {priceFormatted}
           </p>
         </div>
 
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-zinc-700">
-            WhatsApp Mobile Number
+            {copy.whatsappLabel}
           </label>
           <input
             type="tel"
             value={mobile}
             onChange={(e) => setMobile(e.target.value)}
-            placeholder="+852 9123 4567"
+            placeholder={copy.whatsappPlaceholder}
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
-          <p className="text-xs text-zinc-400">
-            Your terms acceptance link will be sent here after payment.
-          </p>
+          <p className="text-xs text-zinc-400">{copy.whatsappHint}</p>
         </div>
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-zinc-700">Card Details</label>
+          <label className="block text-sm font-medium text-zinc-700">{copy.cardLabel}</label>
           <div
             id="airwallex-card-container"
             className="min-h-[52px] rounded-lg border border-zinc-300 p-3"
           />
-          {!cardReady && (
-            <p className="text-xs text-zinc-400">Loading payment form…</p>
-          )}
         </div>
 
         {error && (
@@ -197,12 +251,8 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           disabled={loading || !cardReady}
           className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
         >
-          {loading ? "Processing…" : `Pay ${currency} ${classInfo.airwallex_price.toLocaleString()}`}
+          {loading ? copy.processing : copy.pay(currency, priceFormatted)}
         </button>
-
-        <p className="text-center text-xs text-zinc-400">
-          After payment you will complete your application form. A WhatsApp backup link will also be sent to your mobile.
-        </p>
       </div>
     </main>
   );
