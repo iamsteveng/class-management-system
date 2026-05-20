@@ -17,6 +17,8 @@ type ClassRow = {
   total_sessions: number;
   status: "active" | "inactive";
   payment_url?: string;
+  airwallex_price?: number;
+  airwallex_currency?: string;
 };
 
 type AdminClassesPageProps = {
@@ -89,6 +91,10 @@ export default async function AdminClassesPage({
       (formData.get("description") as string | null)?.trim() ?? "";
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
+    const airwallexPriceRaw = (formData.get("airwallex_price") as string | null)?.trim() || undefined;
+    const airwallexPrice = airwallexPriceRaw ? parseFloat(airwallexPriceRaw) : undefined;
+    const airwallexCurrency =
+      (formData.get("airwallex_currency") as string | null)?.trim() || undefined;
 
     if (!classId || !nameZh) {
       redirect(
@@ -106,6 +112,8 @@ export default async function AdminClassesPage({
           name_en: nameEn,
           description,
           payment_url: paymentUrl,
+          airwallex_price: airwallexPrice,
+          airwallex_currency: airwallexCurrency,
           admin_username: adminUsername,
         }
       );
@@ -243,6 +251,8 @@ export default async function AdminClassesPage({
                           initialNameEn={cls.name_en}
                           initialDescription={cls.description}
                           initialPaymentUrl={cls.payment_url}
+                          initialAirwallexPrice={cls.airwallex_price}
+                          initialAirwallexCurrency={cls.airwallex_currency}
                           submitAction={editClassAction}
                         />
                         {cls.status === "active" ? (

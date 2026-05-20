@@ -11,6 +11,7 @@ export async function GET() {
       {}
     );
 
+    // Pass through all fields including airwallex_price and airwallex_currency
     return NextResponse.json({ classes });
   } catch {
     return NextResponse.json(

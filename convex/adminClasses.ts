@@ -42,6 +42,8 @@ export const createClass = mutationGeneric({
     name_en: v.optional(v.string()),
     description: v.optional(v.string()),
     payment_url: v.optional(v.string()),
+    airwallex_price: v.optional(v.number()),
+    airwallex_currency: v.optional(v.string()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -62,6 +64,8 @@ export const createClass = mutationGeneric({
       name_en: args.name_en?.trim() || undefined,
       description: args.description?.trim(),
       payment_url: args.payment_url?.trim() || undefined,
+      airwallex_price: args.airwallex_price,
+      airwallex_currency: args.airwallex_currency?.trim() || undefined,
       status: "active",
       created_at: now,
     });
@@ -89,6 +93,8 @@ export const updateClass = mutationGeneric({
     name_en: v.optional(v.string()),
     description: v.optional(v.string()),
     payment_url: v.optional(v.string()),
+    airwallex_price: v.optional(v.number()),
+    airwallex_currency: v.optional(v.string()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -124,6 +130,8 @@ export const updateClass = mutationGeneric({
       name_en: nextNameEn,
       description: nextDescription,
       payment_url: nextPaymentUrl,
+      airwallex_price: args.airwallex_price,
+      airwallex_currency: args.airwallex_currency?.trim() || undefined,
     });
 
     await ctx.db.insert("audit_logs", {

@@ -16,7 +16,7 @@ export default defineSchema({
     token: v.string(),
     class_id: v.optional(v.string()),
     session_id: v.optional(v.string()),
-    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"))),
+    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex"))),
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
     manychat_subscriber_id: v.optional(v.string()),
@@ -55,6 +55,8 @@ export default defineSchema({
     description: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     payment_url: v.optional(v.string()),
+    airwallex_price: v.optional(v.number()),
+    airwallex_currency: v.optional(v.string()),
     created_at: v.number(),
   }).index("by_class_id", ["class_id"]),
 

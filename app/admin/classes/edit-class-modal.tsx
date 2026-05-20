@@ -9,6 +9,8 @@ type EditClassModalProps = {
   initialNameEn?: string;
   initialDescription?: string;
   initialPaymentUrl?: string;
+  initialAirwallexPrice?: number;
+  initialAirwallexCurrency?: string;
   submitAction: (formData: FormData) => void | Promise<void>;
 };
 
@@ -18,6 +20,8 @@ export function EditClassModal({
   initialNameEn,
   initialDescription,
   initialPaymentUrl,
+  initialAirwallexPrice,
+  initialAirwallexCurrency,
   submitAction,
 }: EditClassModalProps) {
   const [open, setOpen] = useState(false);
@@ -122,6 +126,42 @@ export function EditClassModal({
                   type="url"
                   defaultValue={initialPaymentUrl ?? ""}
                   placeholder="https://..."
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-airwallex-price-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Airwallex Price
+                </label>
+                <input
+                  id={`edit-airwallex-price-${fieldId}`}
+                  name="airwallex_price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue={initialAirwallexPrice ?? ""}
+                  placeholder="e.g. 1200"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-airwallex-currency-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Airwallex Currency
+                </label>
+                <input
+                  id={`edit-airwallex-currency-${fieldId}`}
+                  name="airwallex_currency"
+                  type="text"
+                  defaultValue={initialAirwallexCurrency ?? ""}
+                  placeholder="e.g. HKD"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>

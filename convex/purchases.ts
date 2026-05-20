@@ -31,7 +31,7 @@ export const createPurchase = mutationGeneric({
     customer_mobile: v.string(),
     participant_count: v.number(),
     class_id: v.optional(v.string()),
-    source: v.union(v.literal("s3"), v.literal("payment_gateway")),
+    source: v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex")),
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
     purchase_datetime: v.string(),

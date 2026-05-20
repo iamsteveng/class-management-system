@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useLanguage } from '../../contexts/LanguageContext';
 import svgPaths from './imports/svg-tlbx5elpic';
 import { getCourseConfig } from '../../i18n/courseConfig';
@@ -27,7 +28,9 @@ interface Course {
   discountPrice: string;
   image: string;
   classes: ClassSchedule[];
-  paymentUrl: string;
+  paymentUrl?: string;
+  airwallex_price?: number;
+  airwallex_currency?: string;
 }
 
 interface ApiClass {
@@ -35,7 +38,9 @@ interface ApiClass {
   name_zh: string;
   name_en?: string;
   description?: string;
-  payment_url: string;
+  payment_url?: string;
+  airwallex_price?: number;
+  airwallex_currency?: string;
 }
 
 interface ApiSession {
@@ -238,25 +243,45 @@ function CourseCard({ course }: { course: Course }) {
         </div>
 
         {/* Enroll Button */}
-        <a
-          href={course.paymentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
-        >
-          <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
-            <div className="relative shrink-0 size-[20px]">
-              <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
-                <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
-                  <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
-                </svg>
+        {course.airwallex_price ? (
+          <Link
+            href={`/apply/${course.id}`}
+            className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
+          >
+            <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
+              <div className="relative shrink-0 size-[20px]">
+                <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
+                    <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
+                  </svg>
+                </div>
               </div>
+              <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
+                Apply
+              </p>
             </div>
-            <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
-              {t.courses.enrollButton}
-            </p>
-          </div>
-        </a>
+          </Link>
+        ) : course.paymentUrl ? (
+          <a
+            href={course.paymentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
+          >
+            <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
+              <div className="relative shrink-0 size-[20px]">
+                <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
+                    <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
+                  </svg>
+                </div>
+              </div>
+              <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
+                {t.courses.enrollButton}
+              </p>
+            </div>
+          </a>
+        ) : null}
       </div>
     </div>
   );
@@ -313,6 +338,8 @@ export function CoursesSection() {
               image: config.image,
               classes: schedules,
               paymentUrl: cls.payment_url,
+              airwallex_price: cls.airwallex_price,
+              airwallex_currency: cls.airwallex_currency,
             });
           })
         );
