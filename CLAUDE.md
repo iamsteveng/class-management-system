@@ -1,5 +1,15 @@
 # Class Management System — Agent Instructions
 
+## 🚨 NEVER MODIFY PRODUCTION DATA
+
+**Never call mutations, run functions, or execute any write operation against the production Convex deployment (`colorless-raven-523.convex.cloud`) for debugging, testing, or verification purposes.**
+
+- Use dev Convex (`graceful-mole-393.convex.cloud`) for all test data and debugging
+- If you need to verify a mutation works, test it against dev — never prod
+- The only legitimate writes to prod are via the deployed app itself or explicit user-initiated admin actions
+
+Violating this rule corrupts live data that real users depend on.
+
 ## Before You Do Anything
 
 Read the project structure carefully before implementing. This is a Next.js + Convex app.
