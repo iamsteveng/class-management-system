@@ -91,11 +91,14 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
         const { init, createElement } = await import("@airwallex/components-sdk");
         await init({
           env: (process.env.NEXT_PUBLIC_AIRWALLEX_ENV as "demo" | "prod") ?? "demo",
-          enabledElements: ["payments"],
         });
         const card = await createElement("card", {});
         cardRef.current = card;
         card.on("ready", () => setCardReady(true));
+        card.on("error", (e: unknown) => {
+          console.error("[apply] card error:", e);
+          setError(lang === "zh-TW" ? "載入信用卡表格失敗，請重新整理頁面。" : "Failed to load card form. Please refresh.");
+        });
         card.mount("airwallex-card-container");
       } catch (e) {
         console.error("[apply] SDK init error:", e);

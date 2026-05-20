@@ -12,6 +12,8 @@ export const getClassListPageData = queryGeneric({
       total_sessions: v.number(),
       status: v.union(v.literal("active"), v.literal("inactive")),
       payment_url: v.optional(v.string()),
+      airwallex_price: v.optional(v.number()),
+      airwallex_currency: v.optional(v.string()),
     })
   ),
   handler: async (ctx) => {
@@ -32,6 +34,8 @@ export const getClassListPageData = queryGeneric({
       total_sessions: sessionCountByClassId.get(cls.class_id) ?? 0,
       status: cls.status,
       payment_url: cls.payment_url,
+      airwallex_price: cls.airwallex_price,
+      airwallex_currency: cls.airwallex_currency,
     }));
   },
 });
