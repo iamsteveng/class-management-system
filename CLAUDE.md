@@ -10,6 +10,20 @@
 
 Violating this rule corrupts live data that real users depend on.
 
+## 🚨 ALWAYS FOLLOW THE DEPLOYMENT ENVIRONMENT EXPLICITLY SPECIFIED
+
+**Never deploy to Convex production or Vercel production unless the user explicitly says so.**
+
+| User says | What to run |
+|---|---|
+| "deploy to Convex dev" | `npx convex dev --once` |
+| "deploy to Convex prod" / "deploy to Convex" | `npx convex deploy --yes` |
+| "deploy to Vercel preview" / "deploy to Vercel" | `vercel` |
+| "deploy to Vercel prod" / "deploy to production" | `vercel --prod` |
+
+Default to the **least destructive** option when ambiguous — preview over production, dev over prod.
+If unsure, ask before deploying.
+
 ## Before You Do Anything
 
 Read the project structure carefully before implementing. This is a Next.js + Convex app.
