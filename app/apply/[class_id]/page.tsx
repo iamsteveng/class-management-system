@@ -95,7 +95,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
         const card = await createElement("card", {});
         cardRef.current = card;
         card.on("ready", () => setCardReady(true));
-        card.on("error", (e: unknown) => {
+        (card as any).on("error", (e: unknown) => {
           console.error("[apply] card error:", e);
           setError(lang === "zh-TW" ? "載入信用卡表格失敗，請重新整理頁面。" : "Failed to load card form. Please refresh.");
         });
