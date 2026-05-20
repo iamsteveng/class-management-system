@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAction, fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
+import { makeFunctionReference } from "convex/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     const amount = cls?.airwallex_price ?? 0;
     const currency = cls?.airwallex_currency ?? "HKD";
 
-    const result = await fetchAction(api.payments.createPurchaseFromAirwallex, {
+    const result = await fetchAction(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
       intent_id,
       class_id,
       customer_mobile: mobile,
