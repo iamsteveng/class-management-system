@@ -8,7 +8,7 @@ export const listPurchases = queryGeneric({
       _id: v.id("purchases"),
       created_at: v.number(),
       customer_mobile: v.string(),
-      source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"))),
+      source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex"))),
       order_id: v.string(),
       participant_count: v.number(),
       slot_index: v.optional(v.number()),

@@ -12,7 +12,7 @@ type PurchaseRow = {
   _id: string;
   created_at: number;
   customer_mobile: string;
-  source?: "s3" | "payment_gateway";
+  source?: "s3" | "payment_gateway" | "airwallex";
   order_id: string;
   participant_count: number;
   slot_index?: number;
