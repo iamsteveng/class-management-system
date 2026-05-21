@@ -173,7 +173,7 @@ export const translations: Record<Language, Translations> = {
       enrollButton: '按此報名',
       applyButton: '立即報名',
       priceIndividual: '個人',
-      priceGroup: (minQty: number) => `團體優惠（${minQty}人或以上）`,
+      priceGroup: (minQty: number) => `${minQty}人或以上`,
       comingSoon: '即將推出',
       course1: {
         title: '單車新手速成班',
@@ -287,7 +287,7 @@ export const translations: Record<Language, Translations> = {
       enrollButton: 'Enroll Now',
       applyButton: 'Apply Now',
       priceIndividual: 'Individual',
-      priceGroup: (minQty: number) => `Group rate (${minQty}+ people)`,
+      priceGroup: (minQty: number) => `${minQty}+ people`,
       comingSoon: 'Coming Soon',
       course1: {
         title: 'Cycling Crash Course for Beginners',

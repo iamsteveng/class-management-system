@@ -234,7 +234,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
             {copy.unitPrice(currency, unitPrice.toLocaleString())} × {quantity}
             {isGroupRate && (
               <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                {lang === "zh-TW" ? "團體優惠" : "Group rate"}
+                {lang === "zh-TW" ? `${groupMinQty}人或以上` : `${groupMinQty}+ people`}
               </span>
             )}
           </p>
