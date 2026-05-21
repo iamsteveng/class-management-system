@@ -48,10 +48,31 @@ npx convex env set APP_BASE_URL "https://<preview-url>.vercel.app"
 ## Adding a New Class
 
 ### 1. Admin Portal
-- [ ] Create the class in the admin portal (`/admin/classes`) — set name, description, payment URL (the payment URL should be the Loco Mart product page URL for that class)
+- [ ] Create the class in the admin portal (`/admin/classes`) — set name and description
 - [ ] Add sessions for the class (`/admin/classes/{class_id}/sessions`)
+- [ ] Choose a payment method (see below)
 
-### 2. Loco Mart Portal
+#### Payment Method A — External payment link (Loco Mart)
+Set the **Payment URL** field to the Loco Mart product page URL for this class.
+The homepage will show a "Buy Ticket" button that opens the external URL in a new tab.
+
+#### Payment Method B — In-page Airwallex card payment
+Leave Payment URL empty and fill in the **Airwallex** fields instead:
+
+| Field | Description | Example |
+|---|---|---|
+| **Airwallex Price** | Price per person (single / default) | `298` |
+| **Airwallex Currency** | ISO currency code | `HKD` |
+| **Group Price** _(optional)_ | Discounted price per person when buying in a group | `250` |
+| **Min Qty for Group Price** _(optional)_ | Minimum quantity to qualify for group price | `2` |
+
+The homepage will show an "Apply Now / 立即報名" button that opens `/apply/{class_id}`.
+Customers enter their WhatsApp number, quantity (1–15), and pay by card.
+After payment, N purchase records are created and a WhatsApp link is sent per participant.
+
+> **Note:** Airwallex env vars must be set in Vercel: `AIRWALLEX_CLIENT_ID`, `AIRWALLEX_API_KEY`, `AIRWALLEX_ENV`, `NEXT_PUBLIC_AIRWALLEX_ENV`.
+
+### 2. Loco Mart Portal _(Payment Method A only)_
 - [ ] Create the corresponding product in the Loco Mart portal
 - [ ] Add the new product ID to the Loco Events module: **Extensions → Extensions → Modules → Loco Events**
 
@@ -60,7 +81,7 @@ npx convex env set APP_BASE_URL "https://<preview-url>.vercel.app"
 
 ### 4. Code Changes
 - [ ] **`app/i18n/courseConfig.ts`** — add a `COURSE_CONFIG` entry for the new `class_id` with `duration`, `originalPrice`, `discountPrice`, `image`, `description_zh`, `description_en`
-- [ ] **`convex/productMapping.ts`** — add the product ID → class ID mapping under `prod` (and `uat` if applicable)
+- [ ] **`convex/productMapping.ts`** — add the product ID → class ID mapping under `prod` (and `uat` if applicable) _(Payment Method A only)_
 - [ ] Run `npx tsc --noEmit` to verify no type errors
 - [ ] Commit and deploy: `npx convex deploy --yes`
 
