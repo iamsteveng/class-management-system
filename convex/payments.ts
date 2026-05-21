@@ -10,41 +10,54 @@ export const createPurchaseFromAirwallex = actionGeneric({
     customer_mobile: v.string(),
     amount: v.number(),
     currency: v.string(),
+    quantity: v.optional(v.number()),
   },
-  returns: v.object({ token: v.string(), purchase_id: v.string() }),
+  returns: v.object({ tokens: v.array(v.string()), purchase_ids: v.array(v.string()) }),
   handler: async (ctx, args) => {
-    const purchase_id = await ctx.runMutation(
-      makeFunctionReference<"mutation">("purchases:createPurchase"),
-      {
-        order_id: args.intent_id,
-        customer_mobile: args.customer_mobile,
-        participant_count: 1,
-        class_id: args.class_id,
-        source: "airwallex",
-        unit_price: args.amount,
-        total_price: args.amount,
-        purchase_datetime: new Date().toISOString(),
-      }
-    );
+    const qty = Math.max(1, args.quantity ?? 1);
+    const tokens: string[] = [];
+    const purchase_ids: string[] = [];
 
-    const purchase = await ctx.runQuery(
-      makeFunctionReference<"query">("purchaseQueries:getPurchaseForConfirmation"),
-      { purchase_id }
-    );
+    for (let i = 0; i < qty; i++) {
+      // qty=1: use intent_id directly (backward compat); qty>1: suffix with participant number
+      const orderId = qty > 1 ? `${args.intent_id}-${i + 1}` : args.intent_id;
 
-    if (!purchase) {
-      throw new Error("Purchase not found after creation");
-    }
+      const purchase_id = await ctx.runMutation(
+        makeFunctionReference<"mutation">("purchases:createPurchase"),
+        {
+          order_id: orderId,
+          customer_mobile: args.customer_mobile,
+          participant_count: 1,
+          class_id: args.class_id,
+          source: "airwallex",
+          unit_price: args.amount,
+          total_price: args.amount,
+          purchase_datetime: new Date().toISOString(),
+        }
+      );
 
-    try {
-      await ctx.runAction(
-        makeFunctionReference<"action">("purchaseConfirmation:sendPurchaseConfirmation"),
+      const purchase = await ctx.runQuery(
+        makeFunctionReference<"query">("purchaseQueries:getPurchaseForConfirmation"),
         { purchase_id }
       );
-    } catch (err) {
-      console.error("[payments] WhatsApp send failed (non-fatal):", err);
+
+      if (!purchase) {
+        throw new Error(`Purchase ${i + 1} not found after creation`);
+      }
+
+      tokens.push(purchase.token as string);
+      purchase_ids.push(String(purchase_id));
+
+      try {
+        await ctx.runAction(
+          makeFunctionReference<"action">("purchaseConfirmation:sendPurchaseConfirmation"),
+          { purchase_id }
+        );
+      } catch (err) {
+        console.error(`[payments] WhatsApp send failed for purchase ${i + 1} (non-fatal):`, err);
+      }
     }
 
-    return { token: purchase.token, purchase_id: String(purchase_id) };
+    return { tokens, purchase_ids };
   },
 });

@@ -24,8 +24,11 @@ const t = {
     whatsappLabel: "WhatsApp 號碼",
     whatsappPlaceholder: "+852 9123 4567",
     whatsappHint: "您將透過發送至此 WhatsApp 號碼的連結選擇所需時段，每位參加者需單獨填寫一份表格。",
+    quantityLabel: "參加人數",
+    unitPrice: (currency: string, price: string) => `單價 ${currency} ${price}`,
+    totalPrice: (currency: string, total: string) => `總價 ${currency} ${total}`,
     cardLabel: "信用卡資料",
-    pay: (currency: string, price: string) => `付款 ${currency} ${price}`,
+    pay: (currency: string, total: string) => `付款 ${currency} ${total}`,
     processing: "處理中…",
     errorNoMobile: "請輸入您的 WhatsApp 號碼。",
     errorCardNotReady: "付款表格尚未就緒，請稍候。",
@@ -41,8 +44,11 @@ const t = {
     whatsappLabel: "WhatsApp Mobile Number",
     whatsappPlaceholder: "+852 9123 4567",
     whatsappHint: "You will select the desired session through the link sent to this WhatsApp number. Each participant needs to fill in a separate form.",
+    quantityLabel: "Number of Participants",
+    unitPrice: (currency: string, price: string) => `Unit price ${currency} ${price}`,
+    totalPrice: (currency: string, total: string) => `Total ${currency} ${total}`,
     cardLabel: "Card Details",
-    pay: (currency: string, price: string) => `Pay ${currency} ${price}`,
+    pay: (currency: string, total: string) => `Pay ${currency} ${total}`,
     processing: "Processing…",
     errorNoMobile: "Please enter your WhatsApp mobile number.",
     errorCardNotReady: "Payment form is not ready yet. Please wait.",
@@ -56,6 +62,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   const [lang, setLang] = useState<Lang>("zh-TW");
   const [classId, setClassId] = useState<string | null>(null);
   const [mobile, setMobile] = useState("+852");
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
@@ -64,12 +71,10 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   const sdkInitRef = useRef(false);
   const copy = t[lang];
 
-  // Unwrap params (Next.js 15 async params)
   useEffect(() => {
     params.then((p) => setClassId(p.class_id));
   }, [params]);
 
-  // Fetch class info — cache-busted so updated prices are always fresh
   useEffect(() => {
     if (!classId) return;
     fetch(`/api/classes?t=${Date.now()}`)
@@ -81,7 +86,6 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       .catch(() => setError(copy.errorLoadFailed));
   }, [classId]);
 
-  // Initialize Airwallex SDK and mount card element
   useEffect(() => {
     if (!classInfo?.airwallex_price || sdkInitRef.current) return;
     sdkInitRef.current = true;
@@ -124,7 +128,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       const intentRes = await fetch("/api/payment/create-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ class_id: classId, mobile: mobile.trim() }),
+        body: JSON.stringify({ class_id: classId, mobile: mobile.trim(), quantity }),
       });
       if (!intentRes.ok) {
         const { error: msg } = await intentRes.json();
@@ -137,7 +141,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       const confirmRes = await fetch("/api/payment/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ intent_id, class_id: classId, mobile: mobile.trim() }),
+        body: JSON.stringify({ intent_id, class_id: classId, mobile: mobile.trim(), quantity }),
       });
       if (!confirmRes.ok) {
         throw new Error(
@@ -146,8 +150,11 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
             : "Payment succeeded but your application record could not be created. Please contact support."
         );
       }
-      const { token } = await confirmRes.json();
-      router.push(`/terms?token=${token}`);
+      const { tokens } = await confirmRes.json() as { tokens: string[] };
+
+      router.push(
+        `/apply/${classId}/passes?tokens=${tokens.join(",")}&mobile=${encodeURIComponent(mobile.trim())}&lang=${lang}`
+      );
     } catch (err: any) {
       setError(err.message ?? copy.errorPaymentFailed);
     } finally {
@@ -173,8 +180,9 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   }
 
   const currency = classInfo.airwallex_currency ?? "HKD";
+  const unitPrice = classInfo.airwallex_price;
+  const totalPrice = unitPrice * quantity;
   const displayName = lang === "zh-TW" ? classInfo.name_zh : (classInfo.name_en ?? classInfo.name_zh);
-  const priceFormatted = classInfo.airwallex_price.toLocaleString();
 
   return (
     <main className="min-h-screen bg-[#f5f5f0] flex flex-col items-center justify-center p-4">
@@ -200,16 +208,12 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       <div className="w-full max-w-md mb-6">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white">
-              1
-            </span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white">1</span>
             <span className="text-sm font-medium text-zinc-900">{copy.step1}</span>
           </div>
           <div className="h-px flex-1 bg-zinc-300" />
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-400">
-              2
-            </span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-400">2</span>
             <span className="text-sm text-zinc-400">{copy.step2}</span>
           </div>
         </div>
@@ -220,14 +224,18 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">{displayName}</h1>
           <p className="mt-1 text-3xl font-bold text-zinc-900">
-            {currency} {priceFormatted}
+            {currency} {totalPrice.toLocaleString()}
           </p>
+          {quantity > 1 && (
+            <p className="mt-0.5 text-sm text-zinc-400">
+              {copy.unitPrice(currency, unitPrice.toLocaleString())} × {quantity}
+            </p>
+          )}
         </div>
 
+        {/* WhatsApp */}
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-zinc-700">
-            {copy.whatsappLabel}
-          </label>
+          <label className="block text-sm font-medium text-zinc-700">{copy.whatsappLabel}</label>
           <input
             type="tel"
             value={mobile}
@@ -238,12 +246,34 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           <p className="text-xs text-zinc-400">{copy.whatsappHint}</p>
         </div>
 
+        {/* Quantity */}
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium text-zinc-700">{copy.quantityLabel}</label>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-300 bg-white text-lg font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
+              disabled={quantity <= 1}
+            >
+              −
+            </button>
+            <span className="w-8 text-center text-sm font-semibold text-zinc-900">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.min(15, q + 1))}
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-300 bg-white text-lg font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-40"
+              disabled={quantity >= 15}
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Card element */}
         <div className="space-y-1.5">
           <label className="block text-sm font-medium text-zinc-700">{copy.cardLabel}</label>
-          <div
-            id="airwallex-card-container"
-            className="min-h-[52px] rounded-lg border border-zinc-300 p-3"
-          />
+          <div id="airwallex-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
         </div>
 
         {error && (
@@ -255,7 +285,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           disabled={loading || !cardReady}
           className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
         >
-          {loading ? copy.processing : copy.pay(currency, priceFormatted)}
+          {loading ? copy.processing : copy.pay(currency, totalPrice.toLocaleString())}
         </button>
       </div>
     </main>

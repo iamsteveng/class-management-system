@@ -17,12 +17,14 @@ export async function POST(req: NextRequest) {
         const mobile = metadata.mobile;
 
         if (class_id && mobile) {
+          const quantity = metadata.quantity ? Math.max(1, Math.min(15, parseInt(metadata.quantity, 10))) : 1;
           await fetchAction(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
             intent_id: intent.id as string,
             class_id,
             customer_mobile: mobile,
-            amount: (intent.amount as number) ?? 0,
+            amount: quantity > 1 ? Math.round((intent.amount as number) / quantity) : ((intent.amount as number) ?? 0),
             currency: (intent.currency as string) ?? "HKD",
+            quantity,
           });
         } else {
           console.warn("[webhook] Missing class_id or mobile in intent metadata, skipping purchase creation");

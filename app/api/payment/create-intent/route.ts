@@ -26,10 +26,12 @@ async function getAirwallexToken(): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { class_id, mobile } = await req.json();
+    const { class_id, mobile, quantity } = await req.json();
     if (!class_id || !mobile) {
       return NextResponse.json({ error: "class_id and mobile are required" }, { status: 400 });
     }
+
+    const qty = Math.max(1, Math.min(15, Number(quantity) || 1));
 
     const classes = await fetchQuery(api.homepage.listClassesWithPaymentUrl, {});
     const cls = classes.find((c) => c.class_id === class_id);
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
     const token = await getAirwallexToken();
     const requestId = crypto.randomUUID();
     const currency = cls.airwallex_currency ?? "HKD";
+    const totalAmount = cls.airwallex_price * qty;
 
     const intentRes = await fetch(`${AIRWALLEX_BASE_URL}/api/v1/pa/payment_intents/create`, {
       method: "POST",
@@ -50,10 +53,10 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         request_id: requestId,
-        amount: cls.airwallex_price,
+        amount: totalAmount,
         currency,
         merchant_order_id: requestId,
-        metadata: { class_id, mobile },
+        metadata: { class_id, mobile, quantity: String(qty) },
       }),
     });
 
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       intent_id: intent.id as string,
       client_secret: intent.client_secret as string,
-      amount: cls.airwallex_price,
+      amount: totalAmount,
       currency,
     });
   } catch (err) {
