@@ -143,24 +143,24 @@ function CourseCard({ course }: { course: Course }) {
               </div>
             </div>
             {course.airwallex_price ? (
-              <div className="flex flex-col">
+              <div className="flex flex-col gap-1">
                 {course.airwallex_group_price && (
-                  <div className="flex items-baseline gap-2">
-                    <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
-                      {course.airwallex_currency ?? "HKD"} {course.airwallex_group_price.toLocaleString()}
+                  <div>
+                    <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
+                      {t.courses.priceGroup(course.airwallex_group_min_qty ?? 2)}
                     </p>
-                    <p className="text-[13px] text-[#515151]">
-                      / 人（{course.airwallex_group_min_qty ?? 2}人或以上）
+                    <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                      {course.airwallex_currency ?? "HKD"} {course.airwallex_group_price.toLocaleString()} / 人
                     </p>
                   </div>
                 )}
-                <div className="flex items-baseline gap-2">
-                  <p className={`font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] ${course.airwallex_group_price ? "text-[#515151] line-through decoration-solid" : "text-[#e16036]"}`} style={{ fontVariationSettings: "'wdth' 100" }}>
-                    {course.airwallex_currency ?? "HKD"} {course.airwallex_price.toLocaleString()}
+                <div>
+                  <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
+                    {t.courses.priceIndividual}
                   </p>
-                  {!course.airwallex_group_price && (
-                    <p className="text-[13px] text-[#515151]">/ 人</p>
-                  )}
+                  <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                    {course.airwallex_currency ?? "HKD"} {course.airwallex_price.toLocaleString()} / 人
+                  </p>
                 </div>
               </div>
             ) : (
@@ -286,7 +286,7 @@ function CourseCard({ course }: { course: Course }) {
                 </div>
               </div>
               <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
-                Apply
+                {t.courses.applyButton}
               </p>
             </div>
           </Link>
