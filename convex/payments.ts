@@ -19,13 +19,10 @@ export const createPurchaseFromAirwallex = actionGeneric({
     const purchase_ids: string[] = [];
 
     for (let i = 0; i < qty; i++) {
-      // qty=1: use intent_id directly (backward compat); qty>1: suffix with participant number
-      const orderId = qty > 1 ? `${args.intent_id}-${i + 1}` : args.intent_id;
-
       const purchase_id = await ctx.runMutation(
         makeFunctionReference<"mutation">("purchases:createPurchase"),
         {
-          order_id: orderId,
+          order_id: args.intent_id,
           customer_mobile: args.customer_mobile,
           participant_count: 1,
           class_id: args.class_id,
@@ -33,6 +30,7 @@ export const createPurchaseFromAirwallex = actionGeneric({
           unit_price: args.amount,
           total_price: args.amount,
           purchase_datetime: new Date().toISOString(),
+          slot_index: i,
         }
       );
 
