@@ -31,6 +31,8 @@ interface Course {
   paymentUrl?: string;
   airwallex_price?: number;
   airwallex_currency?: string;
+  airwallex_group_price?: number;
+  airwallex_group_min_qty?: number;
 }
 
 interface ApiClass {
@@ -41,6 +43,8 @@ interface ApiClass {
   payment_url?: string;
   airwallex_price?: number;
   airwallex_currency?: string;
+  airwallex_group_price?: number;
+  airwallex_group_min_qty?: number;
 }
 
 interface ApiSession {
@@ -125,8 +129,8 @@ function CourseCard({ course }: { course: Course }) {
           </div>
 
           {/* Price */}
-          <div className="flex gap-[6px] items-center">
-            <div className="relative shrink-0 size-[28px]">
+          <div className="flex gap-[6px] items-start">
+            <div className="relative shrink-0 size-[28px] mt-[2px]">
               <div className="absolute inset-[8.33%]">
                 <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 23.3333 23.3333">
                   <path d={svgPaths.p389f4b00} fill="var(--fill-0, #44B0E2)" />
@@ -138,12 +142,37 @@ function CourseCard({ course }: { course: Course }) {
                 </svg>
               </div>
             </div>
-            <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
-              {course.discountPrice}
-            </p>
-            <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151] line-through decoration-solid" style={{ fontVariationSettings: "'wdth' 100" }}>
-              {course.originalPrice}
-            </p>
+            {course.airwallex_price ? (
+              <div className="flex flex-col">
+                {course.airwallex_group_price && (
+                  <div className="flex items-baseline gap-2">
+                    <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                      {course.airwallex_currency ?? "HKD"} {course.airwallex_group_price.toLocaleString()}
+                    </p>
+                    <p className="text-[13px] text-[#515151]">
+                      / 人（{course.airwallex_group_min_qty ?? 2}人或以上）
+                    </p>
+                  </div>
+                )}
+                <div className="flex items-baseline gap-2">
+                  <p className={`font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] ${course.airwallex_group_price ? "text-[#515151] line-through decoration-solid" : "text-[#e16036]"}`} style={{ fontVariationSettings: "'wdth' 100" }}>
+                    {course.airwallex_currency ?? "HKD"} {course.airwallex_price.toLocaleString()}
+                  </p>
+                  {!course.airwallex_group_price && (
+                    <p className="text-[13px] text-[#515151]">/ 人</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                  {course.discountPrice}
+                </p>
+                <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151] line-through decoration-solid" style={{ fontVariationSettings: "'wdth' 100" }}>
+                  {course.originalPrice}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -340,6 +369,8 @@ export function CoursesSection() {
               paymentUrl: cls.payment_url,
               airwallex_price: cls.airwallex_price,
               airwallex_currency: cls.airwallex_currency,
+              airwallex_group_price: cls.airwallex_group_price,
+              airwallex_group_min_qty: cls.airwallex_group_min_qty,
             });
           })
         );

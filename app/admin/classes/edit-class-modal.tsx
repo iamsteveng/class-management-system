@@ -11,6 +11,8 @@ type EditClassModalProps = {
   initialPaymentUrl?: string;
   initialAirwallexPrice?: number;
   initialAirwallexCurrency?: string;
+  initialAirwallexGroupPrice?: number;
+  initialAirwallexGroupMinQty?: number;
   submitAction: (formData: FormData) => void | Promise<void>;
 };
 
@@ -22,6 +24,8 @@ export function EditClassModal({
   initialPaymentUrl,
   initialAirwallexPrice,
   initialAirwallexCurrency,
+  initialAirwallexGroupPrice,
+  initialAirwallexGroupMinQty,
   submitAction,
 }: EditClassModalProps) {
   const [open, setOpen] = useState(false);
@@ -162,6 +166,45 @@ export function EditClassModal({
                   type="text"
                   defaultValue={initialAirwallexCurrency ?? ""}
                   placeholder="e.g. HKD"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-airwallex-group-price-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Group Price (per person)
+                </label>
+                <input
+                  id={`edit-airwallex-group-price-${fieldId}`}
+                  name="airwallex_group_price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  defaultValue={initialAirwallexGroupPrice ?? ""}
+                  placeholder="e.g. 250"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+                <p className="text-xs text-zinc-400">Price per person when buying 2 or more</p>
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-airwallex-group-min-qty-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Min Qty for Group Price
+                </label>
+                <input
+                  id={`edit-airwallex-group-min-qty-${fieldId}`}
+                  name="airwallex_group_min_qty"
+                  type="number"
+                  min="2"
+                  step="1"
+                  defaultValue={initialAirwallexGroupMinQty ?? ""}
+                  placeholder="e.g. 2"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>

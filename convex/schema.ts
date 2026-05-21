@@ -57,6 +57,8 @@ export default defineSchema({
     payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
+    airwallex_group_price: v.optional(v.number()),
+    airwallex_group_min_qty: v.optional(v.number()),
     created_at: v.number(),
   }).index("by_class_id", ["class_id"]),
 

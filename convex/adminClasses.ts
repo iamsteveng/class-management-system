@@ -14,6 +14,8 @@ export const getClassListPageData = queryGeneric({
       payment_url: v.optional(v.string()),
       airwallex_price: v.optional(v.number()),
       airwallex_currency: v.optional(v.string()),
+      airwallex_group_price: v.optional(v.number()),
+      airwallex_group_min_qty: v.optional(v.number()),
     })
   ),
   handler: async (ctx) => {
@@ -36,6 +38,8 @@ export const getClassListPageData = queryGeneric({
       payment_url: cls.payment_url,
       airwallex_price: cls.airwallex_price,
       airwallex_currency: cls.airwallex_currency,
+      airwallex_group_price: cls.airwallex_group_price,
+      airwallex_group_min_qty: cls.airwallex_group_min_qty,
     }));
   },
 });
@@ -48,6 +52,8 @@ export const createClass = mutationGeneric({
     payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
+    airwallex_group_price: v.optional(v.number()),
+    airwallex_group_min_qty: v.optional(v.number()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -70,6 +76,8 @@ export const createClass = mutationGeneric({
       payment_url: args.payment_url?.trim() || undefined,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
+      airwallex_group_price: args.airwallex_group_price,
+      airwallex_group_min_qty: args.airwallex_group_min_qty,
       status: "active",
       created_at: now,
     });
@@ -99,6 +107,8 @@ export const updateClass = mutationGeneric({
     payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
+    airwallex_group_price: v.optional(v.number()),
+    airwallex_group_min_qty: v.optional(v.number()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -136,6 +146,8 @@ export const updateClass = mutationGeneric({
       payment_url: nextPaymentUrl,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
+      airwallex_group_price: args.airwallex_group_price,
+      airwallex_group_min_qty: args.airwallex_group_min_qty,
     });
 
     await ctx.db.insert("audit_logs", {

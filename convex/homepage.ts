@@ -12,6 +12,8 @@ export const listClassesWithPaymentUrl = queryGeneric({
       payment_url: v.optional(v.string()),
       airwallex_price: v.optional(v.number()),
       airwallex_currency: v.optional(v.string()),
+      airwallex_group_price: v.optional(v.number()),
+      airwallex_group_min_qty: v.optional(v.number()),
     })
   ),
   handler: async (ctx) => {
@@ -32,6 +34,8 @@ export const listClassesWithPaymentUrl = queryGeneric({
         payment_url: cls.payment_url,
         airwallex_price: cls.airwallex_price,
         airwallex_currency: cls.airwallex_currency,
+        airwallex_group_price: cls.airwallex_group_price,
+        airwallex_group_min_qty: cls.airwallex_group_min_qty,
       }));
   },
 });

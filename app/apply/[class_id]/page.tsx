@@ -10,6 +10,8 @@ interface ClassInfo {
   name_en?: string;
   airwallex_price?: number;
   airwallex_currency?: string;
+  airwallex_group_price?: number;
+  airwallex_group_min_qty?: number;
 }
 
 type Lang = "zh-TW" | "en";
@@ -180,7 +182,9 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   }
 
   const currency = classInfo.airwallex_currency ?? "HKD";
-  const unitPrice = classInfo.airwallex_price;
+  const groupMinQty = classInfo.airwallex_group_min_qty ?? 2;
+  const isGroupRate = !!(classInfo.airwallex_group_price && quantity >= groupMinQty);
+  const unitPrice = isGroupRate ? classInfo.airwallex_group_price! : classInfo.airwallex_price;
   const totalPrice = unitPrice * quantity;
   const displayName = lang === "zh-TW" ? classInfo.name_zh : (classInfo.name_en ?? classInfo.name_zh);
 
@@ -226,11 +230,14 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           <p className="mt-1 text-3xl font-bold text-zinc-900">
             {currency} {totalPrice.toLocaleString()}
           </p>
-          {quantity > 1 && (
-            <p className="mt-0.5 text-sm text-zinc-400">
-              {copy.unitPrice(currency, unitPrice.toLocaleString())} × {quantity}
-            </p>
-          )}
+          <p className="mt-0.5 text-sm text-zinc-400">
+            {copy.unitPrice(currency, unitPrice.toLocaleString())} × {quantity}
+            {isGroupRate && (
+              <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                {lang === "zh-TW" ? "團體優惠" : "Group rate"}
+              </span>
+            )}
+          </p>
         </div>
 
         {/* WhatsApp */}

@@ -42,7 +42,13 @@ export async function POST(req: NextRequest) {
     const token = await getAirwallexToken();
     const requestId = crypto.randomUUID();
     const currency = cls.airwallex_currency ?? "HKD";
-    const totalAmount = cls.airwallex_price * qty;
+
+    const groupMinQty = cls.airwallex_group_min_qty ?? 2;
+    const unitPrice =
+      cls.airwallex_group_price && qty >= groupMinQty
+        ? cls.airwallex_group_price
+        : cls.airwallex_price;
+    const totalAmount = unitPrice * qty;
 
     const intentRes = await fetch(`${AIRWALLEX_BASE_URL}/api/v1/pa/payment_intents/create`, {
       method: "POST",
