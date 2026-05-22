@@ -83,7 +83,7 @@ export async function cancelAndRefundAction(
 
   // 3. Call Airwallex refund endpoint
   const refundRes = await fetch(
-    `${AIRWALLEX_BASE_URL}/api/v1/pa/payment_intents/${purchase.order_id}/refund`,
+    `${AIRWALLEX_BASE_URL}/api/v1/pa/refunds/create`,
     {
       method: "POST",
       headers: {
@@ -93,6 +93,7 @@ export async function cancelAndRefundAction(
       },
       body: JSON.stringify({
         request_id: crypto.randomUUID(),
+        payment_intent_id: purchase.order_id,
         amount: purchase.total_price,
         currency: purchase.currency,
         reason: "requested_by_customer",
