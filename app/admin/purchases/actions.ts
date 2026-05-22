@@ -102,11 +102,28 @@ export async function cancelAndRefundAction(
   );
 
   if (!refundRes.ok) {
-    const errBody = await refundRes.text();
-    console.error("[cancelAndRefundAction] Airwallex refund error:", errBody);
+    const errText = await refundRes.text();
+    console.error("[cancelAndRefundAction] Airwallex refund error:", errText);
+    let errMessage = errText;
+    try {
+      const errJson = JSON.parse(errText) as { message?: string; code?: string };
+      errMessage = errJson.message ?? errText;
+      // Airwallex blocks a second refund while one is still pending on the same intent
+      if (
+        refundRes.status === 400 &&
+        (errJson.code?.toLowerCase().includes("refund") ||
+          errMessage.toLowerCase().includes("refund") ||
+          errMessage.toLowerCase().includes("pending"))
+      ) {
+        errMessage +=
+          " — A previous refund on this payment may still be processing. Wait a minute and try again.";
+      }
+    } catch {
+      // errText is not JSON — use as-is
+    }
     return {
       ok: false,
-      error: `Airwallex refund failed (${refundRes.status}): ${errBody}`,
+      error: `Airwallex refund failed (${refundRes.status}): ${errMessage}`,
     };
   }
 
