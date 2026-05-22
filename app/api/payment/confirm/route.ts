@@ -15,8 +15,12 @@ export async function POST(req: NextRequest) {
     // Fetch class to get the real unit price/currency server-side
     const classes = await fetchQuery(api.homepage.listClassesWithPaymentUrl, {});
     const cls = classes.find((c) => c.class_id === class_id);
-    const amount = cls?.airwallex_price ?? 0;
     const currency = cls?.airwallex_currency ?? "HKD";
+    const groupMinQty = cls?.airwallex_group_min_qty ?? 2;
+    const amount =
+      cls?.airwallex_group_price && qty >= groupMinQty
+        ? cls.airwallex_group_price
+        : (cls?.airwallex_price ?? 0);
 
     const result = await fetchAction(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
       intent_id,
