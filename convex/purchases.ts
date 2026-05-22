@@ -34,6 +34,7 @@ export const createPurchase = mutationGeneric({
     source: v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex")),
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
+    currency: v.optional(v.string()),
     purchase_datetime: v.string(),
     slot_index: v.optional(v.number()),
   },
@@ -70,6 +71,7 @@ export const createPurchase = mutationGeneric({
       source: args.source,
       unit_price: args.unit_price,
       total_price: args.total_price,
+      currency: args.currency,
       slot_index: effectiveSlotIndex,
       created_at: Date.now(),
     });

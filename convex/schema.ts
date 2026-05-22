@@ -21,6 +21,12 @@ export default defineSchema({
     total_price: v.optional(v.number()),
     manychat_subscriber_id: v.optional(v.string()),
     slot_index: v.optional(v.number()),
+    currency: v.optional(v.string()),
+    refund_status: v.optional(
+      v.union(v.literal("none"), v.literal("refunded"), v.literal("failed"))
+    ),
+    refunded_at: v.optional(v.number()),
+    airwallex_refund_id: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_order_id", ["order_id"])

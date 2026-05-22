@@ -12,6 +12,12 @@ export const listPurchases = queryGeneric({
       order_id: v.string(),
       participant_count: v.number(),
       slot_index: v.optional(v.number()),
+      total_price: v.optional(v.number()),
+      currency: v.optional(v.string()),
+      refund_status: v.optional(
+        v.union(v.literal("none"), v.literal("refunded"), v.literal("failed"))
+      ),
+      refunded_at: v.optional(v.number()),
       class_name: v.optional(v.string()),
       class_id: v.optional(v.string()),
       session_id: v.optional(v.string()),
@@ -53,6 +59,10 @@ export const listPurchases = queryGeneric({
         order_id: p.order_id,
         participant_count: p.participant_count,
         slot_index: p.slot_index,
+        total_price: p.total_price,
+        currency: p.currency,
+        refund_status: p.refund_status,
+        refunded_at: p.refunded_at,
         class_name: p.class_id ? classByClassId.get(p.class_id) : undefined,
         class_id: p.class_id,
         session_id: p.session_id,

@@ -29,6 +29,7 @@ export const createPurchaseFromAirwallex = actionGeneric({
           source: "airwallex",
           unit_price: args.amount,
           total_price: args.amount,
+          currency: args.currency,
           purchase_datetime: new Date().toISOString(),
           slot_index: i,
         }

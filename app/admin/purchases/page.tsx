@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
+import { CancelRefundButton } from "./cancel-refund-button";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,10 @@ type PurchaseRow = {
   order_id: string;
   participant_count: number;
   slot_index?: number;
+  total_price?: number;
+  currency?: string;
+  refund_status?: "none" | "refunded" | "failed";
+  refunded_at?: number;
   class_name?: string;
   class_id?: string;
   session_id?: string;
@@ -98,6 +103,7 @@ export default async function AdminPurchasesPage() {
                 </th>
                 <th className="px-4 py-3 whitespace-nowrap">Terms Form</th>
                 <th className="px-4 py-3 whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 bg-white">
@@ -154,6 +160,21 @@ export default async function AdminPurchasesPage() {
                     >
                       {STATUS_LABELS[p.status]}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {p.source === "airwallex" &&
+                    p.total_price &&
+                    p.status !== "cancelled" &&
+                    p.refund_status !== "refunded" ? (
+                      <CancelRefundButton
+                        purchaseId={p._id}
+                        orderId={p.order_id}
+                        amount={p.total_price}
+                        currency={p.currency ?? "HKD"}
+                      />
+                    ) : (
+                      <span className="text-zinc-400">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
