@@ -149,25 +149,6 @@ export function HeroSection() {
         <div className="flex flex-col font-['Roboto:Regular','Noto_Sans_JP:Regular',sans-serif] font-normal justify-center leading-[0] relative shrink-0 text-[16px] text-shadow-[0px_1px_3px_rgba(0,0,0,0.15),0px_1px_2px_rgba(0,0,0,0.3)] text-white tracking-[0.15px] w-[550px]" style={{ fontVariationSettings: "'wdth' 100" }}>
           <p className="leading-[24px]">{t.hero.subtitle}</p>
         </div>
-        <div className="content-stretch flex h-[56px] items-start relative shrink-0 w-full">
-          <div className="bg-[#44b0e2] h-[56px] min-w-[120px] relative rounded-[360px] shrink-0 cursor-pointer hover:bg-[#3a9ad0] transition-colors">
-            <div aria-hidden="true" className="absolute border-2 border-[#44b0e2] border-solid inset-0 pointer-events-none rounded-[360px] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)]" />
-            <div className="flex flex-row items-center justify-center min-w-[inherit] size-full">
-              <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[8px] h-full items-center justify-center min-w-[inherit] px-[32px] py-[16px] relative">
-                <div className="overflow-clip relative shrink-0 size-[20px]">
-                  <div className="absolute inset-[22%_-7.7%_2.3%_12.3%]">
-                    <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.9004 12.6162">
-                      <path d={svgPaths.p5f2680} fill="var(--fill-0, white)" id="Union" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] leading-[24px] relative shrink-0 text-[16px] text-center text-white tracking-[0.15px] whitespace-nowrap" style={{ fontVariationSettings: "'wght' 700" }}>
-                  {t.hero.ctaExplore}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
         <div className="flex flex-row gap-[24px] relative shrink-0 w-full">
           <FeatureCard title={t.hero.feature1Title} description={t.hero.feature1Desc} icon="instructor" />
           <FeatureCard title={t.hero.feature2Title} description={t.hero.feature2Desc} icon="safety" />
@@ -184,24 +165,6 @@ export function HeroSection() {
           <p className="leading-[24px]">{t.hero.subtitle}</p>
         </div>
         <div className="flex flex-col gap-[12px] items-start relative shrink-0 w-full">
-          {/* Primary Button */}
-          <div className="bg-[#44b0e2] h-[56px] min-w-[120px] relative rounded-[360px] shrink-0 w-full cursor-pointer hover:bg-[#3a9ad0] transition-colors">
-            <div aria-hidden="true" className="absolute border-2 border-[#44b0e2] border-solid inset-0 pointer-events-none rounded-[360px] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)]" />
-            <div className="flex flex-row items-center justify-center min-w-[inherit] size-full">
-              <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[8px] items-center justify-center min-w-[inherit] px-[32px] py-[16px] relative size-full">
-                <div className="overflow-clip relative shrink-0 size-[20px]">
-                  <div className="absolute inset-[22%_-7.7%_2.3%_12.3%]">
-                    <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.9004 12.6162">
-                      <path d={svgPaths.p5f2680} fill="var(--fill-0, white)" id="Union" />
-                    </svg>
-                  </div>
-                </div>
-                <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] leading-[24px] relative shrink-0 text-[16px] text-center text-white tracking-[0.15px] whitespace-nowrap" style={{ fontVariationSettings: "'wght' 700" }}>
-                  {t.hero.ctaExplore}
-                </p>
-              </div>
-            </div>
-          </div>
           {/* Secondary Button */}
           <div className="bg-white h-[56px] min-w-[120px] relative rounded-[360px] shrink-0 w-full cursor-pointer hover:bg-gray-50 transition-colors">
             <div aria-hidden="true" className="absolute border-2 border-[#44b0e2] border-solid inset-0 pointer-events-none rounded-[360px]" />
