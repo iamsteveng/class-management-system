@@ -164,19 +164,6 @@ export function HeroSection() {
         <div className="flex flex-col font-['Roboto:Regular','Noto_Sans_JP:Regular',sans-serif] font-normal relative shrink-0 text-[16px] text-shadow-[0px_1px_3px_rgba(0,0,0,0.15),0px_1px_2px_rgba(0,0,0,0.3)] text-white tracking-[0.15px] w-full" style={{ fontVariationSettings: "'wdth' 100" }}>
           <p className="leading-[24px]">{t.hero.subtitle}</p>
         </div>
-        <div className="flex flex-col gap-[12px] items-start relative shrink-0 w-full">
-          {/* Secondary Button */}
-          <div className="bg-white h-[56px] min-w-[120px] relative rounded-[360px] shrink-0 w-full cursor-pointer hover:bg-gray-50 transition-colors">
-            <div aria-hidden="true" className="absolute border-2 border-[#44b0e2] border-solid inset-0 pointer-events-none rounded-[360px]" />
-            <div className="flex flex-row items-center justify-center min-w-[inherit] size-full">
-              <div className="bg-clip-padding border-0 border-[transparent] border-solid content-stretch flex gap-[8px] items-center justify-center min-w-[inherit] p-[16px] relative size-full">
-                <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] leading-[24px] relative shrink-0 text-[#515151] text-[16px] text-center tracking-[0.15px] whitespace-nowrap" style={{ fontVariationSettings: "'wght' 700" }}>
-                  {t.hero.ctaEnroll}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
         <div className="flex flex-col gap-[16px] items-start relative shrink-0 w-full">
           <FeatureCard title={t.hero.feature1Title} description={t.hero.feature1Desc} icon="instructor" />
           <FeatureCard title={t.hero.feature2Title} description={t.hero.feature2Desc} icon="safety" />
