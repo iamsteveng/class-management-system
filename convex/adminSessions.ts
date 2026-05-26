@@ -365,6 +365,7 @@ export const getSessionParticipantsPageData = queryGeneric({
           name: v.string(),
           mobile: v.string(),
           email: v.optional(v.string()),
+          height: v.optional(v.number()),
           terms_accepted: v.boolean(),
           terms_version: v.optional(v.string()),
           attendance_status: v.string(),
@@ -440,6 +441,7 @@ export const getSessionParticipantsPageData = queryGeneric({
           name: participantName,
           mobile,
           email: participant.email?.trim() || undefined,
+          height: participant.height,
           terms_accepted: termsAccepted,
           terms_version: termsVersion,
           attendance_status: attendance
