@@ -25,11 +25,16 @@ export async function sendTermsAcceptanceSlack(
 
   const { classNameZh, sessionDate, sessionTime, sessionLocationZh, participantName } = params;
 
+  const isProduction = process.env.NODE_ENV === "production";
+  const headerText = isProduction
+    ? "📋 New Class Registration"
+    : "[TEST] 📋 New Class Registration";
+
   const payload = {
     blocks: [
       {
         type: "header",
-        text: { type: "plain_text", text: "📋 New Class Registration" },
+        text: { type: "plain_text", text: headerText },
       },
       {
         type: "section",
