@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useLanguage } from '../../contexts/LanguageContext';
 import svgPaths from './imports/svg-tlbx5elpic';
 import { getCourseConfig } from '../../i18n/courseConfig';
@@ -27,7 +28,11 @@ interface Course {
   discountPrice: string;
   image: string;
   classes: ClassSchedule[];
-  paymentUrl: string;
+  paymentUrl?: string;
+  airwallex_price?: number;
+  airwallex_currency?: string;
+  airwallex_group_price?: number;
+  airwallex_group_min_qty?: number;
 }
 
 interface ApiClass {
@@ -35,7 +40,11 @@ interface ApiClass {
   name_zh: string;
   name_en?: string;
   description?: string;
-  payment_url: string;
+  payment_url?: string;
+  airwallex_price?: number;
+  airwallex_currency?: string;
+  airwallex_group_price?: number;
+  airwallex_group_min_qty?: number;
 }
 
 interface ApiSession {
@@ -120,8 +129,8 @@ function CourseCard({ course }: { course: Course }) {
           </div>
 
           {/* Price */}
-          <div className="flex gap-[6px] items-center">
-            <div className="relative shrink-0 size-[28px]">
+          <div className="flex gap-[6px] items-start">
+            <div className="relative shrink-0 size-[28px] mt-[2px]">
               <div className="absolute inset-[8.33%]">
                 <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 23.3333 23.3333">
                   <path d={svgPaths.p389f4b00} fill="var(--fill-0, #44B0E2)" />
@@ -133,12 +142,37 @@ function CourseCard({ course }: { course: Course }) {
                 </svg>
               </div>
             </div>
-            <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
-              {course.discountPrice}
-            </p>
-            <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151] line-through decoration-solid" style={{ fontVariationSettings: "'wdth' 100" }}>
-              {course.originalPrice}
-            </p>
+            {course.airwallex_price ? (
+              <div className="flex flex-col gap-1">
+                {course.airwallex_group_price && (
+                  <div>
+                    <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
+                      {t.courses.priceGroup(course.airwallex_group_min_qty ?? 2)}
+                    </p>
+                    <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                      {course.airwallex_currency ?? "HKD"} {course.airwallex_group_price.toLocaleString()} / 人
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
+                    {t.courses.priceIndividual}
+                  </p>
+                  <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                    {course.airwallex_currency ?? "HKD"} {course.airwallex_price.toLocaleString()} / 人
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                  {course.discountPrice}
+                </p>
+                <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151] line-through decoration-solid" style={{ fontVariationSettings: "'wdth' 100" }}>
+                  {course.originalPrice}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -238,25 +272,45 @@ function CourseCard({ course }: { course: Course }) {
         </div>
 
         {/* Enroll Button */}
-        <a
-          href={course.paymentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
-        >
-          <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
-            <div className="relative shrink-0 size-[20px]">
-              <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
-                <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
-                  <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
-                </svg>
+        {course.airwallex_price ? (
+          <Link
+            href={`/apply/${course.id}`}
+            className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
+          >
+            <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
+              <div className="relative shrink-0 size-[20px]">
+                <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
+                    <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
+                  </svg>
+                </div>
               </div>
+              <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
+                {t.courses.applyButton}
+              </p>
             </div>
-            <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
-              {t.courses.enrollButton}
-            </p>
-          </div>
-        </a>
+          </Link>
+        ) : course.paymentUrl ? (
+          <a
+            href={course.paymentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
+          >
+            <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
+              <div className="relative shrink-0 size-[20px]">
+                <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
+                    <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
+                  </svg>
+                </div>
+              </div>
+              <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
+                {t.courses.enrollButton}
+              </p>
+            </div>
+          </a>
+        ) : null}
       </div>
     </div>
   );
@@ -313,6 +367,10 @@ export function CoursesSection() {
               image: config.image,
               classes: schedules,
               paymentUrl: cls.payment_url,
+              airwallex_price: cls.airwallex_price,
+              airwallex_currency: cls.airwallex_currency,
+              airwallex_group_price: cls.airwallex_group_price,
+              airwallex_group_min_qty: cls.airwallex_group_min_qty,
             });
           })
         );

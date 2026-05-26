@@ -25,6 +25,7 @@ type SessionParticipantsPageData = {
     name: string;
     mobile: string;
     email?: string;
+    height?: number;
     terms_accepted: boolean;
     terms_version?: string;
     attendance_status: string;

@@ -12,6 +12,10 @@ export const getClassListPageData = queryGeneric({
       total_sessions: v.number(),
       status: v.union(v.literal("active"), v.literal("inactive")),
       payment_url: v.optional(v.string()),
+      airwallex_price: v.optional(v.number()),
+      airwallex_currency: v.optional(v.string()),
+      airwallex_group_price: v.optional(v.number()),
+      airwallex_group_min_qty: v.optional(v.number()),
     })
   ),
   handler: async (ctx) => {
@@ -32,6 +36,10 @@ export const getClassListPageData = queryGeneric({
       total_sessions: sessionCountByClassId.get(cls.class_id) ?? 0,
       status: cls.status,
       payment_url: cls.payment_url,
+      airwallex_price: cls.airwallex_price,
+      airwallex_currency: cls.airwallex_currency,
+      airwallex_group_price: cls.airwallex_group_price,
+      airwallex_group_min_qty: cls.airwallex_group_min_qty,
     }));
   },
 });
@@ -42,6 +50,10 @@ export const createClass = mutationGeneric({
     name_en: v.optional(v.string()),
     description: v.optional(v.string()),
     payment_url: v.optional(v.string()),
+    airwallex_price: v.optional(v.number()),
+    airwallex_currency: v.optional(v.string()),
+    airwallex_group_price: v.optional(v.number()),
+    airwallex_group_min_qty: v.optional(v.number()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -62,6 +74,10 @@ export const createClass = mutationGeneric({
       name_en: args.name_en?.trim() || undefined,
       description: args.description?.trim(),
       payment_url: args.payment_url?.trim() || undefined,
+      airwallex_price: args.airwallex_price,
+      airwallex_currency: args.airwallex_currency?.trim() || undefined,
+      airwallex_group_price: args.airwallex_group_price,
+      airwallex_group_min_qty: args.airwallex_group_min_qty,
       status: "active",
       created_at: now,
     });
@@ -89,6 +105,10 @@ export const updateClass = mutationGeneric({
     name_en: v.optional(v.string()),
     description: v.optional(v.string()),
     payment_url: v.optional(v.string()),
+    airwallex_price: v.optional(v.number()),
+    airwallex_currency: v.optional(v.string()),
+    airwallex_group_price: v.optional(v.number()),
+    airwallex_group_min_qty: v.optional(v.number()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -124,6 +144,10 @@ export const updateClass = mutationGeneric({
       name_en: nextNameEn,
       description: nextDescription,
       payment_url: nextPaymentUrl,
+      airwallex_price: args.airwallex_price,
+      airwallex_currency: args.airwallex_currency?.trim() || undefined,
+      airwallex_group_price: args.airwallex_group_price,
+      airwallex_group_min_qty: args.airwallex_group_min_qty,
     });
 
     await ctx.db.insert("audit_logs", {

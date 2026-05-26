@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const client = createConvexHttpClient();
@@ -11,7 +13,9 @@ export async function GET() {
       {}
     );
 
-    return NextResponse.json({ classes });
+    return NextResponse.json({ classes }, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch {
     return NextResponse.json(
       { error: "Failed to load classes." },

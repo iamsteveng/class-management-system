@@ -232,6 +232,11 @@ export const acceptTermsByToken = mutationGeneric({
       };
     }
 
+    const cls = await ctx.db
+      .query("classes")
+      .withIndex("by_class_id", (q) => q.eq("class_id", session.class_id))
+      .first();
+
     const slotsRequired = Math.max(1, purchase.participant_count);
     const availableQuota = session.quota_defined - session.quota_used;
     if (availableQuota < slotsRequired) {
@@ -265,6 +270,9 @@ export const acceptTermsByToken = mutationGeneric({
       quota_used: session.quota_used + slotsRequired,
     });
 
+    const normalizedMobile =
+      normalizeToE164(args.participant_mobile) ?? args.participant_mobile.trim();
+
     const participantIds: string[] = [];
     for (let i = 0; i < slotsRequired; i += 1) {
       const participantId = crypto.randomUUID();
@@ -274,7 +282,7 @@ export const acceptTermsByToken = mutationGeneric({
         participant_id: participantId,
         purchase_id: purchase._id,
         session_id: session.session_id,
-        mobile: normalizeToE164(args.participant_mobile) ?? args.participant_mobile.trim(),
+        mobile: normalizedMobile,
         name: args.name,
         qr_code_data: participantId,
         terms_accepted_at: acceptedAt,
@@ -294,6 +302,18 @@ export const acceptTermsByToken = mutationGeneric({
       {
         customer_mobile: purchase.customer_mobile,
         participant_ids: participantIds,
+      }
+    );
+
+    await ctx.scheduler.runAfter(
+      0,
+      makeFunctionReference<"action">("slackNotifications:notifyTermsAccepted"),
+      {
+        class_name_zh: cls?.name_zh ?? "",
+        session_date: session.date,
+        session_time: session.time,
+        session_location_zh: session.location_zh ?? "",
+        participant_name: args.name,
       }
     );
 

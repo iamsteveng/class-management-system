@@ -9,7 +9,11 @@ export const listClassesWithPaymentUrl = queryGeneric({
       name_zh: v.string(),
       name_en: v.optional(v.string()),
       description: v.optional(v.string()),
-      payment_url: v.string(),
+      payment_url: v.optional(v.string()),
+      airwallex_price: v.optional(v.number()),
+      airwallex_currency: v.optional(v.string()),
+      airwallex_group_price: v.optional(v.number()),
+      airwallex_group_min_qty: v.optional(v.number()),
     })
   ),
   handler: async (ctx) => {
@@ -19,15 +23,19 @@ export const listClassesWithPaymentUrl = queryGeneric({
       .filter(
         (cls) =>
           cls.status === "active" &&
-          typeof cls.payment_url === "string" &&
-          cls.payment_url.length > 0
+          ((typeof cls.payment_url === "string" && cls.payment_url.length > 0) ||
+            typeof cls.airwallex_price === "number")
       )
       .map((cls) => ({
         class_id: cls.class_id,
         name_zh: cls.name_zh ?? "",
         name_en: cls.name_en,
         description: cls.description,
-        payment_url: cls.payment_url as string,
+        payment_url: cls.payment_url,
+        airwallex_price: cls.airwallex_price,
+        airwallex_currency: cls.airwallex_currency,
+        airwallex_group_price: cls.airwallex_group_price,
+        airwallex_group_min_qty: cls.airwallex_group_min_qty,
       }));
   },
 });

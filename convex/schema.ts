@@ -16,11 +16,17 @@ export default defineSchema({
     token: v.string(),
     class_id: v.optional(v.string()),
     session_id: v.optional(v.string()),
-    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"))),
+    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex"))),
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
     manychat_subscriber_id: v.optional(v.string()),
     slot_index: v.optional(v.number()),
+    currency: v.optional(v.string()),
+    refund_status: v.optional(
+      v.union(v.literal("none"), v.literal("refunded"), v.literal("failed"))
+    ),
+    refunded_at: v.optional(v.number()),
+    airwallex_refund_id: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_order_id", ["order_id"])
@@ -55,6 +61,10 @@ export default defineSchema({
     description: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
     payment_url: v.optional(v.string()),
+    airwallex_price: v.optional(v.number()),
+    airwallex_currency: v.optional(v.string()),
+    airwallex_group_price: v.optional(v.number()),
+    airwallex_group_min_qty: v.optional(v.number()),
     created_at: v.number(),
   }).index("by_class_id", ["class_id"]),
 

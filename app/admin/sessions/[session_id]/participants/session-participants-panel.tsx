@@ -8,6 +8,7 @@ type ParticipantRow = {
   name: string;
   mobile: string;
   email?: string;
+  height?: number;
   terms_accepted: boolean;
   terms_version?: string;
   attendance_status: string;
@@ -282,6 +283,7 @@ export function SessionParticipantsPanel({
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Mobile</th>
                   <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Height</th>
                   <th className="px-4 py-3 font-medium">Terms Accepted</th>
                   <th className="px-4 py-3 font-medium">Terms Version</th>
                   <th className="px-4 py-3 font-medium">Attendance Status</th>
@@ -291,7 +293,7 @@ export function SessionParticipantsPanel({
               <tbody>
                 {participants.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-6 text-center text-zinc-600">
+                    <td colSpan={9} className="px-4 py-6 text-center text-zinc-600">
                       No participants found for this session.
                     </td>
                   </tr>
@@ -304,6 +306,9 @@ export function SessionParticipantsPanel({
                       <td className="px-4 py-3 text-zinc-700">{participant.name || "—"}</td>
                       <td className="px-4 py-3 text-zinc-700">{participant.mobile}</td>
                       <td className="px-4 py-3 text-zinc-700">{participant.email || "—"}</td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {participant.height != null ? participant.height : "—"}
+                      </td>
                       <td className="px-4 py-3 text-zinc-700">
                         {participant.terms_accepted ? "Yes" : "No"}
                       </td>

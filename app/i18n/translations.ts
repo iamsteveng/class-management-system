@@ -54,6 +54,9 @@ export interface Translations {
     subtitle: string;
     enrollingClasses: string;
     enrollButton: string;
+    applyButton: string;
+    priceIndividual: string;
+    priceGroup: (minQty: number) => string;
     comingSoon: string;
     course1: {
       title: string;
@@ -168,6 +171,9 @@ export const translations: Record<Language, Translations> = {
       subtitle: '我們針對不同年齡及程度提供專業培訓，並在課程中實踐友善騎行文化 。所有課程均包含免費安全裝備租用 。',
       enrollingClasses: '現正招生班別',
       enrollButton: '按此報名',
+      applyButton: '立即報名',
+      priceIndividual: '個人',
+      priceGroup: (minQty: number) => `${minQty}人或以上`,
       comingSoon: '即將推出',
       course1: {
         title: '單車新手速成班',
@@ -279,6 +285,9 @@ export const translations: Record<Language, Translations> = {
       subtitle: 'We provide professional training for different ages and skill levels, practicing friendly cycling culture in all courses. All courses include free safety equipment rental.',
       enrollingClasses: 'Currently Enrolling',
       enrollButton: 'Enroll Now',
+      applyButton: 'Apply Now',
+      priceIndividual: 'Individual',
+      priceGroup: (minQty: number) => `${minQty}+ people`,
       comingSoon: 'Coming Soon',
       course1: {
         title: 'Cycling Crash Course for Beginners',

@@ -28,7 +28,14 @@ export const sendPurchaseConfirmation = actionGeneric({
       return { success: false };
     }
 
-    if (purchase.status === "confirmation_sent") {
+    // Atomically claim the right to send — only the first concurrent caller wins.
+    // This prevents duplicate WhatsApp messages when both /confirm and the webhook
+    // fire for the same payment_intent simultaneously.
+    const claimed = await ctx.runMutation(
+      makeFunctionReference<"mutation">("purchaseQueries:claimConfirmationSend"),
+      { purchase_id: args.purchase_id }
+    );
+    if (!claimed) {
       return { success: true };
     }
 
@@ -73,23 +80,7 @@ export const sendPurchaseConfirmation = actionGeneric({
           manychat_subscriber_id: result.subscriberId,
         }
       );
-      await ctx.runMutation(
-        makeFunctionReference<"mutation">("purchaseQueries:updatePurchaseStatus"),
-        {
-          purchase_id: purchase._id,
-          status: "confirmation_sent",
-        }
-      );
-    } else if (result.success) {
-      // Sent successfully but no subscriberId returned — still mark as sent
-      await ctx.runMutation(
-        makeFunctionReference<"mutation">("purchaseQueries:updatePurchaseStatus"),
-        {
-          purchase_id: purchase._id,
-          status: "confirmation_sent",
-        }
-      );
-    } else {
+    } else if (!result.success) {
       console.error(
         `[purchaseConfirmation] WhatsApp failed for purchase_id=${purchase._id}`
       );
