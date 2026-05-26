@@ -25,7 +25,9 @@ export async function sendTermsAcceptanceSlack(
 
   const { classNameZh, sessionDate, sessionTime, sessionLocationZh, participantName } = params;
 
-  const isProduction = process.env.NODE_ENV === "production";
+  // CONVEX_ENV must be explicitly set to "production" in the prod Convex deployment.
+  // Dev deployment leaves it unset, so absence = test environment.
+  const isProduction = process.env.CONVEX_ENV === "production";
   const headerText = isProduction
     ? "📋 New Class Registration"
     : "[TEST] 📋 New Class Registration";
