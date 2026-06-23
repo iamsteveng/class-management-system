@@ -3,7 +3,7 @@ import path from 'path';
 
 // TC-065: Alipay HK tab appears on apply page.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-065: Alipay HK tab appears on apply page', () => {
   test('TC-065 Alipay HK tab is visible and toggles card container visibility', async ({ page }) => {

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-071: /apply/[class_id]/alipay-return page creates purchases and redirects to passes.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-071: alipay-return redirects to passes on success', () => {
   test('TC-071 alipay-return page redirects to passes on success', async ({ page }) => {

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-072: /apply/[class_id]/alipay-return shows error when intent has not succeeded.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-072: alipay-return shows error when payment not succeeded', () => {
   test('TC-072 alipay-return shows error when payment not succeeded', async ({ page }) => {

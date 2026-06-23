@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // TC-070: /api/payment/alipay-hk/status returns succeeded: true when intent has succeeded.
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-070: alipay-hk/status returns succeeded true for SUCCEEDED intent', () => {
   test('TC-070 status route returns succeeded true for SUCCEEDED intent', async ({ page }) => {

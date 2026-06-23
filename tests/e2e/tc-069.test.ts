@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-069: Mobile apply page redirects to Alipay HK URL.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.use({
   viewport: { width: 390, height: 844 },

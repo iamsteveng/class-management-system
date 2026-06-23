@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-066: /api/payment/alipay-hk/start returns QR code for desktop (API-level test).
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-066: alipay-hk/start returns QR code for desktop', () => {
   test('TC-066 POST /api/payment/alipay-hk/start with is_mobile=false returns qrcode type', async ({ page }) => {

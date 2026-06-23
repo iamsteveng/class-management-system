@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-074: Webhook creates purchase for Alipay HK payment intent (API-level, uses Convex dev).
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-067: /api/payment/alipay-hk/start returns redirect URL for mobile (API-level test).
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-067: alipay-hk/start returns redirect URL for mobile', () => {
   test('TC-067 POST /api/payment/alipay-hk/start with is_mobile=true returns redirect type', async ({ page }) => {

@@ -3,7 +3,7 @@ import path from 'path';
 
 // TC-076: Cancel & Refund triggers Airwallex refund API and updates Convex.
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
