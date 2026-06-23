@@ -268,6 +268,8 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       const { intent_id } = await intentRes.json();
 
       const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const osType = isMobile ? (isIOS ? "ios" : "android") : undefined;
       const returnUrl = `${window.location.origin}/apply/${classId}/alipay-return?intent_id=${encodeURIComponent(intent_id)}&mobile=${encodeURIComponent(mobile.trim())}&quantity=${quantity}&lang=${lang}`;
 
       const startRes = await fetch("/api/payment/alipay-hk/start", {
@@ -279,6 +281,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           mobile: mobile.trim(),
           quantity,
           is_mobile: isMobile,
+          os_type: osType,
           return_url: returnUrl,
         }),
       });

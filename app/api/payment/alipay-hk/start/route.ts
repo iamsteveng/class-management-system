@@ -24,7 +24,7 @@ async function getAirwallexToken(): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { intent_id, is_mobile, return_url } = await req.json();
+    const { intent_id, is_mobile, return_url, os_type } = await req.json();
     if (!intent_id) {
       return NextResponse.json({ error: "intent_id is required" }, { status: 400 });
     }
@@ -32,11 +32,13 @@ export async function POST(req: NextRequest) {
     const token = await getAirwallexToken();
 
     const flow = is_mobile ? "mobile_web" : "qrcode";
+    const alipayhkParams: Record<string, string> = { flow };
+    if (is_mobile && os_type) alipayhkParams.os_type = os_type;
     const body: Record<string, unknown> = {
       request_id: crypto.randomUUID(),
       payment_method: {
         type: "alipayhk",
-        alipayhk: { flow },
+        alipayhk: alipayhkParams,
       },
     };
     if (return_url) {
