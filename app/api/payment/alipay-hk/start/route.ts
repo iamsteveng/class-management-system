@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const flow = is_mobile ? "mobile_web" : "qrcode";
     const alipayhkParams: Record<string, string> = { flow };
-    if (is_mobile && os_type) alipayhkParams.os_type = os_type;
+    if (is_mobile) alipayhkParams.os_type = os_type ?? "android";
     const body: Record<string, unknown> = {
       request_id: crypto.randomUUID(),
       payment_method: {

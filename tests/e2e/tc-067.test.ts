@@ -34,7 +34,7 @@ test.describe('TC-067: alipay-hk/start returns redirect URL for mobile', () => {
       const res = await fetch('/api/payment/alipay-hk/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent_id: id, is_mobile: true, return_url: 'https://example.com/return' }),
+        body: JSON.stringify({ intent_id: id, is_mobile: true, os_type: 'android', return_url: 'https://example.com/return' }),
       });
       return { status: res.status, data: await res.json() };
     }, intentId);
