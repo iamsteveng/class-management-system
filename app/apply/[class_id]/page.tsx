@@ -82,6 +82,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
   const [cardReady, setCardReady] = useState(false);
   const cardRef = useRef<any>(null);
+  const mobileValid = mobile.trim().length > 0 && mobile.trim() !== "+852";
   const sdkInitRef = useRef(false);
 
   // Alipay HK state
@@ -476,7 +477,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
         {paymentMethod === "card" && (
           <button
             onClick={handlePay}
-            disabled={loading || !cardReady}
+            disabled={loading || !cardReady || !mobileValid}
             className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
           >
             {loading ? copy.processing : copy.pay(currency, totalPrice.toLocaleString())}
@@ -488,7 +489,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           <button
             type="button"
             onClick={handleAlipayPay}
-            disabled={loading}
+            disabled={loading || !mobileValid}
             className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
           >
             {loading ? copy.alipayProcessing : copy.pay(currency, totalPrice.toLocaleString())}
