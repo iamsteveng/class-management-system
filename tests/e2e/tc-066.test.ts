@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 // TC-066: /api/payment/alipay-hk/start returns QR code for desktop (API-level test).
-const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
+// Use a class that exists in dev Convex and has airwallex_price set
+const KNOWN_CLASS_ID = process.env.TC066_CLASS_ID || 'class_cycling_fundamentals';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-066: alipay-hk/start returns QR code for desktop', () => {
@@ -13,7 +14,7 @@ test.describe('TC-066: alipay-hk/start returns QR code for desktop', () => {
       const res = await fetch('/api/payment/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ class_id: classId, customer_mobile: '+85291234567' }),
+        body: JSON.stringify({ class_id: classId, mobile: '+85291234567' }),
       });
       return { status: res.status, data: await res.json() };
     }, KNOWN_CLASS_ID);

@@ -59,8 +59,9 @@ export async function POST(req: NextRequest) {
     if (!confirmRes.ok) {
       const err = await confirmRes.text();
       console.error("[alipay-hk/start] Airwallex error:", err);
+      const extra = process.env.AIRWALLEX_ENV !== "prod" ? { airwallex_debug: err } : {};
       return NextResponse.json(
-        { error: "Failed to initiate Alipay HK payment" },
+        { error: "Failed to initiate Alipay HK payment", ...extra },
         { status: 502 }
       );
     }
