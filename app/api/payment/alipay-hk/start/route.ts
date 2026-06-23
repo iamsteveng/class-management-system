@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const token = await getAirwallexToken();
 
-    const flow = is_mobile ? "mweb" : "webqr";
+    const flow = is_mobile ? "mobile_web" : "qrcode";
     const body: Record<string, unknown> = {
       request_id: crypto.randomUUID(),
       payment_method: {
