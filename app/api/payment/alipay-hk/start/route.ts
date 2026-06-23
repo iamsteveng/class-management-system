@@ -31,9 +31,13 @@ export async function POST(req: NextRequest) {
 
     const token = await getAirwallexToken();
 
+    const flow = is_mobile ? "mweb" : "webqr";
     const body: Record<string, unknown> = {
       request_id: crypto.randomUUID(),
-      payment_method: { type: "alipayhk" },
+      payment_method: {
+        type: "alipayhk",
+        alipayhk: { flow },
+      },
     };
     if (return_url) {
       body.return_url = return_url;
@@ -65,20 +69,23 @@ export async function POST(req: NextRequest) {
     const next_action = data.next_action;
 
     if (!next_action) {
-      console.error("[alipay-hk/start] No next_action in Airwallex response:", data);
+      console.error("[alipay-hk/start] No next_action in Airwallex response:", JSON.stringify(data));
       return NextResponse.json(
         { error: "No next_action in Airwallex response" },
         { status: 502 }
       );
     }
 
-    if (next_action.type === "redirect" || is_mobile === true) {
-      return NextResponse.json({ type: "redirect", url: next_action.url ?? "" });
+    console.log("[alipay-hk/start] next_action:", JSON.stringify(next_action));
+
+    if (is_mobile === true) {
+      return NextResponse.json({ type: "redirect", url: next_action.url ?? next_action.redirect_url ?? "" });
     }
 
     return NextResponse.json({
       type: "qrcode",
       qrcode:
+        next_action.qr_code?.url ??
         next_action.qrcode_url ??
         next_action.qrcode_image_url ??
         next_action.data ??
