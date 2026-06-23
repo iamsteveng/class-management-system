@@ -36,6 +36,12 @@ const t = {
     errorCardNotReady: "付款表格尚未就緒，請稍候。",
     errorPaymentFailed: "付款失敗，請重試。",
     errorLoadFailed: "載入課程資料失敗。",
+    creditCardTab: "信用卡",
+    alipayTab: "支付寶HK",
+    qrCodeTitle: "掃描 QR Code 付款",
+    qrExpiredMsg: "QR Code 已過期",
+    regenerate: "重新生成",
+    alipayProcessing: "處理中…",
   },
   en: {
     step1: "Payment",
@@ -56,6 +62,12 @@ const t = {
     errorCardNotReady: "Payment form is not ready yet. Please wait.",
     errorPaymentFailed: "Payment failed. Please try again.",
     errorLoadFailed: "Failed to load class information.",
+    creditCardTab: "Credit Card",
+    alipayTab: "Alipay HK",
+    qrCodeTitle: "Scan QR Code to Pay",
+    qrExpiredMsg: "QR code expired",
+    regenerate: "Regenerate",
+    alipayProcessing: "Processing…",
   },
 };
 
@@ -71,6 +83,17 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   const [cardReady, setCardReady] = useState(false);
   const cardRef = useRef<any>(null);
   const sdkInitRef = useRef(false);
+
+  // Alipay HK state
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "alipay">("card");
+  const [alipayQr, setAlipayQr] = useState<{
+    qrcode: string;
+    startedAt: number;
+    intent_id: string;
+  } | null>(null);
+  const [qrExpired, setQrExpired] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
   const copy = t[lang];
 
   useEffect(() => {
@@ -113,6 +136,66 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       }
     })();
   }, [classInfo]);
+
+  // Render QR code onto canvas when alipayQr changes
+  useEffect(() => {
+    if (!alipayQr?.qrcode || !canvasRef.current) return;
+    import("qrcode").then((QRCode) => {
+      QRCode.toCanvas(canvasRef.current!, alipayQr.qrcode, { width: 256 }, (err) => {
+        if (err) console.error("[apply] QR render error:", err);
+      });
+    });
+  }, [alipayQr]);
+
+  // QR expiry timer
+  useEffect(() => {
+    if (!alipayQr) return;
+    setQrExpired(false);
+    const elapsed = Date.now() - alipayQr.startedAt;
+    const remaining = 600_000 - elapsed;
+    if (remaining <= 0) {
+      setQrExpired(true);
+      return;
+    }
+    const timer = setTimeout(() => setQrExpired(true), remaining);
+    return () => clearTimeout(timer);
+  }, [alipayQr]);
+
+  // Poll for QR code payment success (desktop flow)
+  useEffect(() => {
+    if (!alipayQr || qrExpired || !classId) return;
+    const { intent_id } = alipayQr;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/payment/alipay-hk/status?intent_id=${encodeURIComponent(intent_id)}`
+        );
+        const data = (await res.json()) as { succeeded?: boolean };
+        if (data.succeeded) {
+          clearInterval(interval);
+          const confirmRes = await fetch("/api/payment/confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              intent_id,
+              class_id: classId,
+              mobile: mobile.trim(),
+              quantity,
+            }),
+          });
+          if (confirmRes.ok) {
+            const { tokens } = (await confirmRes.json()) as { tokens: string[] };
+            router.push(
+              `/apply/${classId}/passes?tokens=${tokens.join(",")}&mobile=${encodeURIComponent(mobile.trim())}&lang=${lang}`
+            );
+          }
+        }
+      } catch {
+        // ignore polling errors silently
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [alipayQr, qrExpired, classId]);
 
   const handlePay = async () => {
     if (!mobile.trim()) {
@@ -162,6 +245,64 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAlipayPay = async () => {
+    if (!mobile.trim()) {
+      setError(copy.errorNoMobile);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    try {
+      const intentRes = await fetch("/api/payment/create-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ class_id: classId, mobile: mobile.trim(), quantity }),
+      });
+      if (!intentRes.ok) {
+        const { error: msg } = await intentRes.json();
+        throw new Error(msg ?? copy.errorPaymentFailed);
+      }
+      const { intent_id } = await intentRes.json();
+
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      const returnUrl = `${window.location.origin}/apply/${classId}/alipay-return?intent_id=${encodeURIComponent(intent_id)}&mobile=${encodeURIComponent(mobile.trim())}&quantity=${quantity}&lang=${lang}`;
+
+      const startRes = await fetch("/api/payment/alipay-hk/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intent_id,
+          class_id: classId,
+          mobile: mobile.trim(),
+          quantity,
+          is_mobile: isMobile,
+          return_url: returnUrl,
+        }),
+      });
+      if (!startRes.ok) throw new Error(copy.errorPaymentFailed);
+      const startData = (await startRes.json()) as { type: string; qrcode?: string; url?: string };
+
+      if (startData.type === "redirect" && startData.url) {
+        window.location.href = startData.url;
+      } else if (startData.type === "qrcode" && startData.qrcode) {
+        setAlipayQr({ qrcode: startData.qrcode, startedAt: Date.now(), intent_id });
+      } else {
+        throw new Error(copy.errorPaymentFailed);
+      }
+    } catch (err: any) {
+      setError(err.message ?? copy.errorPaymentFailed);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegenerateQr = () => {
+    setAlipayQr(null);
+    setQrExpired(false);
+    handleAlipayPay();
   };
 
   if (!classInfo && !error) {
@@ -277,23 +418,79 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           </div>
         </div>
 
-        {/* Card element */}
-        <div className="space-y-1.5">
+        {/* Payment method tabs */}
+        <div className="flex rounded-lg border border-zinc-300 overflow-hidden text-sm font-medium">
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("card")}
+            className={`flex-1 px-4 py-2 transition-colors ${paymentMethod === "card" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+          >
+            {copy.creditCardTab}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPaymentMethod("alipay")}
+            data-testid="alipay-tab"
+            className={`flex-1 px-4 py-2 transition-colors ${paymentMethod === "alipay" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+          >
+            {copy.alipayTab}
+          </button>
+        </div>
+
+        {/* Card element — only shown for credit card tab */}
+        <div className={`space-y-1.5 ${paymentMethod !== "card" ? "hidden" : ""}`}>
           <label className="block text-sm font-medium text-zinc-700">{copy.cardLabel}</label>
           <div id="airwallex-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
         </div>
+
+        {/* Alipay QR code display */}
+        {paymentMethod === "alipay" && alipayQr && !qrExpired && (
+          <div id="alipay-qr-container" className="flex flex-col items-center gap-3">
+            <p className="text-sm font-medium text-zinc-700">{copy.qrCodeTitle}</p>
+            <canvas ref={canvasRef} className="rounded-lg" />
+          </div>
+        )}
+
+        {/* QR expired state */}
+        {paymentMethod === "alipay" && alipayQr && qrExpired && (
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-sm text-red-600">{copy.qrExpiredMsg}</p>
+            <button
+              type="button"
+              onClick={handleRegenerateQr}
+              className="text-sm text-zinc-900 underline"
+            >
+              {copy.regenerate}
+            </button>
+          </div>
+        )}
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
         )}
 
-        <button
-          onClick={handlePay}
-          disabled={loading || !cardReady}
-          className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
-        >
-          {loading ? copy.processing : copy.pay(currency, totalPrice.toLocaleString())}
-        </button>
+        {/* Credit card pay button */}
+        {paymentMethod === "card" && (
+          <button
+            onClick={handlePay}
+            disabled={loading || !cardReady}
+            className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+          >
+            {loading ? copy.processing : copy.pay(currency, totalPrice.toLocaleString())}
+          </button>
+        )}
+
+        {/* Alipay pay button — shown when no active QR or QR expired */}
+        {paymentMethod === "alipay" && (!alipayQr || qrExpired) && (
+          <button
+            type="button"
+            onClick={handleAlipayPay}
+            disabled={loading}
+            className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+          >
+            {loading ? copy.alipayProcessing : copy.pay(currency, totalPrice.toLocaleString())}
+          </button>
+        )}
       </div>
     </main>
   );
