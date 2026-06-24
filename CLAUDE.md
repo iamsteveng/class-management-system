@@ -28,6 +28,18 @@ Changes go through PRs. Vercel and Convex dev are auto-deployed on commit — do
 Default to the **least destructive** option when ambiguous — preview over production, dev over prod.
 If unsure, ask before deploying.
 
+After each PR commit, Vercel auto-deploys a new preview URL. Once the preview is live, update `APP_BASE_URL` in Convex dev with the new preview URL:
+
+```bash
+# Find the latest preview URL
+vercel ls
+
+# Set it in Convex dev
+npx convex env set APP_BASE_URL <preview-url>
+```
+
+This keeps Convex dev pointing at the latest preview so QR codes, redirect URLs, and other absolute-URL features work correctly during testing.
+
 ## Before You Do Anything
 
 Read the project structure carefully before implementing. This is a Next.js + Convex app.
@@ -92,20 +104,6 @@ npx convex function-spec --prod
 # List all dev functions (default)
 npx convex function-spec
 ```
-
-### After a PR commit triggers Vercel preview
-
-After each PR commit, Vercel auto-deploys a new preview URL. Once the preview is live, update `APP_BASE_URL` in Convex dev with the new preview URL:
-
-```bash
-# Find the latest preview URL
-vercel ls
-
-# Set it in Convex dev
-npx convex env set APP_BASE_URL <preview-url>
-```
-
-This keeps Convex dev pointing at the latest preview so QR codes, redirect URLs, and other absolute-URL features work correctly during testing.
 
 ### env.local warning
 
