@@ -14,11 +14,15 @@ Violating this rule corrupts live data that real users depend on.
 
 **Never deploy to Convex production or Vercel production unless the user explicitly says so.**
 
+### Deployment process
+
+Changes go through PRs. Vercel and Convex dev are auto-deployed on commit — do **not** run `vercel` or `npx convex dev --once` manually for preview/dev deployments.
+
 | User says | What to run |
 |---|---|
-| "deploy to Convex dev" | `npx convex dev --once` |
+| "deploy to Convex dev" | _(automatic on PR commit — no manual command needed)_ |
 | "deploy to Convex prod" / "deploy to Convex" | `npx convex deploy --yes` |
-| "deploy to Vercel preview" / "deploy to Vercel" | `vercel` |
+| "deploy to Vercel preview" / "deploy to Vercel" | _(automatic on PR commit — no manual command needed)_ |
 | "deploy to Vercel prod" / "deploy to production" | `vercel --prod` |
 
 Default to the **least destructive** option when ambiguous — preview over production, dev over prod.
@@ -89,11 +93,15 @@ npx convex function-spec --prod
 npx convex function-spec
 ```
 
-### After deploying to Vercel preview
+### After a PR commit triggers Vercel preview
 
-After every `vercel` (preview) deployment, update `APP_BASE_URL` in Convex dev with the new preview URL:
+After each PR commit, Vercel auto-deploys a new preview URL. Once the preview is live, update `APP_BASE_URL` in Convex dev with the new preview URL:
 
 ```bash
+# Find the latest preview URL
+vercel ls
+
+# Set it in Convex dev
 npx convex env set APP_BASE_URL <preview-url>
 ```
 
