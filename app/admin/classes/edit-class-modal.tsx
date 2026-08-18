@@ -13,6 +13,7 @@ type EditClassModalProps = {
   initialAirwallexCurrency?: string;
   initialAirwallexGroupPrice?: number;
   initialAirwallexGroupMinQty?: number;
+  initialIsFree?: boolean;
   submitAction: (formData: FormData) => void | Promise<void>;
 };
 
@@ -26,6 +27,7 @@ export function EditClassModal({
   initialAirwallexCurrency,
   initialAirwallexGroupPrice,
   initialAirwallexGroupMinQty,
+  initialIsFree,
   submitAction,
 }: EditClassModalProps) {
   const [open, setOpen] = useState(false);
@@ -207,6 +209,23 @@ export function EditClassModal({
                   placeholder="e.g. 2"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  id={`edit-is-free-${fieldId}`}
+                  name="is_free"
+                  type="checkbox"
+                  value="true"
+                  defaultChecked={initialIsFree ?? false}
+                  className="h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                />
+                <label
+                  htmlFor={`edit-is-free-${fieldId}`}
+                  className="text-sm font-medium text-zinc-900"
+                >
+                  Free of charge (免費課程)
+                </label>
               </div>
 
               <div className="flex items-center justify-end gap-2">

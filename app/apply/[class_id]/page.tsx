@@ -12,6 +12,7 @@ interface ClassInfo {
   airwallex_currency?: string;
   airwallex_group_price?: number;
   airwallex_group_min_qty?: number;
+  is_free?: boolean;
 }
 
 type Lang = "zh-TW" | "en";
@@ -42,6 +43,9 @@ const t = {
     qrExpiredMsg: "QR Code 已過期",
     regenerate: "重新生成",
     alipayProcessing: "處理中…",
+    freeLabel: "免費",
+    freeSubmit: "免費報名",
+    errorFreeFailed: "報名失敗，請重試。",
   },
   en: {
     step1: "Payment",
@@ -68,6 +72,9 @@ const t = {
     qrExpiredMsg: "QR code expired",
     regenerate: "Regenerate",
     alipayProcessing: "Processing…",
+    freeLabel: "Free of charge",
+    freeSubmit: "Register (Free)",
+    errorFreeFailed: "Registration failed. Please try again.",
   },
 };
 
@@ -84,6 +91,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   const cardRef = useRef<any>(null);
   const mobileValid = mobile.trim().length > 0 && mobile.trim() !== "+852";
   const sdkInitRef = useRef(false);
+  const freeRequestIdRef = useRef<string | null>(null);
 
   // Alipay HK state
   const [paymentMethod, setPaymentMethod] = useState<"card" | "alipay">("card");
@@ -113,7 +121,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   }, [classId]);
 
   useEffect(() => {
-    if (!classInfo?.airwallex_price || sdkInitRef.current) return;
+    if (!classInfo?.airwallex_price || classInfo?.is_free || sdkInitRef.current) return;
     sdkInitRef.current = true;
 
     (async () => {
@@ -309,6 +317,44 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
     handleAlipayPay();
   };
 
+  const handleFreeSubmit = async () => {
+    if (!mobile.trim()) {
+      setError(copy.errorNoMobile);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    if (!freeRequestIdRef.current) {
+      freeRequestIdRef.current = crypto.randomUUID();
+    }
+
+    try {
+      const res = await fetch("/api/payment/free-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          class_id: classId,
+          mobile: mobile.trim(),
+          quantity,
+          request_id: freeRequestIdRef.current,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(copy.errorFreeFailed);
+      }
+      const { tokens } = (await res.json()) as { tokens: string[] };
+
+      router.push(
+        `/apply/${classId}/passes?tokens=${tokens.join(",")}&mobile=${encodeURIComponent(mobile.trim())}&lang=${lang}`
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : copy.errorFreeFailed);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!classInfo && !error) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f5f5f0]">
@@ -317,7 +363,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
     );
   }
 
-  if (!classInfo?.airwallex_price) {
+  if (!classInfo?.airwallex_price && !classInfo?.is_free) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-[#f5f5f0] gap-4">
         <p className="text-zinc-600 text-sm">{copy.notAvailable}</p>
@@ -326,10 +372,11 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
     );
   }
 
+  const isFree = classInfo.is_free === true;
   const currency = classInfo.airwallex_currency ?? "HKD";
   const groupMinQty = classInfo.airwallex_group_min_qty ?? 2;
-  const isGroupRate = !!(classInfo.airwallex_group_price && quantity >= groupMinQty);
-  const unitPrice = isGroupRate ? classInfo.airwallex_group_price! : classInfo.airwallex_price;
+  const isGroupRate = !isFree && !!(classInfo.airwallex_group_price && quantity >= groupMinQty);
+  const unitPrice = isFree ? 0 : isGroupRate ? classInfo.airwallex_group_price! : classInfo.airwallex_price!;
   const totalPrice = unitPrice * quantity;
   const displayName = lang === "zh-TW" ? classInfo.name_zh : (classInfo.name_en ?? classInfo.name_zh);
 
@@ -372,17 +419,23 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm space-y-5">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">{displayName}</h1>
-          <p className="mt-1 text-3xl font-bold text-zinc-900">
-            {currency} {totalPrice.toLocaleString()}
-          </p>
-          <p className="mt-0.5 text-sm text-zinc-400">
-            {copy.unitPrice(currency, unitPrice.toLocaleString())} × {quantity}
-            {isGroupRate && (
-              <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                {lang === "zh-TW" ? `${groupMinQty}人或以上` : `${groupMinQty}+ people`}
-              </span>
-            )}
-          </p>
+          {isFree ? (
+            <p className="mt-1 text-3xl font-bold text-[#e16036]">{copy.freeLabel}</p>
+          ) : (
+            <>
+              <p className="mt-1 text-3xl font-bold text-zinc-900">
+                {currency} {totalPrice.toLocaleString()}
+              </p>
+              <p className="mt-0.5 text-sm text-zinc-400">
+                {copy.unitPrice(currency, unitPrice.toLocaleString())} × {quantity}
+                {isGroupRate && (
+                  <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                    {lang === "zh-TW" ? `${groupMinQty}人或以上` : `${groupMinQty}+ people`}
+                  </span>
+                )}
+              </p>
+            </>
+          )}
         </div>
 
         {/* WhatsApp */}
@@ -422,78 +475,96 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
           </div>
         </div>
 
-        {/* Payment method tabs */}
-        <div className="flex rounded-lg border border-zinc-300 overflow-hidden text-sm font-medium">
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("card")}
-            className={`flex-1 px-4 py-2 transition-colors ${paymentMethod === "card" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
-          >
-            {copy.creditCardTab}
-          </button>
-          <button
-            type="button"
-            onClick={() => setPaymentMethod("alipay")}
-            data-testid="alipay-tab"
-            className={`flex-1 px-4 py-2 transition-colors ${paymentMethod === "alipay" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
-          >
-            {copy.alipayTab}
-          </button>
-        </div>
+        {!isFree && (
+          <>
+            {/* Payment method tabs */}
+            <div className="flex rounded-lg border border-zinc-300 overflow-hidden text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("card")}
+                className={`flex-1 px-4 py-2 transition-colors ${paymentMethod === "card" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+              >
+                {copy.creditCardTab}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("alipay")}
+                data-testid="alipay-tab"
+                className={`flex-1 px-4 py-2 transition-colors ${paymentMethod === "alipay" ? "bg-zinc-900 text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}
+              >
+                {copy.alipayTab}
+              </button>
+            </div>
 
-        {/* Card element — only shown for credit card tab */}
-        <div className={`space-y-1.5 ${paymentMethod !== "card" ? "hidden" : ""}`}>
-          <label className="block text-sm font-medium text-zinc-700">{copy.cardLabel}</label>
-          <div id="airwallex-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
-        </div>
+            {/* Card element — only shown for credit card tab */}
+            <div className={`space-y-1.5 ${paymentMethod !== "card" ? "hidden" : ""}`}>
+              <label className="block text-sm font-medium text-zinc-700">{copy.cardLabel}</label>
+              <div id="airwallex-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
+            </div>
 
-        {/* Alipay QR code display */}
-        {paymentMethod === "alipay" && alipayQr && !qrExpired && (
-          <div id="alipay-qr-container" className="flex flex-col items-center gap-3">
-            <p className="text-sm font-medium text-zinc-700">{copy.qrCodeTitle}</p>
-            <canvas ref={canvasRef} className="rounded-lg" />
-          </div>
-        )}
+            {/* Alipay QR code display */}
+            {paymentMethod === "alipay" && alipayQr && !qrExpired && (
+              <div id="alipay-qr-container" className="flex flex-col items-center gap-3">
+                <p className="text-sm font-medium text-zinc-700">{copy.qrCodeTitle}</p>
+                <canvas ref={canvasRef} className="rounded-lg" />
+              </div>
+            )}
 
-        {/* QR expired state */}
-        {paymentMethod === "alipay" && alipayQr && qrExpired && (
-          <div className="flex flex-col items-center gap-3">
-            <p className="text-sm text-red-600">{copy.qrExpiredMsg}</p>
-            <button
-              type="button"
-              onClick={handleRegenerateQr}
-              className="text-sm text-zinc-900 underline"
-            >
-              {copy.regenerate}
-            </button>
-          </div>
+            {/* QR expired state */}
+            {paymentMethod === "alipay" && alipayQr && qrExpired && (
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-sm text-red-600">{copy.qrExpiredMsg}</p>
+                <button
+                  type="button"
+                  onClick={handleRegenerateQr}
+                  className="text-sm text-zinc-900 underline"
+                >
+                  {copy.regenerate}
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {error && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
         )}
 
-        {/* Credit card pay button */}
-        {paymentMethod === "card" && (
-          <button
-            onClick={handlePay}
-            disabled={loading || !cardReady || !mobileValid}
-            className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
-          >
-            {loading ? copy.processing : copy.pay(currency, totalPrice.toLocaleString())}
-          </button>
-        )}
-
-        {/* Alipay pay button — shown when no active QR or QR expired */}
-        {paymentMethod === "alipay" && (!alipayQr || qrExpired) && (
+        {isFree ? (
+          /* Free registration submit button */
           <button
             type="button"
-            onClick={handleAlipayPay}
+            onClick={handleFreeSubmit}
             disabled={loading || !mobileValid}
             className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
           >
-            {loading ? copy.alipayProcessing : copy.pay(currency, totalPrice.toLocaleString())}
+            {loading ? copy.processing : copy.freeSubmit}
           </button>
+        ) : (
+          <>
+            {/* Credit card pay button */}
+            {paymentMethod === "card" && (
+              <button
+                onClick={handlePay}
+                disabled={loading || !cardReady || !mobileValid}
+                className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              >
+                {loading ? copy.processing : copy.pay(currency, totalPrice.toLocaleString())}
+              </button>
+            )}
+
+            {/* Alipay pay button — shown when no active QR or QR expired */}
+            {paymentMethod === "alipay" && (!alipayQr || qrExpired) && (
+              <button
+                type="button"
+                onClick={handleAlipayPay}
+                disabled={loading || !mobileValid}
+                className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-400"
+              >
+                {loading ? copy.alipayProcessing : copy.pay(currency, totalPrice.toLocaleString())}
+              </button>
+            )}
+          </>
         )}
       </div>
     </main>

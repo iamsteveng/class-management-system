@@ -57,6 +57,7 @@ export interface Translations {
     applyButton: string;
     priceIndividual: string;
     priceGroup: (minQty: number) => string;
+    priceFree: string;
     comingSoon: string;
     course1: {
       title: string;
@@ -174,6 +175,7 @@ export const translations: Record<Language, Translations> = {
       applyButton: '立即報名',
       priceIndividual: '個人',
       priceGroup: (minQty: number) => `${minQty}人或以上`,
+      priceFree: '免費',
       comingSoon: '即將推出',
       course1: {
         title: '單車新手速成班',
@@ -288,6 +290,7 @@ export const translations: Record<Language, Translations> = {
       applyButton: 'Apply Now',
       priceIndividual: 'Individual',
       priceGroup: (minQty: number) => `${minQty}+ people`,
+      priceFree: 'Free of charge',
       comingSoon: 'Coming Soon',
       course1: {
         title: 'Cycling Crash Course for Beginners',

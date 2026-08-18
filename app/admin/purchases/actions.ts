@@ -43,7 +43,7 @@ export async function cancelAndRefundAction(
   let purchase: {
     _id: string;
     order_id: string;
-    source?: "s3" | "payment_gateway" | "airwallex";
+    source?: "s3" | "payment_gateway" | "airwallex" | "free";
     total_price?: number;
     currency?: string;
     status: string;

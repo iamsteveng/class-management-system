@@ -9,7 +9,7 @@ export const getPurchaseForRefund = queryGeneric({
       order_id: v.string(),
       customer_mobile: v.string(),
       source: v.optional(
-        v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex"))
+        v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex"), v.literal("free"))
       ),
       total_price: v.optional(v.number()),
       currency: v.optional(v.string()),

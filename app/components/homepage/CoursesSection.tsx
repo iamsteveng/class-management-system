@@ -33,6 +33,7 @@ interface Course {
   airwallex_currency?: string;
   airwallex_group_price?: number;
   airwallex_group_min_qty?: number;
+  is_free?: boolean;
 }
 
 interface ApiClass {
@@ -45,6 +46,7 @@ interface ApiClass {
   airwallex_currency?: string;
   airwallex_group_price?: number;
   airwallex_group_min_qty?: number;
+  is_free?: boolean;
 }
 
 interface ApiSession {
@@ -142,7 +144,11 @@ function CourseCard({ course }: { course: Course }) {
                 </svg>
               </div>
             </div>
-            {course.airwallex_price ? (
+            {course.is_free ? (
+              <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                {t.courses.priceFree}
+              </p>
+            ) : course.airwallex_price ? (
               <div className="flex flex-col gap-1">
                 {course.airwallex_group_price && (
                   <div>
@@ -272,7 +278,7 @@ function CourseCard({ course }: { course: Course }) {
         </div>
 
         {/* Enroll Button */}
-        {course.airwallex_price ? (
+        {course.airwallex_price || course.is_free ? (
           <Link
             href={`/apply/${course.id}`}
             className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
@@ -371,6 +377,7 @@ export function CoursesSection() {
               airwallex_currency: cls.airwallex_currency,
               airwallex_group_price: cls.airwallex_group_price,
               airwallex_group_min_qty: cls.airwallex_group_min_qty,
+              is_free: cls.is_free,
             });
           })
         );

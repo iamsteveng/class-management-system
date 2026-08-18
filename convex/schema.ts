@@ -16,7 +16,7 @@ export default defineSchema({
     token: v.string(),
     class_id: v.optional(v.string()),
     session_id: v.optional(v.string()),
-    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex"))),
+    source: v.optional(v.union(v.literal("s3"), v.literal("payment_gateway"), v.literal("airwallex"), v.literal("free"))),
     unit_price: v.optional(v.number()),
     total_price: v.optional(v.number()),
     manychat_subscriber_id: v.optional(v.string()),
@@ -33,7 +33,8 @@ export default defineSchema({
     .index("by_token", ["token"])
     .index("by_order_class", ["order_id", "class_id"])
     .index("by_order_class_slot", ["order_id", "class_id", "slot_index"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_mobile", ["customer_mobile"]),
 
   participants: defineTable({
     participant_id: v.string(),
@@ -65,6 +66,7 @@ export default defineSchema({
     airwallex_currency: v.optional(v.string()),
     airwallex_group_price: v.optional(v.number()),
     airwallex_group_min_qty: v.optional(v.number()),
+    is_free: v.optional(v.boolean()),
     created_at: v.number(),
   }).index("by_class_id", ["class_id"]),
 
