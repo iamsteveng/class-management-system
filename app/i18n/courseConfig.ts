@@ -98,6 +98,15 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
     description_zh: '帶你探索香港各區美景，享受單車樂趣。導賞團包括：路線規劃、安全講解、景點介紹等',
     description_en: 'Explore Hong Kong scenic districts by bike. Tours include route planning, safety briefing, and sightseeing',
   },
+  // Guided Bike Tour Practicum — 單車導賞實習團 (production UUID)
+  'ef5da20f-6ee5-4960-96bd-d7c8615e1e8c': {
+    duration: '2 hours',
+    originalPrice: 'HK$0',
+    discountPrice: '免費',
+    image: '/images/homepage/fd4d1d8fb6d982eadb491c135a33b2ff72209b94.jpg',
+    description_zh: '由保良局李兆基青年綠洲青年見習導賞員帶領，免費參加。踩住單車探索北部都會區美景，一路輕鬆睇風景、享受單車樂趣。',
+    description_en: 'Led by trainee tour guides from PLK Lee Shau Kee Youth Oasis — free to join. Explore the scenic Northern Metropolis by bike and enjoy a relaxing ride with beautiful views.',
+  },
   // Guided Bike Tour Practicum — 單車導賞實習團 (dev UUID)
   '7a35a3af-0ce8-4c63-b902-63be721656d0': {
     duration: '2 hours',
