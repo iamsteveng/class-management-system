@@ -21,6 +21,7 @@ type ClassRow = {
   airwallex_currency?: string;
   airwallex_group_price?: number;
   airwallex_group_min_qty?: number;
+  is_free?: boolean;
 };
 
 type AdminClassesPageProps = {
@@ -61,6 +62,7 @@ export default async function AdminClassesPage({
       (formData.get("description") as string | null)?.trim() || undefined;
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
+    const isFree = formData.get("is_free") === "true";
 
     if (!nameZh) {
       redirect(
@@ -72,7 +74,7 @@ export default async function AdminClassesPage({
       const client = createConvexHttpClient();
       await client.mutation(
         makeFunctionReference<"mutation">("adminClasses:createClass"),
-        { name_zh: nameZh, name_en: nameEn, description, payment_url: paymentUrl, admin_username: adminUsername }
+        { name_zh: nameZh, name_en: nameEn, description, payment_url: paymentUrl, is_free: isFree, admin_username: adminUsername }
       );
     } catch {
       redirect(
@@ -101,6 +103,7 @@ export default async function AdminClassesPage({
     const airwallexGroupPrice = airwallexGroupPriceRaw ? parseFloat(airwallexGroupPriceRaw) : undefined;
     const airwallexGroupMinQtyRaw = (formData.get("airwallex_group_min_qty") as string | null)?.trim() || undefined;
     const airwallexGroupMinQty = airwallexGroupMinQtyRaw ? parseInt(airwallexGroupMinQtyRaw, 10) : undefined;
+    const isFree = formData.get("is_free") === "true";
 
     if (!classId || !nameZh) {
       redirect(
@@ -122,6 +125,7 @@ export default async function AdminClassesPage({
           airwallex_currency: airwallexCurrency,
           airwallex_group_price: airwallexGroupPrice,
           airwallex_group_min_qty: airwallexGroupMinQty,
+          is_free: isFree,
           admin_username: adminUsername,
         }
       );
@@ -263,6 +267,7 @@ export default async function AdminClassesPage({
                           initialAirwallexCurrency={cls.airwallex_currency}
                           initialAirwallexGroupPrice={cls.airwallex_group_price}
                           initialAirwallexGroupMinQty={cls.airwallex_group_min_qty}
+                          initialIsFree={cls.is_free}
                           submitAction={editClassAction}
                         />
                         {cls.status === "active" ? (

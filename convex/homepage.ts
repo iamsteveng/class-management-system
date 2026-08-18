@@ -14,6 +14,7 @@ export const listClassesWithPaymentUrl = queryGeneric({
       airwallex_currency: v.optional(v.string()),
       airwallex_group_price: v.optional(v.number()),
       airwallex_group_min_qty: v.optional(v.number()),
+      is_free: v.optional(v.boolean()),
     })
   ),
   handler: async (ctx) => {
@@ -24,7 +25,8 @@ export const listClassesWithPaymentUrl = queryGeneric({
         (cls) =>
           cls.status === "active" &&
           ((typeof cls.payment_url === "string" && cls.payment_url.length > 0) ||
-            typeof cls.airwallex_price === "number")
+            typeof cls.airwallex_price === "number" ||
+            cls.is_free === true)
       )
       .map((cls) => ({
         class_id: cls.class_id,
@@ -36,6 +38,7 @@ export const listClassesWithPaymentUrl = queryGeneric({
         airwallex_currency: cls.airwallex_currency,
         airwallex_group_price: cls.airwallex_group_price,
         airwallex_group_min_qty: cls.airwallex_group_min_qty,
+        is_free: cls.is_free,
       }));
   },
 });

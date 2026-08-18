@@ -16,6 +16,7 @@ export const getClassListPageData = queryGeneric({
       airwallex_currency: v.optional(v.string()),
       airwallex_group_price: v.optional(v.number()),
       airwallex_group_min_qty: v.optional(v.number()),
+      is_free: v.optional(v.boolean()),
     })
   ),
   handler: async (ctx) => {
@@ -40,6 +41,7 @@ export const getClassListPageData = queryGeneric({
       airwallex_currency: cls.airwallex_currency,
       airwallex_group_price: cls.airwallex_group_price,
       airwallex_group_min_qty: cls.airwallex_group_min_qty,
+      is_free: cls.is_free,
     }));
   },
 });
@@ -54,6 +56,7 @@ export const createClass = mutationGeneric({
     airwallex_currency: v.optional(v.string()),
     airwallex_group_price: v.optional(v.number()),
     airwallex_group_min_qty: v.optional(v.number()),
+    is_free: v.optional(v.boolean()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -78,6 +81,7 @@ export const createClass = mutationGeneric({
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
       airwallex_group_price: args.airwallex_group_price,
       airwallex_group_min_qty: args.airwallex_group_min_qty,
+      is_free: args.is_free === true ? true : undefined,
       status: "active",
       created_at: now,
     });
@@ -109,6 +113,7 @@ export const updateClass = mutationGeneric({
     airwallex_currency: v.optional(v.string()),
     airwallex_group_price: v.optional(v.number()),
     airwallex_group_min_qty: v.optional(v.number()),
+    is_free: v.optional(v.boolean()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -148,6 +153,7 @@ export const updateClass = mutationGeneric({
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
       airwallex_group_price: args.airwallex_group_price,
       airwallex_group_min_qty: args.airwallex_group_min_qty,
+      is_free: args.is_free === true ? true : undefined,
     });
 
     await ctx.db.insert("audit_logs", {

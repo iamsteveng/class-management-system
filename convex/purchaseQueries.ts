@@ -51,6 +51,32 @@ export const claimConfirmationSend = mutationGeneric({
   },
 });
 
+// Counts free purchases made by this mobile number for this class within the
+// last 60 minutes. Used to rate-limit abuse of the zero-cost free registration
+// endpoint. Reads via the by_mobile index, then filters in JS on
+// source/class_id/created_at.
+export const countRecentFreePurchasesForMobile = queryGeneric({
+  args: {
+    customer_mobile: v.string(),
+    class_id: v.string(),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const purchases = await ctx.db
+      .query("purchases")
+      .withIndex("by_mobile", (q) => q.eq("customer_mobile", args.customer_mobile))
+      .collect();
+
+    return purchases.filter(
+      (p) =>
+        p.source === "free" &&
+        p.class_id === args.class_id &&
+        p.created_at >= oneHourAgo
+    ).length;
+  },
+});
+
 export const updatePurchaseStatus = mutationGeneric({
   args: {
     purchase_id: v.id("purchases"),
