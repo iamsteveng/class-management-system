@@ -20,12 +20,12 @@ test("TC-035: Admin ingestion page renders without Poll Now for regular_admin", 
   await page.waitForLoadState("networkidle");
 
   // Assert page loaded — heading must be visible
-  const heading = page.getByRole("heading", { name: "S3 Ingestion Monitoring" });
+  const heading = page.getByRole("heading", { name: "S3 Ingestion" });
   await expect(heading).toBeVisible();
 
-  // Page shows either the run history table or the empty state message
+  // Page shows either the failed sends table or its empty state message
   const tableOrEmpty = page.locator(
-    "table, p:has-text('No ingestion runs recorded yet')"
+    "table, p:has-text('No failed WhatsApp sends.')"
   );
   await expect(tableOrEmpty.first()).toBeVisible();
 

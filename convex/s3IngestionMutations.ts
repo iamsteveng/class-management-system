@@ -2,40 +2,6 @@ import { mutationGeneric } from "convex/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 
-/** Records an ingestion run to the ingestion_runs table (US-008). */
-export const recordIngestionRun = mutationGeneric({
-  args: {
-    status: v.union(
-      v.literal("success"),
-      v.literal("partial"),
-      v.literal("error")
-    ),
-    files_processed: v.number(),
-    rows_inserted: v.number(),
-    rows_skipped: v.number(),
-    whatsapp_errors: v.optional(v.number()),
-    error_message: v.optional(v.string()),
-  },
-  returns: v.id("ingestion_runs"),
-  handler: async (ctx, args) => {
-    // Override status to partial if WhatsApp errors occurred on an otherwise successful run
-    let finalStatus = args.status;
-    if ((args.whatsapp_errors ?? 0) > 0 && finalStatus === "success") {
-      finalStatus = "partial";
-    }
-
-    return await ctx.db.insert("ingestion_runs", {
-      run_at: Date.now(),
-      status: finalStatus,
-      files_processed: args.files_processed,
-      rows_inserted: args.rows_inserted,
-      rows_skipped: args.rows_skipped,
-      whatsapp_errors: args.whatsapp_errors,
-      error_message: args.error_message,
-    });
-  },
-});
-
 /**
  * Processes parsed CSV rows: creates purchase records.
  * Returns counts of inserted and skipped rows, plus the IDs of newly inserted purchases

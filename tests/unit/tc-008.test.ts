@@ -33,19 +33,15 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { pollS3ForNewFiles } from '../../convex/s3Ingestion';
 
 describe('TC-008 S3 error does not crash scheduler', () => {
-  let runMutationMock: ReturnType<typeof vi.fn>;
   let handler: (ctx: any, args: any) => Promise<any>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-
-    runMutationMock = vi.fn().mockResolvedValue('mock-run-id');
-
     // actionGeneric returns its definition object, so .handler is accessible.
     handler = (pollS3ForNewFiles as any).handler;
   });
 
-  it('TC-008: action resolves cleanly when S3 throws a network error', async () => {
+  it('TC-008: action resolves cleanly with zeroed counters when S3 throws a network error', async () => {
     const networkError = new Error('connect ECONNREFUSED 127.0.0.1:443');
     networkError.name = 'NetworkingError';
 
@@ -54,64 +50,17 @@ describe('TC-008 S3 error does not crash scheduler', () => {
     } as any);
 
     const ctx = {
-      runMutation: runMutationMock,
+      runMutation: vi.fn(),
       runAction: vi.fn(),
     };
 
-    // Should not throw — polling continues on next tick
-    const result = await handler(ctx, {});
-
-    expect(result).toEqual({
+    // Must resolve (early return), never reject — polling continues on next tick (US-002).
+    await expect(handler(ctx, {})).resolves.toEqual({
       files_found: 0,
       files_processed: 0,
       rows_inserted: 0,
       rows_skipped: 0,
       whatsapp_errors: 0,
     });
-  });
-
-  it('TC-008: records error ingestion_run when S3 throws a generic error', async () => {
-    const genericError = new Error('Internal S3 service error');
-    genericError.name = 'ServiceUnavailable';
-
-    vi.mocked(S3Client).mockImplementation(function(this: any) {
-      this.send = vi.fn().mockRejectedValue(genericError);
-    } as any);
-
-    const ctx = {
-      runMutation: runMutationMock,
-      runAction: vi.fn(),
-    };
-
-    await handler(ctx, {});
-
-    expect(runMutationMock).toHaveBeenCalledOnce();
-    expect(runMutationMock).toHaveBeenCalledWith(
-      's3IngestionMutations:recordIngestionRun',
-      expect.objectContaining({
-        status: 'error',
-        files_processed: 0,
-        rows_inserted: 0,
-        rows_skipped: 0,
-        error_message: expect.stringContaining('Internal S3 service error'),
-      })
-    );
-  });
-
-  it('TC-008: no unhandled rejection — resolves even without catching at call site', async () => {
-    const timeoutError = new Error('Request timeout');
-    timeoutError.name = 'TimeoutError';
-
-    vi.mocked(S3Client).mockImplementation(function(this: any) {
-      this.send = vi.fn().mockRejectedValue(timeoutError);
-    } as any);
-
-    const ctx = {
-      runMutation: runMutationMock,
-      runAction: vi.fn(),
-    };
-
-    // Resolves (not rejects) — verifies no unhandled rejection escapes
-    await expect(handler(ctx, {})).resolves.toBeDefined();
   });
 });

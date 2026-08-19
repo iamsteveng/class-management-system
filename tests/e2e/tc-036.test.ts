@@ -15,7 +15,7 @@ test('TC-036: Admin ingestion page shows Poll Now button for super_admin', async
   await page.waitForLoadState('networkidle');
 
   // Assert page heading is visible
-  const heading = page.getByRole('heading', { name: 'S3 Ingestion Monitoring' });
+  const heading = page.getByRole('heading', { name: 'S3 Ingestion' });
   await expect(heading).toBeVisible();
 
   // Assert Poll Now button is visible and clickable

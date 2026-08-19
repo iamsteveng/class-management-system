@@ -255,8 +255,7 @@ export const processS3File = actionGeneric({
 
 /**
  * Scheduled action: polls S3 for new CSV purchase files every 5 minutes.
- * On S3 error: logs full details and writes an error ingestion_run record (US-002).
- * Polling continues on next tick regardless of errors (US-002).
+ * On S3 error: logs full details. Polling continues on next tick regardless of errors (US-002).
  */
 export const pollS3ForNewFiles = actionGeneric({
   args: {},
@@ -286,7 +285,7 @@ export const pollS3ForNewFiles = actionGeneric({
           filename: obj.Key!.split("/").pop() ?? obj.Key!,
         }));
     } catch (error) {
-      // US-002: S3 error alerting — log full details and write error ingestion_run
+      // US-002: S3 error alerting — log full details
       const errorMessage =
         error instanceof Error ? error.message : "Unknown S3 error";
       console.error(
@@ -294,16 +293,6 @@ export const pollS3ForNewFiles = actionGeneric({
         `error=${errorMessage} ` +
         `timestamp=${new Date().toISOString()} ` +
         `APP_ENV=${env}`
-      );
-      await ctx.runMutation(
-        makeFunctionReference<"mutation">("s3IngestionMutations:recordIngestionRun"),
-        {
-          status: "error",
-          files_processed: 0,
-          rows_inserted: 0,
-          rows_skipped: 0,
-          error_message: errorMessage,
-        }
       );
       // Return without throwing — polling continues on next tick
       return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0, whatsapp_errors: 0 };
@@ -314,15 +303,6 @@ export const pollS3ForNewFiles = actionGeneric({
     );
 
     if (csvFiles.length === 0) {
-      await ctx.runMutation(
-        makeFunctionReference<"mutation">("s3IngestionMutations:recordIngestionRun"),
-        {
-          status: "success",
-          files_processed: 0,
-          rows_inserted: 0,
-          rows_skipped: 0,
-        }
-      );
       return { files_found: 0, files_processed: 0, rows_inserted: 0, rows_skipped: 0, whatsapp_errors: 0 };
     }
 
@@ -330,7 +310,6 @@ export const pollS3ForNewFiles = actionGeneric({
     let totalSkipped = 0;
     let totalWhatsappErrors = 0;
     let filesProcessed = 0;
-    let anyError = false;
 
     for (const obj of csvFiles) {
       try {
@@ -350,31 +329,11 @@ export const pollS3ForNewFiles = actionGeneric({
         totalWhatsappErrors += result.whatsapp_errors;
         filesProcessed += 1;
       } catch (fileError) {
-        anyError = true;
         const msg =
           fileError instanceof Error ? fileError.message : "Unknown error";
         console.error(`[s3Ingestion] Failed to process file ${obj.key}: ${msg} stack=${fileError instanceof Error ? fileError.stack : ''}`);
       }
     }
-
-    const finalStatus =
-      anyError && filesProcessed === 0
-        ? "error"
-        : anyError || totalSkipped > 0 || totalWhatsappErrors > 0
-        ? "partial"
-        : "success";
-
-    await ctx.runMutation(
-      makeFunctionReference<"mutation">("s3IngestionMutations:recordIngestionRun"),
-      {
-        status: finalStatus,
-        files_processed: filesProcessed,
-        rows_inserted: totalInserted,
-        rows_skipped: totalSkipped,
-        whatsapp_errors: totalWhatsappErrors > 0 ? totalWhatsappErrors : undefined,
-        error_message: anyError ? "Some files failed to process" : undefined,
-      }
-    );
 
     return {
       files_found: csvFiles.length,
