@@ -6,35 +6,12 @@ import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 import { ResendButton } from "./resend-button";
 
-type IngestionRun = {
-  _id: string;
-  run_at: number;
-  status: "success" | "partial" | "error";
-  files_processed: number;
-  rows_inserted: number;
-  rows_skipped: number;
-  error_message?: string;
-};
-
 type FailedSend = {
   _id: string;
   customer_mobile: string;
   order_id: string;
   created_at: number;
 };
-
-async function loadIngestionRuns(): Promise<IngestionRun[]> {
-  try {
-    const client = createConvexHttpClient();
-    const result = await client.query(
-      makeFunctionReference<"query">("ingestionQueries:listRecentIngestionRuns"),
-      {}
-    );
-    return result as IngestionRun[];
-  } catch {
-    return [];
-  }
-}
 
 async function loadFailedSends(): Promise<FailedSend[]> {
   try {
@@ -62,21 +39,6 @@ function formatTimestamp(ts: number): string {
   });
 }
 
-function StatusBadge({ status }: { status: "success" | "partial" | "error" }) {
-  const styles = {
-    success: "bg-emerald-100 text-emerald-800",
-    partial: "bg-yellow-100 text-yellow-800",
-    error: "bg-red-100 text-red-800",
-  };
-  return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${styles[status]}`}
-    >
-      {status}
-    </span>
-  );
-}
-
 export default async function AdminIngestionPage() {
   const session = await getServerAuthSession();
   if (!session?.user?.username) {
@@ -84,10 +46,7 @@ export default async function AdminIngestionPage() {
   }
 
   const isSuperAdmin = session.user.role === "super_admin";
-  const [runs, failedSends] = await Promise.all([
-    loadIngestionRuns(),
-    loadFailedSends(),
-  ]);
+  const failedSends = await loadFailedSends();
 
   async function pollNowAction() {
     "use server";
@@ -145,7 +104,7 @@ export default async function AdminIngestionPage() {
       <section className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">
-            S3 Ingestion Monitoring
+            S3 Ingestion
           </h1>
           <p className="text-sm text-zinc-700">
             Signed in as{" "}
@@ -222,56 +181,6 @@ export default async function AdminIngestionPage() {
             </table>
           </div>
           </>
-        )}
-      </section>
-
-      {/* Ingestion Run History */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-zinc-900">Run History</h2>
-
-        {runs.length === 0 ? (
-          <p className="rounded-lg bg-zinc-50 p-4 text-sm text-zinc-600">
-            No ingestion runs recorded yet.
-          </p>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-zinc-200">
-            <table className="min-w-full text-sm">
-              <thead className="bg-zinc-50 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600">
-                <tr>
-                  <th className="px-4 py-3">Timestamp</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Files Processed</th>
-                  <th className="px-4 py-3">Rows Inserted</th>
-                  <th className="px-4 py-3">Rows Skipped</th>
-                  <th className="px-4 py-3">Error</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 bg-white">
-                {runs.map((run) => (
-                  <tr key={run._id} className="hover:bg-zinc-50">
-                    <td className="px-4 py-3 font-mono text-xs text-zinc-600">
-                      {formatTimestamp(run.run_at)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={run.status} />
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {run.files_processed}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {run.rows_inserted}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-700">
-                      {run.rows_skipped}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-red-600">
-                      {run.error_message ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         )}
       </section>
 

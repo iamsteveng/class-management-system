@@ -388,24 +388,3 @@ export const debugTermsQuery = queryGeneric({
     };
   },
 });
-
-/** Seeds N ingestion_runs records for testing TC-037. */
-export const seedIngestionRuns = mutationGeneric({
-  args: { count: v.number() },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const statuses: Array<"success" | "partial" | "error"> = ["success", "partial", "error"];
-    for (let i = 0; i < args.count; i++) {
-      const status = statuses[i % 3];
-      await ctx.db.insert("ingestion_runs", {
-        run_at: Date.now() - i * 60000,
-        status,
-        files_processed: i + 1,
-        rows_inserted: (i + 1) * 10,
-        rows_skipped: i,
-        error_message: status === "error" ? `Test error ${i}` : undefined,
-      });
-    }
-    return null;
-  },
-});
