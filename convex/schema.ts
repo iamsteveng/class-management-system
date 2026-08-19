@@ -152,20 +152,6 @@ export default defineSchema({
     .index("by_participant_id", ["participant_id"])
     .index("by_session_id", ["session_id"]),
 
-  ingestion_runs: defineTable({
-    run_at: v.number(),
-    status: v.union(
-      v.literal("success"),
-      v.literal("partial"),
-      v.literal("error")
-    ),
-    files_processed: v.number(),
-    rows_inserted: v.number(),
-    rows_skipped: v.number(),
-    whatsapp_errors: v.optional(v.number()),
-    error_message: v.optional(v.string()),
-  }).index("by_run_at", ["run_at"]),
-
   manychat_subscribers: defineTable({
     whatsapp_phone: v.string(),
     subscriber_id: v.string(),
