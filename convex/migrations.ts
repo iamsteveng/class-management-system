@@ -1,4 +1,4 @@
-import { internalMutationGeneric, mutationGeneric } from "convex/server";
+import { mutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
 /**
@@ -55,23 +55,5 @@ export const migrateToNameZhLocationZh = mutationGeneric({
     }
 
     return { classes_migrated: classesMigrated, sessions_migrated: sessionsMigrated };
-  },
-});
-
-/**
- * Batched cleanup: deletes up to 500 ingestion_runs rows per call.
- * Run repeatedly from the CLI until it returns { deleted: 0 }.
- */
-export const clearIngestionRuns = internalMutationGeneric({
-  args: {},
-  returns: v.object({
-    deleted: v.number(),
-  }),
-  handler: async (ctx) => {
-    const runs = await ctx.db.query("ingestion_runs").take(500);
-    for (const run of runs) {
-      await ctx.db.delete(run._id);
-    }
-    return { deleted: runs.length };
   },
 });
