@@ -156,7 +156,7 @@ export async function sendTermsAcceptanceWhatsApp({
       method: "POST",
       headers,
       body: JSON.stringify({
-        subscriber_id: subscriberId,
+        subscriber_id: Number(subscriberId),
         flow_ns: flowNs,
       }),
     });
@@ -296,7 +296,7 @@ export async function sendRainCancellationWhatsApp({
     const sendRes = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlow`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ subscriber_id: subscriberId, flow_ns: RAIN_CANCEL_FLOW_NS }),
+      body: JSON.stringify({ subscriber_id: Number(subscriberId), flow_ns: RAIN_CANCEL_FLOW_NS }),
     });
     const responseBody = await sendRes.text();
     console.log(`[manychat] sendFlow (rain cancel) status=${sendRes.status} body=${responseBody}`);
