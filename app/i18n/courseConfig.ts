@@ -130,7 +130,7 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
     duration: '2 hours',
     originalPrice: 'HK$298',
     discountPrice: 'HK$250',
-    image: '/images/homepage/balance-bike-toddler.jpg',
+    image: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/balance-bike-toddler.jpg',
     description_zh: '專為 2-5 歲幼兒而設的平衡車課程，從建立安全感開始，逐步加入趣味障礙賽關卡。訓練小朋友專注力、手眼協調與核心肌肉，為將來學踩單車打好基礎。',
     description_en: 'A balance bike course designed for toddlers aged 2-5. Starts by building confidence, then adds fun obstacle-course challenges. Trains focus, hand-eye coordination and core strength — the foundation for learning to ride a bicycle.',
   },
