@@ -125,6 +125,15 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
     description_zh: '由保良局李兆基青年綠洲青年見習導賞員帶領，免費參加。踩住單車探索北部都會區美景，一路輕鬆睇風景、享受單車樂趣。',
     description_en: 'Led by trainee tour guides from PLK Lee Shau Kee Youth Oasis — free to join. Explore the scenic Northern Metropolis by bike and enjoy a relaxing ride with beautiful views.',
   },
+  // Toddler Balance Bike Class — 幼兒平衡車班 (2-5歲) (dev UUID)
+  '9a7c48f6-3e1e-4c94-ba8e-7c061c04cf14': {
+    duration: '2 hours',
+    originalPrice: 'HK$298',
+    discountPrice: 'HK$250',
+    image: '/images/homepage/balance-bike-toddler.jpg',
+    description_zh: '專為 2-5 歲幼兒而設的平衡車課程，從建立安全感開始，逐步加入趣味障礙賽關卡。訓練小朋友專注力、手眼協調與核心肌肉，為將來學踩單車打好基礎。',
+    description_en: 'A balance bike course designed for toddlers aged 2-5. Starts by building confidence, then adds fun obstacle-course challenges. Trains focus, hand-eye coordination and core strength — the foundation for learning to ride a bicycle.',
+  },
 };
 
 export function getCourseConfig(class_id: string): CourseConfig | undefined {
