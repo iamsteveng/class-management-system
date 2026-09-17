@@ -127,7 +127,7 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
   },
   // Toddler Balance Bike Class — 幼兒平衡車班 (2-5歲) (dev UUID)
   '9a7c48f6-3e1e-4c94-ba8e-7c061c04cf14': {
-    duration: '2 hours',
+    duration: '1 hour',
     originalPrice: 'HK$298',
     discountPrice: 'HK$250',
     image: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/balance-bike-toddler.jpg',
@@ -136,7 +136,7 @@ export const COURSE_CONFIG: Record<string, CourseConfig> = {
   },
   // Toddler Balance Bike Class — 幼兒平衡車班 (2-5歲) (production UUID)
   'd8f59165-0a99-4a9d-8ac8-a3cae8be1b3e': {
-    duration: '2 hours',
+    duration: '1 hour',
     originalPrice: 'HK$298',
     discountPrice: 'HK$250',
     image: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/balance-bike-toddler.jpg',
