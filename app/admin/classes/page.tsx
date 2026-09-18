@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AddClassModal } from "./add-class-modal";
-import { CancelClassButton } from "./cancel-class-button";
+import { ClassStatusToggle } from "./class-status-toggle";
 import { ClassFilterDropdown } from "./class-filter-dropdown";
 import { EditClassModal } from "./edit-class-modal";
 import { getServerAuthSession } from "@/lib/auth";
@@ -40,7 +40,8 @@ export default async function AdminClassesPage({
   const errorMessage = params.error ?? undefined;
   const classCreated = params.status === "class_created";
   const classUpdated = params.status === "class_updated";
-  const classCancelled = params.status === "class_cancelled";
+  const classDeactivated = params.status === "class_deactivated";
+  const classActivated = params.status === "class_activated";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
   const filterParam = params.filter ?? "active";
@@ -138,34 +139,40 @@ export default async function AdminClassesPage({
     redirect("/admin/classes?status=class_updated");
   }
 
-  async function cancelClassAction(formData: FormData) {
+  async function setClassStatusAction(formData: FormData) {
     "use server";
 
     const classId = (formData.get("class_id") as string | null)?.trim() ?? "";
+    const nextStatusRaw = (formData.get("next_status") as string | null)?.trim() ?? "";
+    const nextStatus = nextStatusRaw === "active" ? "active" : "inactive";
+
     if (!classId) {
       redirect(
-        `/admin/classes?error=${encodeURIComponent("Class ID is required for cancellation.")}`
+        `/admin/classes?error=${encodeURIComponent("Class ID is required to change availability.")}`
       );
     }
 
     try {
       const client = createConvexHttpClient();
       await client.mutation(
-        makeFunctionReference<"mutation">("adminClasses:cancelClass"),
+        makeFunctionReference<"mutation">("adminClasses:setClassStatus"),
         {
           class_id: classId,
+          status: nextStatus,
           admin_username: adminUsername,
         }
       );
     } catch {
       redirect(
         `/admin/classes?error=${encodeURIComponent(
-          "Failed to cancel class. Ensure there are no active future sessions."
+          "Failed to change class availability. Please try again."
         )}`
       );
     }
 
-    redirect(`/admin/classes?status=class_cancelled&class_id=${encodeURIComponent(classId)}`);
+    redirect(
+      `/admin/classes?status=${nextStatus === "active" ? "class_activated" : "class_deactivated"}&class_id=${encodeURIComponent(classId)}`
+    );
   }
 
   return (
@@ -199,9 +206,15 @@ export default async function AdminClassesPage({
         </p>
       ) : null}
 
-      {classCancelled ? (
+      {classDeactivated ? (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-          Class cancelled successfully.
+          Class hidden. It is no longer on the homepage and cannot be purchased.
+        </p>
+      ) : null}
+
+      {classActivated ? (
+        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          Class is live on the homepage again.
         </p>
       ) : null}
 
@@ -251,7 +264,7 @@ export default async function AdminClassesPage({
                           : "bg-zinc-200 text-zinc-700"
                       }`}
                     >
-                      {cls.status === "inactive" ? "cancelled" : "active"}
+                      {cls.status}
                     </span>
                   </td>
                   {isSuperAdmin ? (
@@ -270,12 +283,11 @@ export default async function AdminClassesPage({
                           initialIsFree={cls.is_free}
                           submitAction={editClassAction}
                         />
-                        {cls.status === "active" ? (
-                          <CancelClassButton
-                            classId={cls.class_id}
-                            submitAction={cancelClassAction}
-                          />
-                        ) : null}
+                        <ClassStatusToggle
+                          classId={cls.class_id}
+                          status={cls.status === "active" ? "active" : "inactive"}
+                          submitAction={setClassStatusAction}
+                        />
                       </div>
                     </td>
                   ) : null}

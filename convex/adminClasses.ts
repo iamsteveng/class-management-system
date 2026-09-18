@@ -1,5 +1,7 @@
 import { mutationGeneric, queryGeneric } from "convex/server";
+import type { GenericDataModel, GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
+import type { GenericId } from "convex/values";
 
 export const getClassListPageData = queryGeneric({
   args: {},
@@ -174,6 +176,72 @@ export const updateClass = mutationGeneric({
   },
 });
 
+/**
+ * Apply an availability change to a Class. Shared by setClassStatus and the
+ * cancelClass alias so there is a single code path and one audit action.
+ *
+ * Availability is a visibility switch, not a lifecycle event: it controls
+ * whether the Class is shown on the homepage and can be purchased. Existing
+ * Participants, Tokens, Sessions and quota are untouched, and terms acceptance
+ * for anyone who already paid keeps working.
+ */
+async function applyClassStatus(
+  ctx: GenericMutationCtx<GenericDataModel>,
+  args: { class_id: string; status: "active" | "inactive"; admin_username: string }
+): Promise<{ class_id: string }> {
+  const classRecord = await ctx.db
+    .query("classes")
+    .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
+    .first();
+
+  if (!classRecord) {
+    throw new Error("Class not found.");
+  }
+
+  const admin = await ctx.db
+    .query("admins")
+    .withIndex("by_username", (q) => q.eq("username", args.admin_username))
+    .first();
+
+  if (!admin || admin.role !== "super_admin") {
+    throw new Error("Only super admins can change class availability.");
+  }
+
+  if (classRecord.status === args.status) {
+    return { class_id: args.class_id };
+  }
+
+  const now = Date.now();
+  await ctx.db.patch(classRecord._id as GenericId<"classes">, { status: args.status });
+
+  await ctx.db.insert("audit_logs", {
+    admin_id: admin._id as GenericId<"admins">,
+    action: "class_status_changed",
+    entity_type: "classes",
+    entity_id: classRecord.class_id,
+    metadata: {
+      previous_status: classRecord.status,
+      next_status: args.status,
+    },
+    created_at: now,
+  });
+
+  return { class_id: args.class_id };
+}
+
+export const setClassStatus = mutationGeneric({
+  args: {
+    class_id: v.string(),
+    status: v.union(v.literal("active"), v.literal("inactive")),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    class_id: v.string(),
+  }),
+  handler: async (ctx, args) => applyClassStatus(ctx, args),
+});
+
+/** Alias kept for existing callers; sets availability to inactive. */
 export const cancelClass = mutationGeneric({
   args: {
     class_id: v.string(),
@@ -182,62 +250,10 @@ export const cancelClass = mutationGeneric({
   returns: v.object({
     class_id: v.string(),
   }),
-  handler: async (ctx, args) => {
-    const classRecord = await ctx.db
-      .query("classes")
-      .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
-      .first();
-
-    if (!classRecord) {
-      throw new Error("Class not found.");
-    }
-
-    const admin = await ctx.db
-      .query("admins")
-      .withIndex("by_username", (q) => q.eq("username", args.admin_username))
-      .first();
-
-    if (!admin || admin.role !== "super_admin") {
-      throw new Error("Only super admins can cancel classes.");
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    const sessions = await ctx.db
-      .query("sessions")
-      .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
-      .collect();
-
-    const hasActiveFutureSessions = sessions.some(
-      (session) => session.status !== "cancelled" && session.date >= today
-    );
-
-    if (hasActiveFutureSessions) {
-      throw new Error(
-        "Cannot cancel class with active future sessions. Cancel those sessions first."
-      );
-    }
-
-    if (classRecord.status === "inactive") {
-      return { class_id: classRecord.class_id };
-    }
-
-    const now = Date.now();
-    await ctx.db.patch(classRecord._id, {
+  handler: async (ctx, args) =>
+    applyClassStatus(ctx, {
+      class_id: args.class_id,
       status: "inactive",
-    });
-
-    await ctx.db.insert("audit_logs", {
-      admin_id: admin._id,
-      action: "class_cancelled",
-      entity_type: "classes",
-      entity_id: classRecord.class_id,
-      metadata: {
-        previous_status: classRecord.status,
-        next_status: "inactive",
-      },
-      created_at: now,
-    });
-
-    return { class_id: classRecord.class_id };
-  },
+      admin_username: args.admin_username,
+    }),
 });
