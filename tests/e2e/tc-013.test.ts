@@ -22,7 +22,7 @@ test.describe('TC-013: Change Session selector excludes full sessions (quota = 0
     // Step 1: Create a class
     const cls = await convexMutation('adminClasses:createClass', {
       name_zh: `TC013 Class ${testId}`,
-      description: 'TC013 full session exclusion test',
+      description_zh: 'TC013 full session exclusion test',
       admin_username: 'admin',
     }) as { class_id: string };
 

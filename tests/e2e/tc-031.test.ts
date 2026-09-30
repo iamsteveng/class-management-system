@@ -34,7 +34,7 @@ test.describe('TC-031: Attendance record — contains correct adminUsername and 
     // Step 1: Create a class via Convex API
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC031 Class ${testId}`,
-      description: 'Attendance record fields test',
+      description_zh: 'Attendance record fields test',
       admin_username: 'admin',
     }) as { class_id: string };
 

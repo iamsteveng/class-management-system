@@ -76,12 +76,12 @@ After payment, N purchase records are created and a WhatsApp link is sent per pa
 - [ ] Create the corresponding product in the Loco Mart portal
 - [ ] Add the new product ID to the Loco Events module: **Extensions → Extensions → Modules → Loco Events**
 
-### 3. Homepage Image
-- [ ] Prepare an image for the class and add it to the project (e.g. `/public/images/homepage/` or an S3 URL)
+### 3. Homepage Card Content
+- [ ] Prepare an image for the class and upload it (e.g. an S3 URL, or add it under `/public/images/homepage/`)
+- [ ] In the admin portal, edit the Class and fill in **Description (ZH/EN)**, **Duration (minutes)** and **Image URL** — the homepage card reads these straight from the Class
 
-### 4. Code Changes
-- [ ] **`app/i18n/courseConfig.ts`** — add a `COURSE_CONFIG` entry for the new `class_id` with `duration`, `originalPrice`, `discountPrice`, `image`, `description_zh`, `description_en`
-- [ ] **`convex/productMapping.ts`** — add the product ID → class ID mapping under `prod` (and `uat` if applicable) _(Payment Method A only)_
+### 4. Code Changes _(Payment Method A only)_
+- [ ] **`convex/productMapping.ts`** — add the product ID → class ID mapping under `prod` (and `uat` if applicable)
 - [ ] Run `npx tsc --noEmit` to verify no type errors
 - [ ] Commit and deploy: `npx convex deploy --yes`
 

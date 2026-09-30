@@ -22,7 +22,7 @@ test('TC-047: Rain-cancelled participant can successfully change to a future ses
   // Step 1: Create class with two sessions — current (rain-cancelled) and target (future)
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC047 Class ${testId}`,
-    description: 'Rain cancel change session success flow',
+    description_zh: 'Rain cancel change session success flow',
     admin_username: 'admin',
   }) as { class_id: string };
 

@@ -10,7 +10,10 @@ export const getClassListPageData = queryGeneric({
       class_id: v.string(),
       class_name: v.string(),
       name_en: v.optional(v.string()),
-      description: v.optional(v.string()),
+      description_zh: v.optional(v.string()),
+      description_en: v.optional(v.string()),
+      duration_minutes: v.optional(v.number()),
+      image_url: v.optional(v.string()),
       total_sessions: v.number(),
       status: v.union(v.literal("active"), v.literal("inactive")),
       payment_url: v.optional(v.string()),
@@ -35,7 +38,11 @@ export const getClassListPageData = queryGeneric({
       class_id: cls.class_id,
       class_name: cls.name_zh ?? "",
       name_en: cls.name_en,
-      description: cls.description,
+      // Fall back to the legacy field until migrations:backfillClassCardContent has run.
+      description_zh: cls.description_zh ?? (cls.description || undefined),
+      description_en: cls.description_en,
+      duration_minutes: cls.duration_minutes,
+      image_url: cls.image_url,
       total_sessions: sessionCountByClassId.get(cls.class_id) ?? 0,
       status: cls.status,
       payment_url: cls.payment_url,
@@ -52,7 +59,10 @@ export const createClass = mutationGeneric({
   args: {
     name_zh: v.string(),
     name_en: v.optional(v.string()),
-    description: v.optional(v.string()),
+    description_zh: v.optional(v.string()),
+    description_en: v.optional(v.string()),
+    duration_minutes: v.optional(v.number()),
+    image_url: v.optional(v.string()),
     payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
@@ -77,7 +87,10 @@ export const createClass = mutationGeneric({
       class_id: classId,
       name_zh: args.name_zh.trim(),
       name_en: args.name_en?.trim() || undefined,
-      description: args.description?.trim(),
+      description_zh: args.description_zh?.trim() || undefined,
+      description_en: args.description_en?.trim() || undefined,
+      duration_minutes: args.duration_minutes,
+      image_url: args.image_url?.trim() || undefined,
       payment_url: args.payment_url?.trim() || undefined,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
@@ -95,7 +108,7 @@ export const createClass = mutationGeneric({
       entity_id: classId,
       metadata: {
         name_zh: args.name_zh.trim(),
-        description: args.description?.trim(),
+        description_zh: args.description_zh?.trim(),
       },
       created_at: now,
     });
@@ -109,7 +122,10 @@ export const updateClass = mutationGeneric({
     class_id: v.string(),
     name_zh: v.string(),
     name_en: v.optional(v.string()),
-    description: v.optional(v.string()),
+    description_zh: v.optional(v.string()),
+    description_en: v.optional(v.string()),
+    duration_minutes: v.optional(v.number()),
+    image_url: v.optional(v.string()),
     payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
@@ -143,13 +159,17 @@ export const updateClass = mutationGeneric({
     const now = Date.now();
     const nextNameZh = args.name_zh.trim();
     const nextNameEn = args.name_en?.trim() || undefined;
-    const nextDescription = args.description?.trim() ?? "";
+    const nextDescriptionZh = args.description_zh?.trim() || undefined;
     const nextPaymentUrl = args.payment_url?.trim() || undefined;
 
     await ctx.db.patch(classRecord._id, {
       name_zh: nextNameZh,
       name_en: nextNameEn,
-      description: nextDescription,
+      description: undefined,
+      description_zh: nextDescriptionZh,
+      description_en: args.description_en?.trim() || undefined,
+      duration_minutes: args.duration_minutes,
+      image_url: args.image_url?.trim() || undefined,
       payment_url: nextPaymentUrl,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
@@ -166,8 +186,8 @@ export const updateClass = mutationGeneric({
       metadata: {
         previous_name_zh: classRecord.name_zh,
         next_name_zh: nextNameZh,
-        previous_description: classRecord.description ?? "",
-        next_description: nextDescription,
+        previous_description_zh: classRecord.description_zh ?? classRecord.description ?? "",
+        next_description_zh: nextDescriptionZh ?? "",
       },
       created_at: now,
     });

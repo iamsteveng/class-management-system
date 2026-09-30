@@ -23,7 +23,7 @@ test.describe('TC-030: Terms form — emergency contact phone accepts valid inte
     // Step 1: Create a class and session for selection in the form
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC030 Class ${testId}`,
-      description: 'International phone format test',
+      description_zh: 'International phone format test',
       admin_username: 'admin',
     }) as { class_id: string };
 

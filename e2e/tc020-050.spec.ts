@@ -152,7 +152,7 @@ test('TC-022: Admin action logged to audit_logs', async () => {
   const className = `TC22 Class ${Date.now()}`;
   const created = await convexMutation<{ class_id: string }>('adminClasses:createClass', {
     name_zh: className,
-    description: 'tc022',
+    description_zh: 'tc022',
     admin_username: 'admin',
   });
 
@@ -234,7 +234,7 @@ test('TC-026: Super Admin can cancel class', async () => {
   const className = `TC26 Class ${Date.now()}`;
   const created = await convexMutation<{ class_id: string }>('adminClasses:createClass', {
     name_zh: className,
-    description: 'tc026',
+    description_zh: 'tc026',
     admin_username: 'admin',
   });
 

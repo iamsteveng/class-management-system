@@ -72,7 +72,7 @@ export const createFreePurchase = actionGeneric({
   handler: async (ctx, args) => {
     // SECURITY: never trust the client — verify server-side that the class is genuinely free.
     const classes = await ctx.runQuery(
-      makeFunctionReference<"query">("homepage:listClassesWithPaymentUrl"),
+      makeFunctionReference<"query">("homepage:listClassesOnSale"),
       {}
     );
     const cls = classes.find((c: { class_id: string; is_free?: boolean }) => c.class_id === args.class_id);

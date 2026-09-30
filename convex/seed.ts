@@ -21,12 +21,16 @@ export const seedInitialData = mutationGeneric({
       {
         class_id: "class_cycling_fundamentals",
         name_zh: "單車基礎班",
-        description: "Beginner-friendly coached cycling class.",
+        description_en: "Beginner-friendly coached cycling class.",
+        duration_minutes: 180,
+        image_url: "/images/homepage/30c657383d224670b9671a2f703069965543dc7c.png",
       },
       {
         class_id: "class_city_guided_tour",
         name_zh: "城市導賞單車遊",
-        description: "Guided outdoor city tour with curated stops.",
+        description_en: "Guided outdoor city tour with curated stops.",
+        duration_minutes: 120,
+        image_url: "/images/homepage/1b6dde4eac8d4c724b5927af3ad2e95753044659.png",
       },
     ] as const;
 

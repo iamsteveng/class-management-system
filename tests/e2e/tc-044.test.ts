@@ -22,7 +22,7 @@ test('TC-044: Participant sees amber rain banner when session is rain-cancelled'
   // Step 1: Create class, session, and participant
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC044 Class ${testId}`,
-    description: 'Participant rain banner test',
+    description_zh: 'Participant rain banner test',
     admin_username: 'admin',
   }) as { class_id: string };
 

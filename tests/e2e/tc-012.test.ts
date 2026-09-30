@@ -22,7 +22,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
     // Step 1: Create Class A — the participant's class
     const classA = await convexMutation('adminClasses:createClass', {
       name_zh: `TC012 Class A ${testId}`,
-      description: 'TC012 eligible sessions test',
+      description_zh: 'TC012 eligible sessions test',
       admin_username: 'admin',
     }) as { class_id: string };
 
@@ -78,7 +78,7 @@ test.describe('TC-012: Change Session selector shows only eligible sessions (sam
     // Step 6: Create Class B — different class, its sessions should NOT appear
     const classB = await convexMutation('adminClasses:createClass', {
       name_zh: `TC012 Class B ${testId}`,
-      description: 'TC012 different class',
+      description_zh: 'TC012 different class',
       admin_username: 'admin',
     }) as { class_id: string };
 

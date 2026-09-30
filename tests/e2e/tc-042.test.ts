@@ -22,7 +22,7 @@ test('TC-042: Cancel (Rain) button marks session as cancelled (rain), shows ambe
   // Step 1: Create a class and a scheduled session
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC042 Class ${testId}`,
-    description: 'Rain cancel flow test',
+    description_zh: 'Rain cancel flow test',
     admin_username: 'admin',
   }) as { class_id: string };
 

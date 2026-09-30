@@ -26,7 +26,7 @@ test('TC-045: Rain-cancelled participant sees only future sessions in Change Ses
   //   - "Future" session: date in the future, scheduled, quota available — MUST appear
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC045 Class ${testId}`,
-    description: 'Rain cancel — future-date filter still applies',
+    description_zh: 'Rain cancel — future-date filter still applies',
     admin_username: 'admin',
   }) as { class_id: string };
 

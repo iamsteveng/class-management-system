@@ -23,7 +23,7 @@ test.describe('TC-008: Participant list does NOT show Name column', () => {
     // Step 1: Create a class
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC008 Class ${testId}`,
-      description: 'TC-008 participant list no name column test',
+      description_zh: 'TC-008 participant list no name column test',
       admin_username: 'admin',
     }) as { class_id: string };
 

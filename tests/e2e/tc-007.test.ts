@@ -23,14 +23,14 @@ test.describe('TC-007: Class listing filter can switch to Inactive and All', () 
     // Step 1: Create an active class
     const activeClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC007 Active Class ${testId}`,
-      description: 'TC-007 active class seed',
+      description_zh: 'TC-007 active class seed',
       admin_username: 'admin',
     }) as { class_id: string };
 
     // Step 2: Create a class and cancel it (making it inactive)
     const inactiveClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC007 Inactive Class ${testId}`,
-      description: 'TC-007 inactive class seed',
+      description_zh: 'TC-007 inactive class seed',
       admin_username: 'admin',
     }) as { class_id: string };
 

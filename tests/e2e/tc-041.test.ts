@@ -22,7 +22,7 @@ test('TC-041: Super admin sees "Cancel (Rain)" button only on scheduled sessions
   // Step 1: Create a class with one scheduled and one cancelled session
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC041 Class ${testId}`,
-    description: 'Rain cancel button visibility test',
+    description_zh: 'Rain cancel button visibility test',
     admin_username: 'admin',
   }) as { class_id: string };
 

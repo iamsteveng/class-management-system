@@ -13,7 +13,10 @@ type ClassRow = {
   class_id: string;
   class_name: string;
   name_en?: string;
-  description?: string;
+  description_zh?: string;
+  description_en?: string;
+  duration_minutes?: number;
+  image_url?: string;
   total_sessions: number;
   status: "active" | "inactive";
   payment_url?: string;
@@ -59,8 +62,13 @@ export default async function AdminClassesPage({
 
     const nameZh = (formData.get("name_zh") as string | null)?.trim() ?? "";
     const nameEn = (formData.get("name_en") as string | null)?.trim() || undefined;
-    const description =
-      (formData.get("description") as string | null)?.trim() || undefined;
+    const descriptionZh =
+      (formData.get("description_zh") as string | null)?.trim() || undefined;
+    const descriptionEn =
+      (formData.get("description_en") as string | null)?.trim() || undefined;
+    const durationMinutesRaw = (formData.get("duration_minutes") as string | null)?.trim() || undefined;
+    const durationMinutes = durationMinutesRaw ? parseInt(durationMinutesRaw, 10) : undefined;
+    const imageUrl = (formData.get("image_url") as string | null)?.trim() || undefined;
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
     const isFree = formData.get("is_free") === "true";
@@ -75,7 +83,7 @@ export default async function AdminClassesPage({
       const client = createConvexHttpClient();
       await client.mutation(
         makeFunctionReference<"mutation">("adminClasses:createClass"),
-        { name_zh: nameZh, name_en: nameEn, description, payment_url: paymentUrl, is_free: isFree, admin_username: adminUsername }
+        { name_zh: nameZh, name_en: nameEn, description_zh: descriptionZh, description_en: descriptionEn, duration_minutes: durationMinutes, image_url: imageUrl, payment_url: paymentUrl, is_free: isFree, admin_username: adminUsername }
       );
     } catch {
       redirect(
@@ -92,8 +100,13 @@ export default async function AdminClassesPage({
     const classId = (formData.get("class_id") as string | null)?.trim() ?? "";
     const nameZh = (formData.get("name_zh") as string | null)?.trim() ?? "";
     const nameEn = (formData.get("name_en") as string | null)?.trim() || undefined;
-    const description =
-      (formData.get("description") as string | null)?.trim() ?? "";
+    const descriptionZh =
+      (formData.get("description_zh") as string | null)?.trim() || undefined;
+    const descriptionEn =
+      (formData.get("description_en") as string | null)?.trim() || undefined;
+    const durationMinutesRaw = (formData.get("duration_minutes") as string | null)?.trim() || undefined;
+    const durationMinutes = durationMinutesRaw ? parseInt(durationMinutesRaw, 10) : undefined;
+    const imageUrl = (formData.get("image_url") as string | null)?.trim() || undefined;
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
     const airwallexPriceRaw = (formData.get("airwallex_price") as string | null)?.trim() || undefined;
@@ -120,7 +133,10 @@ export default async function AdminClassesPage({
           class_id: classId,
           name_zh: nameZh,
           name_en: nameEn,
-          description,
+          description_zh: descriptionZh,
+          description_en: descriptionEn,
+          duration_minutes: durationMinutes,
+          image_url: imageUrl,
           payment_url: paymentUrl,
           airwallex_price: airwallexPrice,
           airwallex_currency: airwallexCurrency,
@@ -274,7 +290,10 @@ export default async function AdminClassesPage({
                           classId={cls.class_id}
                           initialName={cls.class_name}
                           initialNameEn={cls.name_en}
-                          initialDescription={cls.description}
+                          initialDescriptionZh={cls.description_zh}
+                          initialDescriptionEn={cls.description_en}
+                          initialDurationMinutes={cls.duration_minutes}
+                          initialImageUrl={cls.image_url}
                           initialPaymentUrl={cls.payment_url}
                           initialAirwallexPrice={cls.airwallex_price}
                           initialAirwallexCurrency={cls.airwallex_currency}

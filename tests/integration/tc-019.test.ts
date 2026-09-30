@@ -34,7 +34,7 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
     // Step 1: Create a test class
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC019 WA Notify Class ${testId}`,
-      description: 'Change session WhatsApp notification test',
+      description_zh: 'Change session WhatsApp notification test',
       admin_username: 'admin',
     }) as { class_id: string };
     console.log(`TC-019 created class: ${createdClass.class_id}`);

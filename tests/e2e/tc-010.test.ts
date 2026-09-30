@@ -22,7 +22,7 @@ test.describe('TC-010: Super admin sees Change Session button on participant det
     // Step 1: Create a class via Convex
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC010 Class ${testId}`,
-      description: 'Change Session button visibility test',
+      description_zh: 'Change Session button visibility test',
       admin_username: 'admin',
     }) as { class_id: string };
 
