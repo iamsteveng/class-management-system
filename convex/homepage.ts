@@ -1,6 +1,8 @@
 import { queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
+import { resolveAppBaseUrl } from "../lib/appBaseUrl";
+
 const upcomingSessionValidator = v.object({
   session_id: v.string(),
   location_zh: v.string(),
@@ -43,10 +45,20 @@ function toUpcomingSessions(sessions: SessionDoc[]) {
     );
 }
 
+/** Absolute Purchase Link for a Class, or undefined when APP_BASE_URL is not configured. */
+function buildPurchaseUrl(classId: string): string | undefined {
+  let baseUrl: string;
+  try {
+    baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
+  } catch {
+    return undefined;
+  }
+  return `${baseUrl}/apply/${encodeURIComponent(classId)}`;
+}
+
 /**
- * Classes currently on sale — active and purchasable via an external payment URL,
- * Airwallex or for free — with everything the homepage Class card shows, including
- * each Class's upcoming Sessions.
+ * Classes currently on sale — active and sold on this site, via Airwallex or for free —
+ * with everything a Class card shows, including its Purchase Link and upcoming Sessions.
  */
 export const listClassesOnSale = queryGeneric({
   args: {},
@@ -59,7 +71,7 @@ export const listClassesOnSale = queryGeneric({
       description_en: v.optional(v.string()),
       duration_minutes: v.optional(v.number()),
       image_url: v.optional(v.string()),
-      payment_url: v.optional(v.string()),
+      purchase_url: v.optional(v.string()),
       airwallex_price: v.optional(v.number()),
       airwallex_currency: v.optional(v.string()),
       airwallex_group_price: v.optional(v.number()),
@@ -75,9 +87,7 @@ export const listClassesOnSale = queryGeneric({
       .filter(
         (cls) =>
           cls.status === "active" &&
-          ((typeof cls.payment_url === "string" && cls.payment_url.length > 0) ||
-            typeof cls.airwallex_price === "number" ||
-            cls.is_free === true)
+          (typeof cls.airwallex_price === "number" || cls.is_free === true)
       )
       .sort((left, right) => left.created_at - right.created_at);
 
@@ -96,7 +106,7 @@ export const listClassesOnSale = queryGeneric({
           description_en: cls.description_en,
           duration_minutes: cls.duration_minutes,
           image_url: cls.image_url,
-          payment_url: cls.payment_url,
+          purchase_url: buildPurchaseUrl(cls.class_id),
           airwallex_price: cls.airwallex_price,
           airwallex_currency: cls.airwallex_currency,
           airwallex_group_price: cls.airwallex_group_price,

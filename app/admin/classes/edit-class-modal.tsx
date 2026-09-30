@@ -11,7 +11,6 @@ type EditClassModalProps = {
   initialDescriptionEn?: string;
   initialDurationMinutes?: number;
   initialImageUrl?: string;
-  initialPaymentUrl?: string;
   initialAirwallexPrice?: number;
   initialAirwallexCurrency?: string;
   initialAirwallexGroupPrice?: number;
@@ -28,7 +27,6 @@ export function EditClassModal({
   initialDescriptionEn,
   initialDurationMinutes,
   initialImageUrl,
-  initialPaymentUrl,
   initialAirwallexPrice,
   initialAirwallexCurrency,
   initialAirwallexGroupPrice,
@@ -172,23 +170,6 @@ export function EditClassModal({
                   name="image_url"
                   type="url"
                   defaultValue={initialImageUrl ?? ""}
-                  placeholder="https://..."
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  htmlFor={`edit-payment-url-${fieldId}`}
-                  className="block text-sm font-medium text-zinc-900"
-                >
-                  Payment URL
-                </label>
-                <input
-                  id={`edit-payment-url-${fieldId}`}
-                  name="payment_url"
-                  type="url"
-                  defaultValue={initialPaymentUrl ?? ""}
                   placeholder="https://..."
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />

@@ -47,17 +47,12 @@ npx convex env set APP_BASE_URL "https://<preview-url>.vercel.app"
 
 ## Adding a New Class
 
+Classes are only sold on this site. Adding one needs no code change.
+
 ### 1. Admin Portal
-- [ ] Create the class in the admin portal (`/admin/classes`) — set name and description
+- [ ] Create the class in the admin portal (`/admin/classes`) — set the name, and tick **Free of charge** if it is free
 - [ ] Add sessions for the class (`/admin/classes/{class_id}/sessions`)
-- [ ] Choose a payment method (see below)
-
-#### Payment Method A — External payment link (Loco Mart)
-Set the **Payment URL** field to the Loco Mart product page URL for this class.
-The homepage will show a "Buy Ticket" button that opens the external URL in a new tab.
-
-#### Payment Method B — In-page Airwallex card payment
-Leave Payment URL empty and fill in the **Airwallex** fields instead:
+- [ ] For a paid class, **Edit** it and fill in the **Airwallex** fields:
 
 | Field | Description | Example |
 |---|---|---|
@@ -66,24 +61,15 @@ Leave Payment URL empty and fill in the **Airwallex** fields instead:
 | **Group Price** _(optional)_ | Discounted price per person when buying in a group | `250` |
 | **Min Qty for Group Price** _(optional)_ | Minimum quantity to qualify for group price | `2` |
 
-The homepage will show an "Apply Now / 立即報名" button that opens `/apply/{class_id}`.
-Customers enter their WhatsApp number, quantity (1–15), and pay by card.
+A class is on sale — shown on the homepage and returned by `/api/classes` — once it is active and has an Airwallex Price or is free.
+Its Purchase Link (`purchase_url` in the API, built from `APP_BASE_URL`) is `/apply/{class_id}`, where Customers enter their WhatsApp number, quantity (1–15), and pay by card.
 After payment, N purchase records are created and a WhatsApp link is sent per participant.
 
 > **Note:** Airwallex env vars must be set in Vercel: `AIRWALLEX_CLIENT_ID`, `AIRWALLEX_API_KEY`, `AIRWALLEX_ENV`, `NEXT_PUBLIC_AIRWALLEX_ENV`.
 
-### 2. Loco Mart Portal _(Payment Method A only)_
-- [ ] Create the corresponding product in the Loco Mart portal
-- [ ] Add the new product ID to the Loco Events module: **Extensions → Extensions → Modules → Loco Events**
-
-### 3. Homepage Card Content
-- [ ] Prepare an image for the class and upload it (e.g. an S3 URL, or add it under `/public/images/homepage/`)
+### 2. Homepage Card Content
+- [ ] Upload an image for the class (e.g. to `asset.loco.hk` on S3) — it must be a full `https://` URL
 - [ ] In the admin portal, edit the Class and fill in **Description (ZH/EN)**, **Duration (minutes)** and **Image URL** — the homepage card reads these straight from the Class
-
-### 4. Code Changes _(Payment Method A only)_
-- [ ] **`convex/productMapping.ts`** — add the product ID → class ID mapping under `prod` (and `uat` if applicable)
-- [ ] Run `npx tsc --noEmit` to verify no type errors
-- [ ] Open a PR and merge it — merging deploys both Vercel prod and Convex prod
 
 ---
 

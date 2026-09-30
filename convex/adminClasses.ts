@@ -31,7 +31,6 @@ export const getClassListPageData = queryGeneric({
       image_url: v.optional(v.string()),
       total_sessions: v.number(),
       status: v.union(v.literal("active"), v.literal("inactive")),
-      payment_url: v.optional(v.string()),
       airwallex_price: v.optional(v.number()),
       airwallex_currency: v.optional(v.string()),
       airwallex_group_price: v.optional(v.number()),
@@ -59,7 +58,6 @@ export const getClassListPageData = queryGeneric({
       image_url: cls.image_url,
       total_sessions: sessionCountByClassId.get(cls.class_id) ?? 0,
       status: cls.status,
-      payment_url: cls.payment_url,
       airwallex_price: cls.airwallex_price,
       airwallex_currency: cls.airwallex_currency,
       airwallex_group_price: cls.airwallex_group_price,
@@ -77,7 +75,6 @@ export const createClass = mutationGeneric({
     description_en: v.optional(v.string()),
     duration_minutes: v.optional(v.number()),
     image_url: v.optional(v.string()),
-    payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
     airwallex_group_price: v.optional(v.number()),
@@ -105,7 +102,6 @@ export const createClass = mutationGeneric({
       description_en: args.description_en?.trim() || undefined,
       duration_minutes: args.duration_minutes,
       image_url: normalizeImageUrl(args.image_url),
-      payment_url: args.payment_url?.trim() || undefined,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
       airwallex_group_price: args.airwallex_group_price,
@@ -140,7 +136,6 @@ export const updateClass = mutationGeneric({
     description_en: v.optional(v.string()),
     duration_minutes: v.optional(v.number()),
     image_url: v.optional(v.string()),
-    payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
     airwallex_group_price: v.optional(v.number()),
@@ -174,7 +169,6 @@ export const updateClass = mutationGeneric({
     const nextNameZh = args.name_zh.trim();
     const nextNameEn = args.name_en?.trim() || undefined;
     const nextDescriptionZh = args.description_zh?.trim() || undefined;
-    const nextPaymentUrl = args.payment_url?.trim() || undefined;
 
     await ctx.db.patch(classRecord._id, {
       name_zh: nextNameZh,
@@ -183,7 +177,7 @@ export const updateClass = mutationGeneric({
       description_en: args.description_en?.trim() || undefined,
       duration_minutes: args.duration_minutes,
       image_url: normalizeImageUrl(args.image_url),
-      payment_url: nextPaymentUrl,
+      payment_url: undefined,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
       airwallex_group_price: args.airwallex_group_price,

@@ -34,7 +34,6 @@ test('TC-050: Valid E.164 mobile submitted in terms form is stored in E.164 form
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC050 Class ${testId}`,
     admin_username: 'admin',
-    payment_url: `https://example.com/tc050-${testId}`,
   }) as { class_id: string };
   const session = await convexMutation('adminSessions:createSession', {
     class_id: cls.class_id,

@@ -1,4 +1,4 @@
-import { mutationGeneric } from "convex/server";
+import { internalMutationGeneric, mutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
 /**
@@ -55,5 +55,25 @@ export const migrateToNameZhLocationZh = mutationGeneric({
     }
 
     return { classes_migrated: classesMigrated, sessions_migrated: sessionsMigrated };
+  },
+});
+
+/**
+ * Migration: clear the obsolete `payment_url` from every Class. Classes are only sold
+ * on this site now. Safe to run more than once.
+ */
+export const clearClassPaymentUrl = internalMutationGeneric({
+  args: {},
+  returns: v.object({ classes_updated: v.number() }),
+  handler: async (ctx) => {
+    let classesUpdated = 0;
+    const classes = await ctx.db.query("classes").collect();
+    for (const cls of classes) {
+      if (cls.payment_url !== undefined) {
+        await ctx.db.patch(cls._id, { payment_url: undefined });
+        classesUpdated += 1;
+      }
+    }
+    return { classes_updated: classesUpdated };
   },
 });

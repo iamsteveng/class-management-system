@@ -19,7 +19,6 @@ type ClassRow = {
   image_url?: string;
   total_sessions: number;
   status: "active" | "inactive";
-  payment_url?: string;
   airwallex_price?: number;
   airwallex_currency?: string;
   airwallex_group_price?: number;
@@ -74,8 +73,6 @@ export default async function AdminClassesPage({
         `/admin/classes?error=${encodeURIComponent("Image URL must be a full URL starting with https://")}`
       );
     }
-    const paymentUrl =
-      (formData.get("payment_url") as string | null)?.trim() || undefined;
     const isFree = formData.get("is_free") === "true";
 
     if (!nameZh) {
@@ -88,7 +85,7 @@ export default async function AdminClassesPage({
       const client = createConvexHttpClient();
       await client.mutation(
         makeFunctionReference<"mutation">("adminClasses:createClass"),
-        { name_zh: nameZh, name_en: nameEn, description_zh: descriptionZh, description_en: descriptionEn, duration_minutes: durationMinutes, image_url: imageUrl, payment_url: paymentUrl, is_free: isFree, admin_username: adminUsername }
+        { name_zh: nameZh, name_en: nameEn, description_zh: descriptionZh, description_en: descriptionEn, duration_minutes: durationMinutes, image_url: imageUrl, is_free: isFree, admin_username: adminUsername }
       );
     } catch {
       redirect(
@@ -117,8 +114,6 @@ export default async function AdminClassesPage({
         `/admin/classes?error=${encodeURIComponent("Image URL must be a full URL starting with https://")}`
       );
     }
-    const paymentUrl =
-      (formData.get("payment_url") as string | null)?.trim() || undefined;
     const airwallexPriceRaw = (formData.get("airwallex_price") as string | null)?.trim() || undefined;
     const airwallexPrice = airwallexPriceRaw ? parseFloat(airwallexPriceRaw) : undefined;
     const airwallexCurrency =
@@ -147,7 +142,7 @@ export default async function AdminClassesPage({
           description_en: descriptionEn,
           duration_minutes: durationMinutes,
           image_url: imageUrl,
-          payment_url: paymentUrl,
+         
           airwallex_price: airwallexPrice,
           airwallex_currency: airwallexCurrency,
           airwallex_group_price: airwallexGroupPrice,
@@ -304,7 +299,6 @@ export default async function AdminClassesPage({
                           initialDescriptionEn={cls.description_en}
                           initialDurationMinutes={cls.duration_minutes}
                           initialImageUrl={cls.image_url}
-                          initialPaymentUrl={cls.payment_url}
                           initialAirwallexPrice={cls.airwallex_price}
                           initialAirwallexCurrency={cls.airwallex_currency}
                           initialAirwallexGroupPrice={cls.airwallex_group_price}

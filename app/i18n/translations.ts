@@ -53,7 +53,6 @@ export interface Translations {
     title: string;
     subtitle: string;
     enrollingClasses: string;
-    enrollButton: string;
     applyButton: string;
     priceIndividual: string;
     priceGroup: (minQty: number) => string;
@@ -156,7 +155,7 @@ export const translations: Record<Language, Translations> = {
       title: '如何報名',
       step1: {
         title: '在線報名',
-        description: '點擊「按此報名」跳轉至 Loco Mart 選購相關課程。',
+        description: '點擊「立即報名」，選擇人數並完成付款。',
       },
       step2: {
         title: '登記資料',
@@ -172,7 +171,6 @@ export const translations: Record<Language, Translations> = {
       title: '尋找最適合你的單車課程',
       subtitle: '我們針對不同年齡及程度提供專業培訓，並在課程中實踐友善騎行文化 。所有課程均包含免費安全裝備租用 。',
       enrollingClasses: '現正招生班別',
-      enrollButton: '按此報名',
       applyButton: '立即報名',
       priceIndividual: '個人',
       priceGroup: (minQty: number) => `${minQty}人或以上`,
@@ -276,7 +274,7 @@ export const translations: Record<Language, Translations> = {
       title: 'How to Enroll',
       step1: {
         title: 'Online Registration',
-        description: 'Click "Enroll Now" to visit Loco Mart and select your course.',
+        description: 'Click "Apply Now", choose the number of participants and complete payment.',
       },
       step2: {
         title: 'Submit Information',
@@ -292,7 +290,6 @@ export const translations: Record<Language, Translations> = {
       title: 'Find the Best Cycling Course for You',
       subtitle: 'We provide professional training for different ages and skill levels, practicing friendly cycling culture in all courses. All courses include free safety equipment rental.',
       enrollingClasses: 'Currently Enrolling',
-      enrollButton: 'Enroll Now',
       applyButton: 'Apply Now',
       priceIndividual: 'Individual',
       priceGroup: (minQty: number) => `${minQty}+ people`,

@@ -25,6 +25,12 @@ always derived from it, never written separately. A Class with a Price of zero i
 _Avoid_: Free class (as a separate kind of Class)
 _Avoid_: Original price, Discount price (as separately stored figures)
 
+**Purchase Link**:
+The public address where a Customer starts buying Tickets for a Class on this site. Every
+Class on sale has one, and it is the same wherever the Class is shown, on the website or
+in the app. Classes are only sold on this site.
+_Avoid_: Application URL, Payment URL, Application link (that is the Token's delivery)
+
 **Group Price**:
 A lower Price for a Class that applies when an Order holds at least a set minimum number
 of Tickets.

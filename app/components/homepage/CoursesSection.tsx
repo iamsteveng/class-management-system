@@ -25,7 +25,7 @@ interface Course {
   duration_minutes?: number;
   image_url?: string;
   classes: ClassSchedule[];
-  paymentUrl?: string;
+  purchaseUrl?: string;
   airwallex_price?: number;
   airwallex_currency?: string;
   airwallex_group_price?: number;
@@ -51,7 +51,7 @@ interface ApiClass {
   description_en?: string;
   duration_minutes?: number;
   image_url?: string;
-  payment_url?: string;
+  purchase_url?: string;
   airwallex_price?: number;
   airwallex_currency?: string;
   airwallex_group_price?: number;
@@ -279,46 +279,24 @@ function CourseCard({ course }: { course: Course }) {
           )}
         </div>
 
-        {/* Enroll Button */}
-        {course.airwallex_price || course.is_free ? (
-          <Link
-            href={`/apply/${course.id}`}
-            className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
-          >
-            <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
-              <div className="relative shrink-0 size-[20px]">
-                <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
-                    <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
-                  </svg>
-                </div>
+        {/* Apply Button — every Class on sale has a Purchase Link */}
+        <Link
+          href={course.purchaseUrl ?? `/apply/${course.id}`}
+          className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
+        >
+          <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
+            <div className="relative shrink-0 size-[20px]">
+              <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
+                <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
+                  <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
+                </svg>
               </div>
-              <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
-                {t.courses.applyButton}
-              </p>
             </div>
-          </Link>
-        ) : course.paymentUrl ? (
-          <a
-            href={course.paymentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-[#44b0e2] h-[56px] rounded-[360px] cursor-pointer hover:bg-[#3a9ad0] transition-colors border-2 border-[#44b0e2] shadow-[0px_8px_12px_0px_rgba(0,0,0,0.08),0px_4px_6px_0px_rgba(0,0,0,0.16)] w-full block"
-          >
-            <div className="flex items-center justify-center h-full gap-2 px-8 py-4">
-              <div className="relative shrink-0 size-[20px]">
-                <div className="absolute inset-[8.33%_8.33%_12.5%_12.5%]">
-                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15.8331 15.8331">
-                    <path d={svgPaths.p11544500} fill="var(--fill-0, white)" />
-                  </svg>
-                </div>
-              </div>
-              <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
-                {t.courses.enrollButton}
-              </p>
-            </div>
-          </a>
-        ) : null}
+            <p className="font-['Roboto:Semibold','Noto_Sans_JP:Bold',sans-serif] text-[16px] leading-[24px] text-white tracking-[0.15px]" style={{ fontVariationSettings: "'wght' 700" }}>
+              {t.courses.applyButton}
+            </p>
+          </div>
+        </Link>
       </div>
     </div>
   );
@@ -358,7 +336,7 @@ export function CoursesSection() {
             end_time: s.end_time,
             isFull: s.quota_available === 0,
           })),
-          paymentUrl: cls.payment_url,
+          purchaseUrl: cls.purchase_url,
           airwallex_price: cls.airwallex_price,
           airwallex_currency: cls.airwallex_currency,
           airwallex_group_price: cls.airwallex_group_price,
