@@ -34,7 +34,7 @@ test.describe('TC-009: Participant detail does NOT show Name field', () => {
     // Step 1: Create a class
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC009 Class ${testId}`,
-      description: 'TC-009 participant detail no name field test',
+      description_zh: 'TC-009 participant detail no name field test',
       admin_username: 'admin',
     }) as { class_id: string };
 

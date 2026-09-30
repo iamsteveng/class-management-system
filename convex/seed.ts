@@ -21,12 +21,16 @@ export const seedInitialData = mutationGeneric({
       {
         class_id: "class_cycling_fundamentals",
         name_zh: "單車基礎班",
-        description: "Beginner-friendly coached cycling class.",
+        description_en: "Beginner-friendly coached cycling class.",
+        duration_minutes: 180,
+        image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/beginner-cycling.png",
       },
       {
         class_id: "class_city_guided_tour",
         name_zh: "城市導賞單車遊",
-        description: "Guided outdoor city tour with curated stops.",
+        description_en: "Guided outdoor city tour with curated stops.",
+        duration_minutes: 120,
+        image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/guided-tour.png",
       },
     ] as const;
 

@@ -59,6 +59,7 @@ export interface Translations {
     priceGroup: (minQty: number) => string;
     priceFree: string;
     comingSoon: string;
+    duration: (minutes: number) => string;
     course1: {
       title: string;
       description: string;
@@ -177,6 +178,11 @@ export const translations: Record<Language, Translations> = {
       priceGroup: (minQty: number) => `${minQty}人或以上`,
       priceFree: '免費',
       comingSoon: '即將推出',
+      duration: (minutes: number) => {
+        const hours = Math.floor(minutes / 60);
+        const rest = minutes % 60;
+        return [hours > 0 ? `${hours} 小時` : '', rest > 0 ? `${rest} 分鐘` : ''].filter(Boolean).join(' ');
+      },
       course1: {
         title: '單車新手速成班',
         description: '教你由零出發學識踩單車 （包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與**單車技術改進課程）',
@@ -292,6 +298,14 @@ export const translations: Record<Language, Translations> = {
       priceGroup: (minQty: number) => `${minQty}+ people`,
       priceFree: 'Free of charge',
       comingSoon: 'Coming Soon',
+      duration: (minutes: number) => {
+        const hours = Math.floor(minutes / 60);
+        const rest = minutes % 60;
+        return [
+          hours > 0 ? `${hours} ${hours === 1 ? 'hour' : 'hours'}` : '',
+          rest > 0 ? `${rest} min` : '',
+        ].filter(Boolean).join(' ');
+      },
       course1: {
         title: 'Cycling Crash Course for Beginners',
         description: 'Learn to ride a bike from scratch (includes: bike inspection, bike handling skills, cycling safety rules, simulation practice. Upon completion, priority access to **Cycling Skill Improvement Course)',

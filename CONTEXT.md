@@ -10,8 +10,14 @@ sessions and mark attendance.
 
 **Class**:
 A kind of class that is sold and run repeatedly, e.g. 單車班, 導賞團. Carries the name,
-description, price and whether it is currently on sale.
+description (in Chinese and English), price, duration, image and whether it is
+currently on sale. Everything the public sees about a Class comes from the Class itself.
 _Avoid_: Course, Product, 課程, 班別 (in admin contexts, 班級)
+
+**Duration**:
+The advertised length of a Class, shown to Customers before they buy. A Session's own
+start and end times are what count for that occurrence; they are not required to match
+the Duration.
 
 **Price**:
 The amount charged for one Ticket, held only on the Class. What the Customer is shown is

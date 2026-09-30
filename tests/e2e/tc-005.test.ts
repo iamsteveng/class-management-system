@@ -20,7 +20,7 @@ test.describe('TC-005: Regular admin does NOT see payment URL field', () => {
     // Step 1: Create a test class via Convex so there is at least one class in the list
     await convexMutation('adminClasses:createClass', {
       name_zh: `TC005 RegularAdmin Class ${Date.now()}`,
-      description: 'TC-005 payment URL visibility test for regular_admin',
+      description_zh: 'TC-005 payment URL visibility test for regular_admin',
       admin_username: 'admin',
     });
 

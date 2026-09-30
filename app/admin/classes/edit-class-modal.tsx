@@ -7,7 +7,10 @@ type EditClassModalProps = {
   classId: string;
   initialName: string;
   initialNameEn?: string;
-  initialDescription?: string;
+  initialDescriptionZh?: string;
+  initialDescriptionEn?: string;
+  initialDurationMinutes?: number;
+  initialImageUrl?: string;
   initialPaymentUrl?: string;
   initialAirwallexPrice?: number;
   initialAirwallexCurrency?: string;
@@ -21,7 +24,10 @@ export function EditClassModal({
   classId,
   initialName,
   initialNameEn,
-  initialDescription,
+  initialDescriptionZh,
+  initialDescriptionEn,
+  initialDurationMinutes,
+  initialImageUrl,
   initialPaymentUrl,
   initialAirwallexPrice,
   initialAirwallexCurrency,
@@ -105,17 +111,69 @@ export function EditClassModal({
 
               <div className="space-y-2">
                 <label
-                  htmlFor={`edit-description-${fieldId}`}
+                  htmlFor={`edit-description-zh-${fieldId}`}
                   className="block text-sm font-medium text-zinc-900"
                 >
-                  Description
+                  Description (ZH)
                 </label>
                 <textarea
-                  id={`edit-description-${fieldId}`}
-                  name="description"
+                  id={`edit-description-zh-${fieldId}`}
+                  name="description_zh"
                   rows={3}
-                  defaultValue={initialDescription ?? ""}
+                  defaultValue={initialDescriptionZh ?? ""}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-description-en-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Description (EN)
+                </label>
+                <textarea
+                  id={`edit-description-en-${fieldId}`}
+                  name="description_en"
+                  rows={3}
+                  defaultValue={initialDescriptionEn ?? ""}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-duration-minutes-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Duration (minutes)
+                </label>
+                <input
+                  id={`edit-duration-minutes-${fieldId}`}
+                  name="duration_minutes"
+                  type="number"
+                  min="1"
+                  step="1"
+                  defaultValue={initialDurationMinutes ?? ""}
+                  placeholder="e.g. 180"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor={`edit-image-url-${fieldId}`}
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Image URL
+                </label>
+                <input
+                  id={`edit-image-url-${fieldId}`}
+                  name="image_url"
+                  type="url"
+                  defaultValue={initialImageUrl ?? ""}
+                  placeholder="https://..."
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
 

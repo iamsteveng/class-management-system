@@ -34,7 +34,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     // Step 1: Create a class via Convex
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC020 Class ${testId}`,
-      description: 'Idempotent attendance scan test',
+      description_zh: 'Idempotent attendance scan test',
       admin_username: 'admin',
     }) as { class_id: string };
 

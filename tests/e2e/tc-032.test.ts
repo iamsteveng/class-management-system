@@ -29,7 +29,7 @@ test.describe('TC-032: Cancel session backend guard — direct mutation call rej
     // Step 1: Create a class
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC032 Class ${testId}`,
-      description: 'Cancel session guard test',
+      description_zh: 'Cancel session guard test',
       admin_username: 'admin',
     });
     if (createdClass.status !== 'success') throw new Error(`createClass failed: ${createdClass.errorMessage}`);

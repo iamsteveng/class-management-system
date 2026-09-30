@@ -112,16 +112,65 @@ export function AddClassModal({
 
               <div className="space-y-2">
                 <label
-                  htmlFor="add-description"
+                  htmlFor="add-description-zh"
                   className="block text-sm font-medium text-zinc-900"
                 >
-                  Description
+                  Description (ZH)
                 </label>
                 <textarea
-                  id="add-description"
-                  name="description"
+                  id="add-description-zh"
+                  name="description_zh"
                   rows={3}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="add-description-en"
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Description (EN)
+                </label>
+                <textarea
+                  id="add-description-en"
+                  name="description_en"
+                  rows={3}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="add-duration-minutes"
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Duration (minutes)
+                </label>
+                <input
+                  id="add-duration-minutes"
+                  name="duration_minutes"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="e.g. 180"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="add-image-url"
+                  className="block text-sm font-medium text-zinc-900"
+                >
+                  Image URL
+                </label>
+                <input
+                  id="add-image-url"
+                  name="image_url"
+                  type="url"
+                  placeholder="https://..."
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>
 

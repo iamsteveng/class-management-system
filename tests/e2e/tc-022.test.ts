@@ -34,7 +34,7 @@ test.describe('TC-022: Admin participant detail — shows placeholder for unset 
     // Step 1: Create a class
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC022 Class ${testId}`,
-      description: 'Placeholder fields test',
+      description_zh: 'Placeholder fields test',
       admin_username: 'admin',
     }) as { class_id: string };
 

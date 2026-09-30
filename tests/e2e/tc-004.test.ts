@@ -20,7 +20,7 @@ test.describe('TC-004: Super admin sees payment URL field in class edit form', (
     // Step 1: Create a test class via Convex mutation to ensure there is a class to edit
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC004 PaymentURL Class ${Date.now()}`,
-      description: 'TC-004 payment URL visibility test',
+      description_zh: 'TC-004 payment URL visibility test',
       admin_username: 'admin',
     }) as { class_id: string };
 

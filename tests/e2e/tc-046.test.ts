@@ -24,7 +24,7 @@ test('TC-046: Participant in a past-dated session (not rain-cancelled) cannot ch
   // isMoreThanTwoDaysAway = false (past), isRainCancelled = false → canChangeSession = false
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC046 Class ${testId}`,
-    description: '2-day rule applies for non-rain sessions',
+    description_zh: '2-day rule applies for non-rain sessions',
     admin_username: 'admin',
   }) as { class_id: string };
 

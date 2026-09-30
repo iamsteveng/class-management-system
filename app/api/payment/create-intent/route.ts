@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const qty = Math.max(1, Math.min(15, Number(quantity) || 1));
 
-    const classes = await fetchQuery(api.homepage.listClassesWithPaymentUrl, {});
+    const classes = await fetchQuery(api.homepage.listClassesOnSale, {});
     const cls = classes.find((c) => c.class_id === class_id);
     if (!cls || !cls.airwallex_price) {
       return NextResponse.json({ error: "Class not configured for Airwallex payment" }, { status: 404 });

@@ -34,7 +34,7 @@ test.describe('TC-019: Attendance scanning — scanning unknown QR shows error',
     // Step 1: Create a class via Convex
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC019 Class ${testId}`,
-      description: 'Unknown QR error test',
+      description_zh: 'Unknown QR error test',
       admin_username: 'admin',
     }) as { class_id: string };
 

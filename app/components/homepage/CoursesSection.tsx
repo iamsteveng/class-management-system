@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '../../contexts/LanguageContext';
 import svgPaths from './imports/svg-tlbx5elpic';
-import { getCourseConfig } from '../../i18n/courseConfig';
 
 const imgAsset11 = '/images/homepage/dab0f75dd9b9e8607ce30b36e95e0e7b5d3a1a6a.png';
 
@@ -21,27 +20,12 @@ interface Course {
   id: string;
   title_zh: string;
   title_en?: string;
-  description_zh: string;
+  description_zh?: string;
   description_en?: string;
-  duration: string;
-  originalPrice: string;
-  discountPrice: string;
-  image: string;
+  duration_minutes?: number;
+  image_url?: string;
   classes: ClassSchedule[];
   paymentUrl?: string;
-  airwallex_price?: number;
-  airwallex_currency?: string;
-  airwallex_group_price?: number;
-  airwallex_group_min_qty?: number;
-  is_free?: boolean;
-}
-
-interface ApiClass {
-  class_id: string;
-  name_zh: string;
-  name_en?: string;
-  description?: string;
-  payment_url?: string;
   airwallex_price?: number;
   airwallex_currency?: string;
   airwallex_group_price?: number;
@@ -57,6 +41,23 @@ interface ApiSession {
   date: string;
   time: string;
   quota_available: number;
+}
+
+interface ApiClass {
+  class_id: string;
+  name_zh: string;
+  name_en?: string;
+  description_zh?: string;
+  description_en?: string;
+  duration_minutes?: number;
+  image_url?: string;
+  payment_url?: string;
+  airwallex_price?: number;
+  airwallex_currency?: string;
+  airwallex_group_price?: number;
+  airwallex_group_min_qty?: number;
+  is_free?: boolean;
+  sessions: ApiSession[];
 }
 
 function SkeletonCard() {
@@ -90,11 +91,15 @@ function CourseCard({ course }: { course: Course }) {
     <div className="bg-white rounded-[32px] border border-[#dcdcdc] overflow-hidden flex flex-col lg:flex-row gap-5 p-px">
       {/* Image */}
       <div className="w-full lg:w-[550px] lg:max-w-[550px] h-[300px] lg:h-auto relative flex-shrink-0">
-        <img
-          alt={title}
-          className="w-full h-full object-cover"
-          src={course.image}
-        />
+        {course.image_url ? (
+          <img
+            alt={title}
+            className="w-full h-full object-cover"
+            src={course.image_url}
+          />
+        ) : (
+          <div className="w-full h-full bg-[#f4fcff]" data-testid="course-image-placeholder" />
+        )}
       </div>
 
       {/* Content */}
@@ -105,81 +110,78 @@ function CourseCard({ course }: { course: Course }) {
         </h3>
 
         {/* Description */}
-        <p className="font-['Roboto:Regular','Noto_Sans_JP:Regular','Noto_Sans_SC:Regular',sans-serif] text-[14px] leading-[24px] text-[#292929] tracking-[0.3px]" style={{ fontVariationSettings: "'wdth' 100" }}>
-          {description}
-        </p>
+        {description ? (
+          <p className="font-['Roboto:Regular','Noto_Sans_JP:Regular','Noto_Sans_SC:Regular',sans-serif] text-[14px] leading-[24px] text-[#292929] tracking-[0.3px]" style={{ fontVariationSettings: "'wdth' 100" }}>
+            {description}
+          </p>
+        ) : null}
 
         {/* Duration & Price */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-5 border-b border-[#dcdcdc]">
           {/* Duration */}
-          <div className="flex gap-[6px] items-center">
-            <div className="relative shrink-0 size-[28px]">
-              <div className="absolute inset-[8.33%]">
-                <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 23.3333 23.3333">
-                  <path d={svgPaths.p389f4b00} fill="var(--fill-0, #44B0E2)" />
-                </svg>
-              </div>
-              <div className="absolute inset-[20.83%_35.36%_36%_45.83%]">
-                <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 5.26674 12.0867">
-                  <path d={svgPaths.pb627880} fill="var(--fill-0, #44B0E2)" />
-                </svg>
-              </div>
-            </div>
-            <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#141414]" style={{ fontVariationSettings: "'wdth' 100" }}>
-              {course.duration}
-            </p>
-          </div>
-
-          {/* Price */}
-          <div className="flex gap-[6px] items-start">
-            <div className="relative shrink-0 size-[28px] mt-[2px]">
-              <div className="absolute inset-[8.33%]">
-                <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 23.3333 23.3333">
-                  <path d={svgPaths.p389f4b00} fill="var(--fill-0, #44B0E2)" />
-                </svg>
-              </div>
-              <div className="absolute inset-[23.79%_34.46%_23.79%_34.42%]">
-                <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8.715 14.6767">
-                  <path d={svgPaths.peb0b480} fill="var(--fill-0, #44B0E2)" />
-                </svg>
-              </div>
-            </div>
-            {course.is_free ? (
-              <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
-                {t.courses.priceFree}
-              </p>
-            ) : course.airwallex_price ? (
-              <div className="flex flex-col gap-1">
-                {course.airwallex_group_price && (
-                  <div>
-                    <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
-                      {t.courses.priceGroup(course.airwallex_group_min_qty ?? 2)}
-                    </p>
-                    <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
-                      {course.airwallex_currency ?? "HKD"} {course.airwallex_group_price.toLocaleString()} / 人
-                    </p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
-                    {t.courses.priceIndividual}
-                  </p>
-                  <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151]" style={{ fontVariationSettings: "'wdth' 100" }}>
-                    {course.airwallex_currency ?? "HKD"} {course.airwallex_price.toLocaleString()} / 人
-                  </p>
+          {course.duration_minutes ? (
+            <div className="flex gap-[6px] items-center">
+              <div className="relative shrink-0 size-[28px]">
+                <div className="absolute inset-[8.33%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 23.3333 23.3333">
+                    <path d={svgPaths.p389f4b00} fill="var(--fill-0, #44B0E2)" />
+                  </svg>
+                </div>
+                <div className="absolute inset-[20.83%_35.36%_36%_45.83%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 5.26674 12.0867">
+                    <path d={svgPaths.pb627880} fill="var(--fill-0, #44B0E2)" />
+                  </svg>
                 </div>
               </div>
-            ) : (
-              <>
-                <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
-                  {course.discountPrice}
-                </p>
-                <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151] line-through decoration-solid" style={{ fontVariationSettings: "'wdth' 100" }}>
-                  {course.originalPrice}
-                </p>
-              </>
-            )}
+              <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#141414]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                {t.courses.duration(course.duration_minutes)}
+              </p>
           </div>
+          ) : null}
+
+          {/* Price */}
+          {course.is_free || course.airwallex_price ? (
+            <div className="flex gap-[6px] items-start">
+              <div className="relative shrink-0 size-[28px] mt-[2px]">
+                <div className="absolute inset-[8.33%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 23.3333 23.3333">
+                    <path d={svgPaths.p389f4b00} fill="var(--fill-0, #44B0E2)" />
+                  </svg>
+                </div>
+                <div className="absolute inset-[23.79%_34.46%_23.79%_34.42%]">
+                  <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 8.715 14.6767">
+                    <path d={svgPaths.peb0b480} fill="var(--fill-0, #44B0E2)" />
+                  </svg>
+                </div>
+              </div>
+              {course.is_free ? (
+                <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                  {t.courses.priceFree}
+                </p>
+              ) : course.airwallex_price ? (
+                <div className="flex flex-col gap-1">
+                  {course.airwallex_group_price && (
+                    <div>
+                      <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
+                        {t.courses.priceGroup(course.airwallex_group_min_qty ?? 2)}
+                      </p>
+                      <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#e16036]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                        {course.airwallex_currency ?? "HKD"} {course.airwallex_group_price.toLocaleString()} / 人
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[11px] font-medium text-[#515151] uppercase tracking-wide">
+                      {t.courses.priceIndividual}
+                    </p>
+                    <p className="font-['Roboto:Medium',sans-serif] font-medium text-[18px] lg:text-[22px] leading-[28px] text-[#515151]" style={{ fontVariationSettings: "'wdth' 100" }}>
+                      {course.airwallex_currency ?? "HKD"} {course.airwallex_price.toLocaleString()} / 人
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {/* Currently Enrolling Classes */}
@@ -340,47 +342,29 @@ export function CoursesSection() {
         const classesData = (await classesRes.json()) as { classes: ApiClass[] };
         if (!mounted) return;
 
-        const courseResults: Course[] = [];
-
-        await Promise.all(
-          classesData.classes.map(async (cls) => {
-            const config = getCourseConfig(cls.class_id);
-            if (!config) return;
-
-            const sessionsRes = await fetch(`/api/classes/${cls.class_id}/sessions`);
-            const sessionsData: { sessions: ApiSession[] } = sessionsRes.ok
-              ? ((await sessionsRes.json()) as { sessions: ApiSession[] })
-              : { sessions: [] };
-
-            const schedules: ClassSchedule[] = sessionsData.sessions.map((s) => ({
-              date: s.date,
-              time: s.time,
-              location_zh: s.location_zh,
-              location_en: s.location_en,
-              end_time: s.end_time,
-              isFull: s.quota_available === 0,
-            }));
-
-            courseResults.push({
-              id: cls.class_id,
-              title_zh: cls.name_zh,
-              title_en: cls.name_en,
-              description_zh: config.description_zh,
-              description_en: config.description_en,
-              duration: config.duration,
-              originalPrice: config.originalPrice,
-              discountPrice: config.discountPrice,
-              image: config.image,
-              classes: schedules,
-              paymentUrl: cls.payment_url,
-              airwallex_price: cls.airwallex_price,
-              airwallex_currency: cls.airwallex_currency,
-              airwallex_group_price: cls.airwallex_group_price,
-              airwallex_group_min_qty: cls.airwallex_group_min_qty,
-              is_free: cls.is_free,
-            });
-          })
-        );
+        const courseResults: Course[] = classesData.classes.map((cls) => ({
+          id: cls.class_id,
+          title_zh: cls.name_zh,
+          title_en: cls.name_en,
+          description_zh: cls.description_zh,
+          description_en: cls.description_en,
+          duration_minutes: cls.duration_minutes,
+          image_url: cls.image_url,
+          classes: cls.sessions.map((s) => ({
+            date: s.date,
+            time: s.time,
+            location_zh: s.location_zh,
+            location_en: s.location_en,
+            end_time: s.end_time,
+            isFull: s.quota_available === 0,
+          })),
+          paymentUrl: cls.payment_url,
+          airwallex_price: cls.airwallex_price,
+          airwallex_currency: cls.airwallex_currency,
+          airwallex_group_price: cls.airwallex_group_price,
+          airwallex_group_min_qty: cls.airwallex_group_min_qty,
+          is_free: cls.is_free,
+        }));
 
         if (mounted) {
           setCourses(courseResults);

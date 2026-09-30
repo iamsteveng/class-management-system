@@ -36,7 +36,7 @@ test.describe('TC-074: Webhook creates purchase for Alipay HK payment intent', (
     // Note: adminClasses:createClass may not support airwallex_price — creating without it
     const createdClass = await convexMutation('adminClasses:createClass', {
       name_zh: `TC074 Alipay HK Class ${testId}`,
-      description: 'TC-074 webhook test',
+      description_zh: 'TC-074 webhook test',
       admin_username: 'admin',
     }) as { class_id: string };
     const classId = createdClass.class_id;

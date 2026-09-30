@@ -22,7 +22,7 @@ test('TC-043: Regular admin (regular_admin role) does not see the Cancel (Rain) 
   // Step 1: Create a class with a scheduled session
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC043 Class ${testId}`,
-    description: 'Rain cancel role gate test',
+    description_zh: 'Rain cancel role gate test',
     admin_username: 'admin',
   }) as { class_id: string };
 

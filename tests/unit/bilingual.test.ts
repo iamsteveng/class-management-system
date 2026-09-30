@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getLocalizedText } from '../../app/lib/i18n';
-import { getCourseConfig } from '../../app/i18n/courseConfig';
+import { translations } from '../../app/i18n/translations';
 
 // ─── getLocalizedText ───────────────────────────────────────────────────────
 
@@ -106,48 +106,23 @@ describe('bilingual WhatsApp participant links message', () => {
   });
 });
 
-// ─── courseConfig description fallback ──────────────────────────────────────
+// ─── Class Duration formatting ──────────────────────────────────────────────
 
-describe('courseConfig description fallback', () => {
-  it('cycling fundamentals has description_zh', () => {
-    const config = getCourseConfig('class_cycling_fundamentals');
-    expect(config?.description_zh).toBeTruthy();
-    expect(config?.description_zh).toContain('單車');
+describe('courses.duration', () => {
+  it('formats whole hours in ZH', () => {
+    expect(translations['zh-TW'].courses.duration(180)).toBe('3 小時');
   });
 
-  it('cycling fundamentals has description_en', () => {
-    const config = getCourseConfig('class_cycling_fundamentals');
-    expect(config?.description_en).toBeTruthy();
-    expect(config?.description_en).toContain('bike');
+  it('formats hours and minutes in ZH', () => {
+    expect(translations['zh-TW'].courses.duration(90)).toBe('1 小時 30 分鐘');
   });
 
-  it('city guided tour has description_zh', () => {
-    const config = getCourseConfig('class_city_guided_tour');
-    expect(config?.description_zh).toBeTruthy();
-    expect(config?.description_zh).toContain('香港');
+  it('formats singular and plural hours in EN', () => {
+    expect(translations.en.courses.duration(60)).toBe('1 hour');
+    expect(translations.en.courses.duration(120)).toBe('2 hours');
   });
 
-  it('city guided tour has description_en', () => {
-    const config = getCourseConfig('class_city_guided_tour');
-    expect(config?.description_en).toBeTruthy();
-    expect(config?.description_en).toContain('Hong Kong');
-  });
-
-  it('EN returns description_en when set', () => {
-    const config = getCourseConfig('class_cycling_fundamentals')!;
-    const desc = getLocalizedText(config.description_zh, config.description_en, 'en');
-    expect(desc).toBe(config.description_en);
-  });
-
-  it('ZH returns description_zh', () => {
-    const config = getCourseConfig('class_cycling_fundamentals')!;
-    const desc = getLocalizedText(config.description_zh, config.description_en, 'zh');
-    expect(desc).toBe(config.description_zh);
-  });
-
-  it('EN falls back to description_zh when description_en is undefined', () => {
-    // Simulate a config without description_en
-    const desc = getLocalizedText('中文描述', undefined, 'en');
-    expect(desc).toBe('中文描述');
+  it('formats minutes only in EN', () => {
+    expect(translations.en.courses.duration(45)).toBe('45 min');
   });
 });
