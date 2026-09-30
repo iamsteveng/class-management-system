@@ -53,8 +53,7 @@ export const getClassListPageData = queryGeneric({
       class_id: cls.class_id,
       class_name: cls.name_zh ?? "",
       name_en: cls.name_en,
-      // Fall back to the legacy field until migrations:backfillClassCardContent has run.
-      description_zh: cls.description_zh ?? (cls.description || undefined),
+      description_zh: cls.description_zh,
       description_en: cls.description_en,
       duration_minutes: cls.duration_minutes,
       image_url: cls.image_url,
@@ -180,7 +179,6 @@ export const updateClass = mutationGeneric({
     await ctx.db.patch(classRecord._id, {
       name_zh: nextNameZh,
       name_en: nextNameEn,
-      description: undefined,
       description_zh: nextDescriptionZh,
       description_en: args.description_en?.trim() || undefined,
       duration_minutes: args.duration_minutes,
@@ -201,7 +199,7 @@ export const updateClass = mutationGeneric({
       metadata: {
         previous_name_zh: classRecord.name_zh,
         next_name_zh: nextNameZh,
-        previous_description_zh: classRecord.description_zh ?? classRecord.description ?? "",
+        previous_description_zh: classRecord.description_zh ?? "",
         next_description_zh: nextDescriptionZh ?? "",
       },
       created_at: now,

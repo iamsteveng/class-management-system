@@ -92,8 +92,7 @@ export const listClassesOnSale = queryGeneric({
           class_id: cls.class_id,
           name_zh: cls.name_zh ?? "",
           name_en: cls.name_en,
-          // Fall back to the legacy field until migrations:backfillClassCardContent has run.
-          description_zh: cls.description_zh ?? (cls.description || undefined),
+          description_zh: cls.description_zh,
           description_en: cls.description_en,
           duration_minutes: cls.duration_minutes,
           image_url: cls.image_url,
