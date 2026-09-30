@@ -12,21 +12,21 @@ Violating this rule corrupts live data that real users depend on.
 
 ## 🚨 ALWAYS FOLLOW THE DEPLOYMENT ENVIRONMENT EXPLICITLY SPECIFIED
 
-**Never deploy to Convex production or Vercel production unless the user explicitly says so.**
+**Never deploy to Convex production or Vercel production unless the user explicitly says so.** Merging a PR *is* a production deploy (see below), so never merge a PR without the user's explicit instruction.
 
 ### Deployment process
 
-Changes go through PRs. Vercel and Convex dev are auto-deployed on commit — do **not** run `vercel` or `npx convex dev --once` manually for preview/dev deployments.
+Changes go through PRs. Every deployment is triggered by git — do **not** run `vercel`, `vercel --prod`, `npx convex dev --once` or `npx convex deploy` manually.
 
-| User says | What to run |
+| Event | What deploys automatically |
 |---|---|
-| "deploy to Convex dev" | _(automatic on PR commit — no manual command needed)_ |
-| "deploy to Convex prod" / "deploy to Convex" | `npx convex deploy --yes` |
-| "deploy to Vercel preview" / "deploy to Vercel" | _(automatic on PR commit — no manual command needed)_ |
-| "deploy to Vercel prod" / "deploy to production" | `vercel --prod` |
+| Commit pushed to a PR branch | Vercel preview + Convex dev (`graceful-mole-393`) |
+| PR merged to `main` | Vercel kicks off the production deployment of **both** Vercel prod and Convex prod (`colorless-raven-523`) |
+
+So "deploy to production" means "merge the PR", and there is no separate post-merge deploy step. Anything a deploy does not do by itself, such as running a data migration with `npx convex run … --prod`, is a separate manual step. It runs only after the triggered deploy has finished, and the user runs it (see the rule above on never writing to prod).
 
 Default to the **least destructive** option when ambiguous — preview over production, dev over prod.
-If unsure, ask before deploying.
+If unsure, ask before merging or deploying.
 
 After each PR commit, Vercel auto-deploys a new preview URL. Once the preview is live, update `APP_BASE_URL` in Convex dev with the new preview URL:
 
@@ -91,9 +91,9 @@ npx convex run testPurchase:createTestPurchase '{...}' --prod
 
 ### Deploying Convex functions
 
-`npx convex deploy --yes` deploys to production (`colorless-raven-523`) because `.env.local` has `CONVEX_DEPLOYMENT=dev:graceful-mole-393` and `deploy` always promotes to the prod counterpart.
+Convex prod is deployed automatically by the Vercel production build when a PR is merged to `main` (see [Deployment process](#deployment-process)). Don't deploy it by hand.
 
-But **always verify** by checking the output line: `Deploying to https://colorless-raven-523.convex.cloud...`
+For reference only: running `npx convex deploy --yes` locally would push to production (`colorless-raven-523`), even though `.env.local` has `CONVEX_DEPLOYMENT=dev:graceful-mole-393`, because `deploy` always targets the prod counterpart. Only run it if the user explicitly asks for a manual deploy, and check that the output says `Deploying to https://colorless-raven-523.convex.cloud...`.
 
 ### Checking what's deployed
 
