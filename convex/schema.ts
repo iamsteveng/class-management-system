@@ -59,9 +59,6 @@ export default defineSchema({
     class_id: v.string(),
     name_zh: v.optional(v.string()),
     name_en: v.optional(v.string()),
-    // Legacy single-language description; superseded by description_zh and cleared by
-    // migrations:backfillClassCardContent. Remove once that has run on every deployment.
-    description: v.optional(v.string()),
     description_zh: v.optional(v.string()),
     description_en: v.optional(v.string()),
     duration_minutes: v.optional(v.number()),
