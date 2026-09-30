@@ -83,7 +83,7 @@ After payment, N purchase records are created and a WhatsApp link is sent per pa
 ### 4. Code Changes _(Payment Method A only)_
 - [ ] **`convex/productMapping.ts`** — add the product ID → class ID mapping under `prod` (and `uat` if applicable)
 - [ ] Run `npx tsc --noEmit` to verify no type errors
-- [ ] Commit and deploy: `npx convex deploy --yes`
+- [ ] Open a PR and merge it — merging deploys both Vercel prod and Convex prod
 
 ---
 
