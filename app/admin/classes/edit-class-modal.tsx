@@ -170,9 +170,9 @@ export function EditClassModal({
                 <input
                   id={`edit-image-url-${fieldId}`}
                   name="image_url"
-                  type="text"
+                  type="url"
                   defaultValue={initialImageUrl ?? ""}
-                  placeholder="https://... or /images/..."
+                  placeholder="https://..."
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
               </div>

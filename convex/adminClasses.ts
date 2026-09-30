@@ -3,6 +3,21 @@ import type { GenericDataModel, GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
 import type { GenericId } from "convex/values";
 
+/**
+ * Image URLs are consumed outside this site (e.g. the mobile app), so they must be
+ * absolute http(s) URLs. Returns the trimmed URL, or undefined when blank.
+ */
+function normalizeImageUrl(imageUrl: string | undefined): string | undefined {
+  const trimmed = imageUrl?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (!/^https?:\/\/[^/\s]+/i.test(trimmed)) {
+    throw new Error("Image URL must be a full URL starting with https://");
+  }
+  return trimmed;
+}
+
 export const getClassListPageData = queryGeneric({
   args: {},
   returns: v.array(
@@ -90,7 +105,7 @@ export const createClass = mutationGeneric({
       description_zh: args.description_zh?.trim() || undefined,
       description_en: args.description_en?.trim() || undefined,
       duration_minutes: args.duration_minutes,
-      image_url: args.image_url?.trim() || undefined,
+      image_url: normalizeImageUrl(args.image_url),
       payment_url: args.payment_url?.trim() || undefined,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
@@ -169,7 +184,7 @@ export const updateClass = mutationGeneric({
       description_zh: nextDescriptionZh,
       description_en: args.description_en?.trim() || undefined,
       duration_minutes: args.duration_minutes,
-      image_url: args.image_url?.trim() || undefined,
+      image_url: normalizeImageUrl(args.image_url),
       payment_url: nextPaymentUrl,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,

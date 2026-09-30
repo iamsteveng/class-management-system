@@ -69,6 +69,11 @@ export default async function AdminClassesPage({
     const durationMinutesRaw = (formData.get("duration_minutes") as string | null)?.trim() || undefined;
     const durationMinutes = durationMinutesRaw ? parseInt(durationMinutesRaw, 10) : undefined;
     const imageUrl = (formData.get("image_url") as string | null)?.trim() || undefined;
+    if (imageUrl && !/^https?:\/\/[^/\s]+/i.test(imageUrl)) {
+      redirect(
+        `/admin/classes?error=${encodeURIComponent("Image URL must be a full URL starting with https://")}`
+      );
+    }
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
     const isFree = formData.get("is_free") === "true";
@@ -107,6 +112,11 @@ export default async function AdminClassesPage({
     const durationMinutesRaw = (formData.get("duration_minutes") as string | null)?.trim() || undefined;
     const durationMinutes = durationMinutesRaw ? parseInt(durationMinutesRaw, 10) : undefined;
     const imageUrl = (formData.get("image_url") as string | null)?.trim() || undefined;
+    if (imageUrl && !/^https?:\/\/[^/\s]+/i.test(imageUrl)) {
+      redirect(
+        `/admin/classes?error=${encodeURIComponent("Image URL must be a full URL starting with https://")}`
+      );
+    }
     const paymentUrl =
       (formData.get("payment_url") as string | null)?.trim() || undefined;
     const airwallexPriceRaw = (formData.get("airwallex_price") as string | null)?.trim() || undefined;

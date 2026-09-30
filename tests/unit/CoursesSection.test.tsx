@@ -16,7 +16,7 @@ const mockClasses = [
     description_zh: '教你由零出發學識踩單車',
     description_en: 'Learn to ride a bike from scratch',
     duration_minutes: 180,
-    image_url: '/images/homepage/cycling.png',
+    image_url: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/beginner-cycling.png',
     airwallex_price: 298,
     airwallex_currency: 'HKD',
     airwallex_group_price: 250,
@@ -69,7 +69,7 @@ describe('CoursesSection', () => {
     expect(screen.getByText('城市導賞騎行')).toBeInTheDocument();
     expect(screen.getByText('教你由零出發學識踩單車')).toBeInTheDocument();
     expect(screen.getByText('3 小時')).toBeInTheDocument();
-    expect(screen.getByAltText('單車新手速成班')).toHaveAttribute('src', '/images/homepage/cycling.png');
+    expect(screen.getByAltText('單車新手速成班')).toHaveAttribute('src', 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/beginner-cycling.png');
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 

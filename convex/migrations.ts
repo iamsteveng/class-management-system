@@ -69,19 +69,19 @@ type ClassCardContent = {
 const CLASS_CARD_CONTENT: Record<string, ClassCardContent> = {
   "class_cycling_fundamentals": {
     duration_minutes: 180,
-    image_url: "/images/homepage/30c657383d224670b9671a2f703069965543dc7c.png",
+    image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/beginner-cycling.png",
     description_zh: "教你由零出發學識踩單車（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）",
     description_en: "Learn to ride a bike from scratch (includes: bike inspection, handling skills, safety rules, simulation practice)",
   },
   "67261272-c799-4439-9146-4ee12ce51b7c": {
     duration_minutes: 180,
-    image_url: "/images/homepage/30c657383d224670b9671a2f703069965543dc7c.png",
+    image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/beginner-cycling.png",
     description_zh: "教你由零出發學識踩單車（包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與單車技術改進課程）",
     description_en: "Learn to ride a bike from scratch (includes: bike inspection, handling skills, safety rules, simulation practice)",
   },
   "class_city_guided_tour": {
     duration_minutes: 120,
-    image_url: "/images/homepage/1b6dde4eac8d4c724b5927af3ad2e95753044659.png",
+    image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/guided-tour.png",
     description_zh: "帶你探索香港各區美景，享受單車樂趣。導賞團包括：路線規劃、安全講解、景點介紹等",
     description_en: "Explore Hong Kong scenic districts by bike. Tours include route planning, safety briefing, and sightseeing",
   },
@@ -123,25 +123,25 @@ const CLASS_CARD_CONTENT: Record<string, ClassCardContent> = {
   },
   "7fe78618-d6c1-4a35-ad01-a0453a943180": {
     duration_minutes: 120,
-    image_url: "/images/homepage/1b6dde4eac8d4c724b5927af3ad2e95753044659.png",
+    image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/guided-tour.png",
     description_zh: "帶你探索香港各區美景，享受單車樂趣。導賞團包括：路線規劃、安全講解、景點介紹等",
     description_en: "Explore Hong Kong scenic districts by bike. Tours include route planning, safety briefing, and sightseeing",
   },
   "ef5da20f-6ee5-4960-96bd-d7c8615e1e8c": {
     duration_minutes: 120,
-    image_url: "/images/homepage/fd4d1d8fb6d982eadb491c135a33b2ff72209b94.jpg",
+    image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/guided-tour-practicum.jpg",
     description_zh: "由保良局李兆基青年綠洲青年見習導賞員帶領，免費參加。踩住單車探索北部都會區美景，一路輕鬆睇風景、享受單車樂趣。",
     description_en: "Led by trainee tour guides from PLK Lee Shau Kee Youth Oasis — free to join. Explore the scenic Northern Metropolis by bike and enjoy a relaxing ride with beautiful views.",
   },
   "7a35a3af-0ce8-4c63-b902-63be721656d0": {
     duration_minutes: 120,
-    image_url: "/images/homepage/fd4d1d8fb6d982eadb491c135a33b2ff72209b94.jpg",
+    image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/guided-tour-practicum.jpg",
     description_zh: "由保良局李兆基青年綠洲青年見習導賞員帶領，免費參加。踩住單車探索北部都會區美景，一路輕鬆睇風景、享受單車樂趣。",
     description_en: "Led by trainee tour guides from PLK Lee Shau Kee Youth Oasis — free to join. Explore the scenic Northern Metropolis by bike and enjoy a relaxing ride with beautiful views.",
   },
   "class_guided_tour_practicum": {
     duration_minutes: 120,
-    image_url: "/images/homepage/fd4d1d8fb6d982eadb491c135a33b2ff72209b94.jpg",
+    image_url: "https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/guided-tour-practicum.jpg",
     description_zh: "由保良局李兆基青年綠洲青年見習導賞員帶領，免費參加。踩住單車探索北部都會區美景，一路輕鬆睇風景、享受單車樂趣。",
     description_en: "Led by trainee tour guides from PLK Lee Shau Kee Youth Oasis — free to join. Explore the scenic Northern Metropolis by bike and enjoy a relaxing ride with beautiful views.",
   },
@@ -161,17 +161,18 @@ const CLASS_CARD_CONTENT: Record<string, ClassCardContent> = {
 
 /**
  * Migration: move homepage Class card content into the Class record.
- * Copies the legacy `description` into `description_zh` and clears it, then fills
- * description_zh/en, duration_minutes and image_url from CLASS_CARD_CONTENT where not
- * already set. Safe to run more than once.
+ * Fills description_zh/en, duration_minutes and image_url from CLASS_CARD_CONTENT where
+ * not already set, falling back to the legacy `description` for description_zh, then
+ * clears `description`. With `overwrite`, CLASS_CARD_CONTENT replaces existing values.
+ * Safe to run more than once.
  */
 export const backfillClassCardContent = internalMutationGeneric({
-  args: {},
+  args: { overwrite: v.optional(v.boolean()) },
   returns: v.object({
     classes_updated: v.number(),
     classes_without_content: v.array(v.string()),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     let classesUpdated = 0;
     const classesWithoutContent: string[] = [];
 
@@ -183,12 +184,16 @@ export const backfillClassCardContent = internalMutationGeneric({
       }
 
       const legacyDescription = cls.description?.trim() || undefined;
-      const patch: Record<string, unknown> = {
-        description_zh: cls.description_zh ?? legacyDescription ?? content?.description_zh,
-        description_en: cls.description_en ?? content?.description_en,
-        duration_minutes: cls.duration_minutes ?? content?.duration_minutes,
-        image_url: cls.image_url ?? content?.image_url,
-      };
+      // courseConfig held what the homepage actually showed, so it wins over the legacy
+      // description, which on some deployments held unrelated seed text.
+      const patch: Record<string, unknown> = args.overwrite && content
+        ? { ...content }
+        : {
+            description_zh: cls.description_zh ?? content?.description_zh ?? legacyDescription,
+            description_en: cls.description_en ?? content?.description_en,
+            duration_minutes: cls.duration_minutes ?? content?.duration_minutes,
+            image_url: cls.image_url ?? content?.image_url,
+          };
       if (cls.description !== undefined) {
         patch.description = undefined;
       }
