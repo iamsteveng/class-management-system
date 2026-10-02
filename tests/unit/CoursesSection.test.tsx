@@ -17,6 +17,7 @@ const mockClasses = [
     description_en: 'Learn to ride a bike from scratch',
     duration_minutes: 180,
     image_url: 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/beginner-cycling.png',
+    purchase_url: 'https://example.com/apply/class_cycling_fundamentals',
     airwallex_price: 298,
     airwallex_currency: 'HKD',
     airwallex_group_price: 250,
@@ -71,6 +72,10 @@ describe('CoursesSection', () => {
     expect(screen.getByText('3 小時')).toBeInTheDocument();
     expect(screen.getByAltText('單車新手速成班')).toHaveAttribute('src', 'https://s3.ap-east-1.amazonaws.com/asset.loco.hk/images/academy/beginner-cycling.png');
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const applyLinks = screen.getAllByRole('link', { name: '立即報名' });
+    expect(applyLinks[0]).toHaveAttribute('href', 'https://example.com/apply/class_cycling_fundamentals');
+    // Falls back to the on-site path when the API sends no Purchase Link
+    expect(applyLinks[1]).toHaveAttribute('href', '/apply/class_city_guided_tour');
   });
 
   it('shows FULL badge on sessions with quota_available=0', async () => {

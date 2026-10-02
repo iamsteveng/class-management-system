@@ -34,7 +34,6 @@ test('TC-049: Terms form rejects invalid mobile with server error message', asyn
   const cls = await convexMutation('adminClasses:createClass', {
     name_zh: `TC049 Class ${testId}`,
     admin_username: 'admin',
-    payment_url: `https://example.com/tc049-${testId}`,
   }) as { class_id: string };
   const session = await convexMutation('adminSessions:createSession', {
     class_id: cls.class_id,

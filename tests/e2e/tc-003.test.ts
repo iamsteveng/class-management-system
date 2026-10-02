@@ -3,7 +3,7 @@ import path from 'path';
 
 const BASE_URL = 'http://localhost:3000';
 
-test.describe('TC-003: Homepage shows empty state when no classes have payment_url', () => {
+test.describe('TC-003: Homepage shows empty state when no classes are on sale', () => {
   test('TC-003 homepage displays empty state message when API returns no classes', async ({ page }) => {
     // Intercept the /api/classes endpoint to return an empty list
     // This ensures the test is deterministic regardless of prod data state

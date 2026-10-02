@@ -42,7 +42,7 @@ test.describe('TC-051: Homepage shows Apply button for Airwallex-priced class', 
     const href = await applyLink.getAttribute('href');
     expect(href).toBe(`/apply/${KNOWN_CLASS_ID}`);
 
-    // "Buy Ticket" (external payment_url link) must NOT appear for this class
+    // No external "Buy Ticket" link — Classes are only sold on this site
     await expect(page.getByRole('link', { name: 'Buy Ticket' })).toHaveCount(0);
 
     const screenshotDir = path.join(process.cwd(), 'test-results');

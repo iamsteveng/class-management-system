@@ -64,6 +64,8 @@ export default defineSchema({
     duration_minutes: v.optional(v.number()),
     image_url: v.optional(v.string()),
     status: v.union(v.literal("active"), v.literal("inactive")),
+    // Obsolete: Classes are only sold on this site. Cleared by
+    // migrations:clearClassPaymentUrl; remove once that has run on every deployment.
     payment_url: v.optional(v.string()),
     airwallex_price: v.optional(v.number()),
     airwallex_currency: v.optional(v.string()),
