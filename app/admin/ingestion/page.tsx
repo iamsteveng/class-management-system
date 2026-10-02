@@ -45,31 +45,7 @@ export default async function AdminIngestionPage() {
     redirect("/admin/login?error=Please%20log%20in%20to%20continue.");
   }
 
-  const isSuperAdmin = session.user.role === "super_admin";
   const failedSends = await loadFailedSends();
-
-  async function pollNowAction() {
-    "use server";
-
-    const authSession = await getServerAuthSession();
-    if (authSession?.user?.role !== "super_admin") {
-      redirect("/admin/ingestion?error=Unauthorized");
-    }
-
-    try {
-      const client = createConvexHttpClient();
-      await client.action(
-        makeFunctionReference<"action">("s3Ingestion:pollS3ForNewFiles"),
-        {}
-      );
-    } catch {
-      redirect(
-        `/admin/ingestion?error=${encodeURIComponent("Failed to trigger S3 poll. Check server logs.")}`
-      );
-    }
-
-    redirect("/admin/ingestion?status=polled");
-  }
 
   async function resendAction(formData: FormData) {
     "use server";
@@ -104,7 +80,7 @@ export default async function AdminIngestionPage() {
       <section className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900">
-            S3 Ingestion
+            WhatsApp Resend
           </h1>
           <p className="text-sm text-zinc-700">
             Signed in as{" "}
@@ -113,16 +89,6 @@ export default async function AdminIngestionPage() {
           </p>
         </div>
 
-        {isSuperAdmin ? (
-          <form action={pollNowAction}>
-            <button
-              type="submit"
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
-            >
-              Poll Now
-            </button>
-          </form>
-        ) : null}
       </section>
 
       {/* Failed WhatsApp Sends */}

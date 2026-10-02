@@ -50,7 +50,7 @@ const navItems: NavItem[] = [
     isActive: (pathname) => pathname.startsWith("/admin/purchases"),
   },
   {
-    label: "Ingestion",
+    label: "WhatsApp Resend",
     href: "/admin/ingestion",
     isActive: (pathname) => pathname.startsWith("/admin/ingestion"),
   },

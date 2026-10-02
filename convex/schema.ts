@@ -127,6 +127,7 @@ export default defineSchema({
     .index("by_admin_id", ["admin_id"])
     .index("by_entity", ["entity_type", "entity_id"]),
 
+  // History of the retired Loco Mart CSV import; no longer written to.
   csv_files: defineTable({
     filename: v.string(),
     file_storage_id: v.string(),

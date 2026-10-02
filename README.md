@@ -77,14 +77,14 @@ After payment, N purchase records are created and a WhatsApp link is sent per pa
 
 ### WhatsApp message send failed
 
-**Symptom:** A participant did not receive their WhatsApp confirmation message. The admin portal Ingestion page (`/admin/ingestion`) shows a failed send for the affected mobile number.
+**Symptom:** A participant did not receive their WhatsApp confirmation message. The admin portal **WhatsApp Resend** page (`/admin/ingestion`) shows a failed send for the affected mobile number.
 
 **Root cause:** ManyChat has a subscriber record for the phone number but the subscriber ID stored locally is missing or stale, causing the send to fail.
 
 **Resolution:**
 
 1. In ManyChat, find and delete the subscriber for the affected mobile number.
-2. In the admin portal, go to **Ingestion** (`/admin/ingestion`) and click the **Resend** button for the affected purchase.
+2. In the admin portal, go to **WhatsApp Resend** (`/admin/ingestion`) and click the **Resend** button for the affected purchase.
    - This triggers a fresh `createSubscriber` call to ManyChat, which creates a new subscriber ID and sends the WhatsApp message.
 
 **Dev environment only — stale subscriber ID in DB:**
