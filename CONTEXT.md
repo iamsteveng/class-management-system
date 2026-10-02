@@ -54,8 +54,8 @@ contribute nothing.
 
 **Order**:
 One Customer's single act of buying, paid or free, covering one or more Tickets. An Order placed on
-this site is always for one Class; an Order imported from an external seller may span
-several Classes.
+this site is always for one Class. Orders were once imported from an external seller and
+may span several Classes; those remain as history, and no new ones are imported.
 _Avoid_: Purchase, Transaction
 
 **Ticket**:

@@ -59,58 +59,6 @@ export interface Translations {
     priceFree: string;
     comingSoon: string;
     duration: (minutes: number) => string;
-    course1: {
-      title: string;
-      description: string;
-      duration: string;
-      originalPrice: string;
-      discountPrice: string;
-      classes: Array<{
-        date: string;
-        time: string;
-        location: string;
-        isFull: boolean;
-      }>;
-    };
-    course2: {
-      title: string;
-      description: string;
-      duration: string;
-      originalPrice: string;
-      discountPrice: string;
-      classes: Array<{
-        date: string;
-        time: string;
-        location: string;
-        isFull: boolean;
-      }>;
-    };
-    course3: {
-      title: string;
-      description: string;
-      duration: string;
-      originalPrice: string;
-      discountPrice: string;
-      classes: Array<{
-        date: string;
-        time: string;
-        location: string;
-        isFull: boolean;
-      }>;
-    };
-    course4: {
-      title: string;
-      description: string;
-      duration: string;
-      originalPrice: string;
-      discountPrice: string;
-      classes: Array<{
-        date: string;
-        time: string;
-        location: string;
-        isFull: boolean;
-      }>;
-    };
   };
   
   // Footer Section
@@ -181,59 +129,6 @@ export const translations: Record<Language, Translations> = {
         const rest = minutes % 60;
         return [hours > 0 ? `${hours} 小時` : '', rest > 0 ? `${rest} 分鐘` : ''].filter(Boolean).join(' ');
       },
-      course1: {
-        title: '單車新手速成班',
-        description: '教你由零出發學識踩單車 （包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與**單車技術改進課程）',
-        duration: '2 hours',
-        originalPrice: 'HK$560',
-        discountPrice: 'HK$400',
-        classes: [
-          { date: '1 Apr (Wed)', time: '14:00 - 16:00', location: '將軍澳南', isFull: false },
-          { date: '2 Apr (Thu)', time: '14:00 - 16:00', location: '天水圍', isFull: false },
-          { date: '5 Apr (Sun)', time: '10:00 - 12:00', location: '將軍澳南', isFull: false },
-          { date: '8 Apr (Wed)', time: '14:00 - 16:00', location: '將軍澳南', isFull: true },
-          { date: '9 Apr (Thu)', time: '14:00 - 16:00', location: '天水圍', isFull: false },
-          { date: '12 Apr (Sun)', time: '10:00 - 12:00', location: '將軍澳南', isFull: true },
-          { date: '15 Apr (Wed)', time: '14:00 - 16:00', location: '將軍澳南', isFull: false },
-          { date: '16 Apr (Thu)', time: '14:00 - 16:00', location: '天水圍', isFull: false },
-        ],
-      },
-      course2: {
-        title: '單車技術改進班',
-        description: '提升單車操控技巧，學習進階技術，包括：急剎車、繞圈技巧、上落斜坡、障礙物躲避等。完成後可優先參與進階課程。',
-        duration: '2 hours',
-        originalPrice: 'HK$560',
-        discountPrice: 'HK$450',
-        classes: [
-          { date: '3 Apr (Fri)', time: '14:00 - 16:00', location: '將軍澳南', isFull: false },
-          { date: '6 Apr (Mon)', time: '10:00 - 12:00', location: '天水圍', isFull: false },
-          { date: '10 Apr (Fri)', time: '14:00 - 16:00', location: '將軍澳南', isFull: true },
-          { date: '13 Apr (Mon)', time: '10:00 - 12:00', location: '天水圍', isFull: false },
-          { date: '17 Apr (Fri)', time: '14:00 - 16:00', location: '將軍澳南', isFull: false },
-          { date: '20 Apr (Mon)', time: '10:00 - 12:00', location: '天水圍', isFull: false },
-        ],
-      },
-      course3: {
-        title: '單車遊團',
-        description: '帶你探索香港各區美景，享受單車樂趣。導賞團包括：路線規劃、安全講解、景點介紹等。適合已完成基礎課程的學員。',
-        duration: '3 hours',
-        originalPrice: 'HK$650',
-        discountPrice: 'HK$550',
-        classes: [
-          { date: '7 Apr (Tue)', time: '09:00 - 12:00', location: '沙田', isFull: false },
-          { date: '14 Apr (Tue)', time: '09:00 - 12:00', location: '大埔', isFull: true },
-          { date: '21 Apr (Tue)', time: '09:00 - 12:00', location: '沙田', isFull: false },
-          { date: '28 Apr (Tue)', time: '09:00 - 12:00', location: '大埔', isFull: false },
-        ],
-      },
-      course4: {
-        title: '小童單車新手速成班 （即將推出）',
-        description: '教你由零出發學識踩單車 （包括：單車檢查、單車操控技巧、單車安全守則、模擬練習，完成後可優先參與**單車技術改進課程）',
-        duration: '2 hours',
-        originalPrice: 'HK$560',
-        discountPrice: 'HK$400',
-        classes: [],
-      },
     },
     footer: {
       followUs: '關注我們',
@@ -302,59 +197,6 @@ export const translations: Record<Language, Translations> = {
           hours > 0 ? `${hours} ${hours === 1 ? 'hour' : 'hours'}` : '',
           rest > 0 ? `${rest} min` : '',
         ].filter(Boolean).join(' ');
-      },
-      course1: {
-        title: 'Cycling Crash Course for Beginners',
-        description: 'Learn to ride a bike from scratch (includes: bike inspection, bike handling skills, cycling safety rules, simulation practice. Upon completion, priority access to **Cycling Skill Improvement Course)',
-        duration: '2 hours',
-        originalPrice: 'HK$560',
-        discountPrice: 'HK$400',
-        classes: [
-          { date: '1 Apr (Wed)', time: '14:00 - 16:00', location: 'Tseung Kwan O South', isFull: false },
-          { date: '2 Apr (Thu)', time: '14:00 - 16:00', location: 'Tin Shui Wai', isFull: false },
-          { date: '5 Apr (Sun)', time: '10:00 - 12:00', location: 'Tseung Kwan O South', isFull: false },
-          { date: '8 Apr (Wed)', time: '14:00 - 16:00', location: 'Tseung Kwan O South', isFull: true },
-          { date: '9 Apr (Thu)', time: '14:00 - 16:00', location: 'Tin Shui Wai', isFull: false },
-          { date: '12 Apr (Sun)', time: '10:00 - 12:00', location: 'Tseung Kwan O South', isFull: true },
-          { date: '15 Apr (Wed)', time: '14:00 - 16:00', location: 'Tseung Kwan O South', isFull: false },
-          { date: '16 Apr (Thu)', time: '14:00 - 16:00', location: 'Tin Shui Wai', isFull: false },
-        ],
-      },
-      course2: {
-        title: 'Cycling Skill Improvement Course',
-        description: 'Enhance bike handling skills, learn advanced techniques, including: emergency braking, circling techniques, uphill and downhill riding, obstacle avoidance, etc. Upon completion, priority access to advanced courses.',
-        duration: '2 hours',
-        originalPrice: 'HK$560',
-        discountPrice: 'HK$450',
-        classes: [
-          { date: '3 Apr (Fri)', time: '14:00 - 16:00', location: 'Tseung Kwan O South', isFull: false },
-          { date: '6 Apr (Mon)', time: '10:00 - 12:00', location: 'Tin Shui Wai', isFull: false },
-          { date: '10 Apr (Fri)', time: '14:00 - 16:00', location: 'Tseung Kwan O South', isFull: true },
-          { date: '13 Apr (Mon)', time: '10:00 - 12:00', location: 'Tin Shui Wai', isFull: false },
-          { date: '17 Apr (Fri)', time: '14:00 - 16:00', location: 'Tseung Kwan O South', isFull: false },
-          { date: '20 Apr (Mon)', time: '10:00 - 12:00', location: 'Tin Shui Wai', isFull: false },
-        ],
-      },
-      course3: {
-        title: 'Cycling Tours',
-        description: 'Explore the beauty of different districts in Hong Kong, enjoy the fun of cycling. Tours include: route planning, safety briefing, sightseeing introduction, etc. Suitable for students who have completed the basic course.',
-        duration: '3 hours',
-        originalPrice: 'HK$650',
-        discountPrice: 'HK$550',
-        classes: [
-          { date: '7 Apr (Tue)', time: '09:00 - 12:00', location: 'Sha Tin', isFull: false },
-          { date: '14 Apr (Tue)', time: '09:00 - 12:00', location: 'Tai Po', isFull: true },
-          { date: '21 Apr (Tue)', time: '09:00 - 12:00', location: 'Sha Tin', isFull: false },
-          { date: '28 Apr (Tue)', time: '09:00 - 12:00', location: 'Tai Po', isFull: false },
-        ],
-      },
-      course4: {
-        title: 'Cycling Crash Course for Beginners (Coming Soon)',
-        description: 'Learn to ride a bike from scratch (includes: bike inspection, bike handling skills, cycling safety rules, simulation practice. Upon completion, priority access to **Cycling Skill Improvement Course)',
-        duration: '2 hours',
-        originalPrice: 'HK$560',
-        discountPrice: 'HK$400',
-        classes: [],
       },
     },
     footer: {
