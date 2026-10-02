@@ -177,7 +177,6 @@ export const updateClass = mutationGeneric({
       description_en: args.description_en?.trim() || undefined,
       duration_minutes: args.duration_minutes,
       image_url: normalizeImageUrl(args.image_url),
-      payment_url: undefined,
       airwallex_price: args.airwallex_price,
       airwallex_currency: args.airwallex_currency?.trim() || undefined,
       airwallex_group_price: args.airwallex_group_price,
