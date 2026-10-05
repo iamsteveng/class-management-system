@@ -17,6 +17,7 @@ test.describe('TC-068: Desktop apply page renders QR code after selecting Alipay
           classes: [{
             class_id: KNOWN_CLASS_ID,
             name_zh: 'TC068 Test Class',
+            sessions: [],
             airwallex_price: 500,
             airwallex_currency: 'HKD',
           }],

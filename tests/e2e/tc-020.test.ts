@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -80,7 +80,10 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     await page.getByRole('button', { name: 'Mark' }).click();
 
     // Wait for green tick to appear after first scan
-    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 15_000 });
+    // Find the Attendance Status column by its header so new columns don't shift it
+    const attendanceCol = (await page.locator('thead th').allTextContents()).indexOf('Attendance Status');
+    expect(attendanceCol).toBeGreaterThanOrEqual(0);
+    await expect(participantRow.locator('td').nth(attendanceCol)).toContainText('✓', { timeout: 15_000 });
 
     // Screenshot after first scan
     await page.screenshot({ path: path.join(screenshotDir, 'tc-020-after-first-scan.png'), fullPage: true });
@@ -98,7 +101,7 @@ test.describe('TC-020: Attendance scanning — re-scanning same participant is i
     await page.screenshot({ path: path.join(screenshotDir, 'tc-020-after-second-scan.png'), fullPage: true });
 
     // Step 8: Green tick must still be visible (no crash, UI intact)
-    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 10_000 });
+    await expect(participantRow.locator('td').nth(attendanceCol)).toContainText('✓', { timeout: 10_000 });
 
     // Step 9: Assert only ONE attendance record exists in Convex (idempotency)
     const attendanceRecords = await convexQuery('adminSessions:getSessionAttendance', {

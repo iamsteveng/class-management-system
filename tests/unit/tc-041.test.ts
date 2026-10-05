@@ -76,25 +76,31 @@ describe('TC-041 US-012 height is stored as a number in participants table', () 
       is_current: true,
     };
 
-    // Set up query chain to return different values per call index
-    let queryCallIndex = 0;
-    ctx.db.query.mockImplementation(() => ({
+    const mockClass = {
+      _id: 'class-id-1',
+      class_id: 'class-001',
+      name_zh: '單車班',
+    };
+
+    // Return the mock document for whichever table is queried
+    const docsByTable: Record<string, unknown> = {
+      purchases: mockPurchase,
+      sessions: mockSession,
+      classes: mockClass,
+      terms_versions: mockTerms,
+    };
+    ctx.db.query.mockImplementation((table: string) => ({
       withIndex: () => ({
-        first: async () => {
-          queryCallIndex += 1;
-          if (queryCallIndex === 1) return mockPurchase;
-          if (queryCallIndex === 2) return mockSession;
-          if (queryCallIndex === 3) return mockTerms;
-          return null;
-        },
+        first: async () => docsByTable[table] ?? null,
       }),
-      first: async () => mockTerms,
     }));
 
     const result = await handler(ctx, {
       token: 'test-token',
       session_id: 'session-001',
       accepted: true,
+      name: 'Test Participant',
+      participant_mobile: '+85290000001',
       height: 170,
       age: 30,
       email: 'test@example.com',

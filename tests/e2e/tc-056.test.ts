@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-056: POST /api/payment/confirm returns 400 when required fields are missing.
 // Does not exercise Convex or Airwallex — validates the input guard only.
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-056: /api/payment/confirm validates required fields', () => {
   test('TC-056 POST /api/payment/confirm with empty body returns 400', async ({ request }) => {

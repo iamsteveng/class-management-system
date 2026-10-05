@@ -4,7 +4,7 @@ import path from 'path';
 // TC-052: /apply/[class_id] renders the class name and price correctly.
 // Uses route interception on /api/classes so no real Airwallex keys are needed.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-052: Apply page renders class name and price', () => {
   test('TC-052 /apply/[class_id] shows class name, price, mobile input, and Pay button', async ({ page }) => {
@@ -12,7 +12,7 @@ test.describe('TC-052: Apply page renders class name and price', () => {
     const price = 1500;
     const currency = 'HKD';
 
-    await page.route('**/api/classes', async (route) => {
+    await page.route('**/api/classes**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -21,6 +21,7 @@ test.describe('TC-052: Apply page renders class name and price', () => {
             {
               class_id: KNOWN_CLASS_ID,
               name_zh: className,
+              sessions: [],
               airwallex_price: price,
               airwallex_currency: currency,
             },
@@ -30,24 +31,25 @@ test.describe('TC-052: Apply page renders class name and price', () => {
     });
 
     await page.goto(`${BASE_URL}/apply/${KNOWN_CLASS_ID}`);
-    await page.waitForLoadState('networkidle');
+    // Not 'networkidle': the Airwallex card SDK keeps the network busy
+    await page.waitForLoadState('domcontentloaded');
 
     // Class name heading
     await expect(page.getByRole('heading', { name: className })).toBeVisible({ timeout: 10_000 });
 
     // Price display: "HKD 1,500"
-    await expect(page.getByText(`${currency} ${price.toLocaleString()}`)).toBeVisible();
+    await expect(page.getByText(`${currency} ${price.toLocaleString()}`, { exact: true })).toBeVisible();
 
     // WhatsApp mobile input
     await expect(page.locator('input[type="tel"]')).toBeVisible();
 
     // Pay button (disabled until card ready, but rendered)
-    const payButton = page.getByRole('button', { name: /Pay HKD/ });
+    const payButton = page.getByRole('button', { name: /付款 HKD/ });
     await expect(payButton).toBeVisible();
 
-    // Step indicator: Step 1 "Payment" active, Step 2 "Application Form" inactive
-    await expect(page.getByText('Payment')).toBeVisible();
-    await expect(page.getByText('Application Form')).toBeVisible();
+    // Step indicator (default ZH UI): Step 1 "付款" active, Step 2 "報名表格" inactive
+    await expect(page.getByText('付款', { exact: true })).toBeVisible();
+    await expect(page.getByText('報名表格', { exact: true })).toBeVisible();
 
     const screenshotDir = path.join(process.cwd(), 'test-results');
     await page.screenshot({ path: path.join(screenshotDir, 'tc-052-apply-page.png'), fullPage: true });

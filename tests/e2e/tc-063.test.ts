@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-063: POST /api/payment/confirm now returns { tokens: [...] } (array),
 // not { token: string }. Validates the new response shape via error path.
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-063: /api/payment/confirm returns tokens array', () => {
   test('TC-063 confirm with missing mobile still returns 400 with correct error', async ({ request }) => {

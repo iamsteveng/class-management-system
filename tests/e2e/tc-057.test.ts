@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // TC-057: POST /api/payment/webhook handles events correctly.
 // - Unknown event names → { ok: true } with no side effects (no Convex call)
 // - payment_intent.succeeded with missing metadata → { ok: true } (warns but does not crash)
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-057: /api/payment/webhook handles events gracefully', () => {
   test('TC-057a webhook returns ok:true for unrecognised event name', async ({ request }) => {

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-003: Homepage shows empty state when no classes are on sale', () => {
   test('TC-003 homepage displays empty state message when API returns no classes', async ({ page }) => {

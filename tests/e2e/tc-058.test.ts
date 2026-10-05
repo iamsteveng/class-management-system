@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-058: Apply page — quantity selector defaults to 1, respects min=1 and max=15.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-058: Apply page quantity selector', () => {
   test('TC-058 quantity defaults to 1, increments up to 15, decrements down to 1', async ({ page }) => {
@@ -11,7 +11,7 @@ test.describe('TC-058: Apply page quantity selector', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          classes: [{ class_id: KNOWN_CLASS_ID, name_zh: 'TC058 Class', airwallex_price: 298, airwallex_currency: 'HKD' }],
+          classes: [{ class_id: KNOWN_CLASS_ID, name_zh: 'TC058 Class', sessions: [], airwallex_price: 298, airwallex_currency: 'HKD' }],
         }),
       });
     });

@@ -86,7 +86,8 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [classInfo, setClassInfo] = useState<ClassInfo | null>(null);
+  // undefined = still loading; null = loaded but this Class is not on sale
+  const [classInfo, setClassInfo] = useState<ClassInfo | null | undefined>(undefined);
   const [cardReady, setCardReady] = useState(false);
   const cardRef = useRef<any>(null);
   const mobileValid = mobile.trim().length > 0 && mobile.trim() !== "+852";
@@ -355,7 +356,7 @@ export default function ApplyPage({ params }: { params: Promise<{ class_id: stri
     }
   };
 
-  if (!classInfo && !error) {
+  if (classInfo === undefined && !error) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f5f5f0]">
         <p className="text-zinc-500 text-sm">{copy.loading}</p>

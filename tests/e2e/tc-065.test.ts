@@ -15,6 +15,7 @@ test.describe('TC-065: Alipay HK tab appears on apply page', () => {
           classes: [{
             class_id: KNOWN_CLASS_ID,
             name_zh: 'TC065 Test Class',
+            sessions: [],
             airwallex_price: 500,
             airwallex_currency: 'HKD',
           }],

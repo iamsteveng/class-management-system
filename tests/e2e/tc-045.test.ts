@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 // The future-date filter still applies — past-dated sessions must not appear.
 // Targets: feat/rain-cancellation-change-session branch (localhost:3000)
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {

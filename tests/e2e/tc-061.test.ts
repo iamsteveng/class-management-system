@@ -4,7 +4,7 @@ import path from 'path';
 // TC-061: Passes page EN language — shows "Copy Link" and "Fill Details",
 // and the reminder banner is in English when lang=en.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-061: Passes page English language', () => {
   test('TC-061 passes page in English shows Copy Link and Fill Details buttons', async ({ page }) => {

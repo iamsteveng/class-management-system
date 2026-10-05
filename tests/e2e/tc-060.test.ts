@@ -4,7 +4,7 @@ import path from 'path';
 // TC-060: Passes page renders N pass cards from the ?tokens= URL param,
 // shows the WhatsApp reminder banner and correct participant count.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-060: Passes page renders participant pass cards', () => {
   test('TC-060 three tokens in URL → three pass cards, each with Copy and Fill Details', async ({ page }) => {
