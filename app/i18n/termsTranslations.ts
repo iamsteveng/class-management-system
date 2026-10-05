@@ -32,7 +32,8 @@ export interface TermsTranslations {
   noSessionsHelper: string;
   qrCodeNote: string;
   successHeading: string;
-  openQrButton: string;
+  viewDetailsLink: string;
+  otherTicketsNote: string;
   missingTokenError: string;
   invalidTokenError: string;
   sessionRequiredError: string;
@@ -73,7 +74,8 @@ export const termsTranslations: Record<'zh-TW' | 'en', TermsTranslations> = {
     noSessionsHelper: '目前沒有可用名額的時段。',
     qrCodeNote: '確認課程時段並接受條款後，你可在此頁面取得 QR 碼。',
     successHeading: '你的課程申請已確認',
-    openQrButton: '開啟你的 QR 碼',
+    viewDetailsLink: '查看我的課程詳情',
+    otherTicketsNote: '每位參加者都有自己的 QR 碼。請用其餘的報名連結填寫資料，以取得他們的 QR 碼。',
     missingTokenError: '缺少購買 token。請使用 WhatsApp 確認訊息中的完整連結。',
     invalidTokenError: '找不到此 token 對應的有效訂單。',
     sessionRequiredError: '請選擇時段。',
@@ -112,7 +114,8 @@ export const termsTranslations: Record<'zh-TW' | 'en', TermsTranslations> = {
     noSessionsHelper: 'No sessions currently have available quota.',
     qrCodeNote: 'After confirming your class session and accepting the terms, your QR code will be available on this page.',
     successHeading: 'Your class application is confirmed',
-    openQrButton: 'Open your QR Code',
+    viewDetailsLink: 'View my class details',
+    otherTicketsNote: 'Each participant has their own QR code. Fill in the other application links to get theirs.',
     missingTokenError: 'Missing purchase token. Please use the full link from your WhatsApp confirmation message.',
     invalidTokenError: 'We could not find a valid purchase for this token.',
     sessionRequiredError: 'Please select a session.',

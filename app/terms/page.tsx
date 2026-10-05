@@ -5,6 +5,7 @@ import { TermsForm } from "./terms-form";
 import { TermsSuccessContent } from "./TermsSuccessContent";
 import { PurchaseDetailsSection } from "./PurchaseDetailsSection";
 import { createConvexHttpClient } from "@/lib/convexHttp";
+import { buildAttendanceQrDataUrl } from "@/lib/attendanceQr";
 import { LanguageProvider } from "../components/LanguageProvider";
 import { LanguageToggleHeader } from "../components/LanguageToggleHeader";
 
@@ -17,6 +18,7 @@ type TermsPageProps = {
 type TermsPageData = {
   customer_mobile: string;
   participant_count: number;
+  order_ticket_count?: number;
   purchase_status: "pending_terms" | "confirmation_sent" | "terms_accepted" | "cancelled";
   participant_id?: string;
   class_name?: string;
@@ -136,10 +138,15 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
   }
 
   if (submissionSucceeded || alreadyAccepted) {
+    const attendanceQr = participantId ? await loadAttendanceQr(participantId) : null;
     return (
       <LanguageProvider>
         <LanguageToggleHeader />
-        <TermsSuccessContent participantId={participantId} />
+        <TermsSuccessContent
+          participantId={participantId}
+          attendanceQr={attendanceQr}
+          hasOtherTickets={(pageData.order_ticket_count ?? 1) > 1}
+        />
       </LanguageProvider>
     );
   }
@@ -183,6 +190,26 @@ async function loadTermsData(token: string): Promise<TermsPageData | null> {
       { token }
     );
     return result;
+  } catch {
+    return null;
+  }
+}
+
+async function loadAttendanceQr(participantId: string) {
+  try {
+    const client = createConvexHttpClient();
+    const participant = await client.query(
+      makeFunctionReference<"query">("participants:getParticipantPageData"),
+      { participant_id: participantId }
+    );
+    if (!participant) {
+      return null;
+    }
+    return {
+      qrCodeDataUrl: await buildAttendanceQrDataUrl(participantId),
+      classNameZh: participant.class_name as string,
+      classNameEn: participant.class_name_en as string | undefined,
+    };
   } catch {
     return null;
   }

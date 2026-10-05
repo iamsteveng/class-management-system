@@ -15,6 +15,7 @@ export const getTermsPageData = queryGeneric({
     v.object({
       customer_mobile: v.string(),
       participant_count: v.number(),
+      order_ticket_count: v.optional(v.number()),
       purchase_status: v.union(
         v.literal("pending_terms"),
         v.literal("confirmation_sent"),
@@ -134,17 +135,31 @@ export const getTermsPageData = queryGeneric({
       });
 
     let participantId: string | undefined;
+    let orderTicketCount: number | undefined;
     if (purchase.status === "terms_accepted") {
       const firstParticipant = await ctx.db
         .query("participants")
         .filter((q) => q.eq(q.field("purchase_id"), purchase._id))
         .first();
       participantId = firstParticipant?.participant_id;
+
+      // Each Ticket of an Order is its own purchase row sharing the order_id.
+      const orderPurchases = await ctx.db
+        .query("purchases")
+        .withIndex("by_order_id", (q) => q.eq("order_id", purchase.order_id))
+        .collect();
+      orderTicketCount = orderPurchases
+        .filter(
+          (orderPurchase) =>
+            orderPurchase.class_id === purchase.class_id && orderPurchase.status !== "cancelled"
+        )
+        .reduce((total, orderPurchase) => total + orderPurchase.participant_count, 0);
     }
 
     return {
       customer_mobile: purchase.customer_mobile,
       participant_count: purchase.participant_count,
+      order_ticket_count: orderTicketCount,
       purchase_status: purchase.status,
       participant_id: participantId,
       class_name: purchase.class_id

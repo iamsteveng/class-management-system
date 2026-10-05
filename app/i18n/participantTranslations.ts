@@ -14,7 +14,6 @@ export interface ParticipantTranslations {
   directionsLabel: string;
   directionsLink: string;
   qrCodeSection: string;
-  qrCodeAlt: string;
   changeSessionButton: string;
   noSessionsAvailable: string;
   sessionChangedSuccess: string;
@@ -48,7 +47,6 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     directionsLabel: '路線',
     directionsLink: '查看路線',
     qrCodeSection: '報到 QR 碼',
-    qrCodeAlt: '參加者 QR 碼',
     changeSessionButton: '更改時段',
     noSessionsAvailable: '目前沒有其他可用名額的時段。',
     sessionChangedSuccess: '時段已成功更改。',
@@ -80,7 +78,6 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     directionsLabel: 'Directions',
     directionsLink: 'Get Directions',
     qrCodeSection: 'Check-in QR code',
-    qrCodeAlt: 'QR code for participant',
     changeSessionButton: 'Change Session',
     noSessionsAvailable: 'No alternate sessions with available quota are currently available.',
     sessionChangedSuccess: 'Session changed successfully.',

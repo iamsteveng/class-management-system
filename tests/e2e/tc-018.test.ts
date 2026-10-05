@@ -118,9 +118,9 @@ test.describe('TC-018: Terms success state removes form fields after submission'
     await expect(page.locator('form')).toHaveCount(0);
 
     // Step 11: Assert success state is shown (SVG tick + message + button)
-    // The page shows: green check SVG + zh-TW heading + QR Code link
+    // The page shows: green check SVG + zh-TW heading + details link
     await expect(page.getByRole('heading', { name: '你的課程申請已確認' })).toBeVisible({ timeout: 10_000 });
-    const qrButton = page.getByRole('link', { name: '開啟你的 QR 碼' });
+    const qrButton = page.getByRole('link', { name: '查看我的課程詳情' });
     await expect(qrButton).toBeVisible({ timeout: 10_000 });
 
     // Step 12: Verify URL contains status=success (client-side redirect, not full reload indicator)

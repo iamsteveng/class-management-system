@@ -26,8 +26,8 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-017: Open your QR Code links to correct /participant/[participant_id]', () => {
-  test('TC-017 QR Code button href matches participant_id returned by terms submission mutation', async ({ page }) => {
+test.describe('TC-017: Success page shows the Attendance QR and links to correct /participant/[participant_id]', () => {
+  test('TC-017 details link href matches participant_id returned by terms submission mutation', async ({ page }) => {
     const screenshotDir = path.join(process.cwd(), 'test-results');
 
     // Step 0: Create a class and session so getTermsPageData returns sessions
@@ -105,14 +105,25 @@ test.describe('TC-017: Open your QR Code links to correct /participant/[particip
     expect(participantIdFromUrl, 'participant_id should be present in success URL').toBeTruthy();
     console.log(`TC-017 participant_id from URL: ${participantIdFromUrl}`);
 
-    // Step 8: Verify the QR Code button is visible (zh-TW default text)
-    const qrButton = page.getByRole('link', { name: '開啟你的 QR 碼' });
+    // Step 8: Verify the details link is visible (zh-TW default text)
+    const qrButton = page.getByRole('link', { name: '查看我的課程詳情' });
     await expect(qrButton).toBeVisible({ timeout: 15_000 });
 
     // Step 9: Verify button href matches the participant_id from the URL
     const href = await qrButton.getAttribute('href');
     console.log(`TC-017 QR button href: ${href}`);
     expect(href).toBe(`/participant/${participantIdFromUrl}`);
+
+    // Step 10: Attendance QR card is shown inline, with the keep-it reminder directly above it
+    const reminder = page.getByTestId('attendance-qr-reminder');
+    const card = page.getByTestId('attendance-qr-card');
+    await expect(reminder).toBeVisible();
+    await expect(card).toBeVisible();
+    await expect(card.getByRole('img')).toBeVisible();
+    await expect(page.getByRole('button', { name: '儲存 QR 碼' })).toBeVisible();
+    const reminderBox = await reminder.boundingBox();
+    const cardBox = await card.boundingBox();
+    expect(reminderBox!.y + reminderBox!.height).toBeLessThanOrEqual(cardBox!.y + 1);
 
     // Final screenshot as evidence
     await page.screenshot({ path: path.join(screenshotDir, 'tc-017-success-qr-button.png'), fullPage: true });

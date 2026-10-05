@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { AttendanceQrCard } from "../../components/AttendanceQrCard";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { participantTranslations } from "../../i18n/participantTranslations";
 import { SessionChangeModal } from "./session-change-modal";
@@ -122,14 +122,8 @@ export function ParticipantPageContent({
 
       <section className="rounded-xl border border-zinc-200 p-5">
         <h2 className="text-lg font-medium text-zinc-900">{tr.qrCodeSection}</h2>
-        <div className="mt-4 flex justify-center">
-          <Image
-            src={qrCodeDataUrl}
-            alt={`${tr.qrCodeAlt} ${pageData.participant_id}`}
-            width={360}
-            height={360}
-            className="h-[min(80vw,360px)] w-[min(80vw,360px)] rounded-lg border border-zinc-300 bg-white p-2"
-          />
+        <div className="mx-auto mt-4 max-w-md">
+          <AttendanceQrCard qrCodeDataUrl={qrCodeDataUrl} className={className} />
         </div>
       </section>
 
