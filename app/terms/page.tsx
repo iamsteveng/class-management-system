@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { makeFunctionReference } from "convex/server";
 import { redirect } from "next/navigation";
 
@@ -38,6 +39,11 @@ type TermsPageData = {
     available_quota: number;
   }>;
 };
+
+export async function generateMetadata({ searchParams }: TermsPageProps): Promise<Metadata> {
+  const status = readSingleQueryParam((await searchParams).status);
+  return { title: status === "success" ? "報名已確認" : "填寫資料及接受條款" };
+}
 
 export default async function TermsPage({ searchParams }: TermsPageProps) {
   const params = await searchParams;

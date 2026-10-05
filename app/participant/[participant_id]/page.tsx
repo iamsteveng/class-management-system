@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { makeFunctionReference } from "convex/server";
 import { redirect } from "next/navigation";
 
@@ -6,6 +7,10 @@ import { createConvexHttpClient } from "@/lib/convexHttp";
 import { buildAttendanceQrDataUrl } from "@/lib/attendanceQr";
 import { LanguageProvider } from "../../components/LanguageProvider";
 import { LanguageToggleHeader } from "../../components/LanguageToggleHeader";
+
+export const metadata: Metadata = {
+  title: "我的課程及 QR 碼",
+};
 
 type ParticipantPageProps = {
   params: Promise<{
