@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 // TC-035 tests the ingestion page which is on the feature branch (not yet deployed to production).
 // Run against local dev server: npm run dev
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test("TC-035: Admin ingestion page renders without Poll Now for regular_admin", async ({
   page,

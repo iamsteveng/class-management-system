@@ -3,12 +3,12 @@ import path from 'path';
 
 // TC-053: /apply/[class_id] shows "not available" message when the class has no airwallex_price.
 // Uses route interception returning an empty classes list to simulate a non-Airwallex class.
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const FAKE_CLASS_ID = 'tc053-nonexistent-class-id';
 
 test.describe('TC-053: Apply page shows not-available for non-Airwallex class', () => {
   test('TC-053 /apply/[class_id] shows not-available message when class has no airwallex_price', async ({ page }) => {
-    await page.route('**/api/classes', async (route) => {
+    await page.route('**/api/classes**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -21,14 +21,14 @@ test.describe('TC-053: Apply page shows not-available for non-Airwallex class', 
 
     // Must show not-available message
     await expect(
-      page.getByText('This class is not available for online payment.')
+      page.getByText('此課程不支援網上付款。')
     ).toBeVisible({ timeout: 10_000 });
 
     // "Back to home" link must be visible
-    await expect(page.getByRole('link', { name: 'Back to home' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '返回主頁' })).toBeVisible();
 
     // Pay button and mobile input must not be rendered
-    await expect(page.getByRole('button', { name: /Pay/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /付款|Pay/ })).toHaveCount(0);
     await expect(page.locator('input[type="tel"]')).toHaveCount(0);
 
     const screenshotDir = path.join(process.cwd(), 'test-results');

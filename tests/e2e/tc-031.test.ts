@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
@@ -84,7 +84,10 @@ test.describe('TC-031: Attendance record — contains correct adminUsername and 
     await page.getByRole('button', { name: 'Mark' }).click();
 
     // Step 8: Wait for attendance status to update in the row
-    await expect(participantRow.locator('td').nth(6)).toContainText('✓', { timeout: 15_000 });
+    // Find the Attendance Status column by its header so new columns don't shift it
+    const attendanceCol = (await page.locator('thead th').allTextContents()).indexOf('Attendance Status');
+    expect(attendanceCol).toBeGreaterThanOrEqual(0);
+    await expect(participantRow.locator('td').nth(attendanceCol)).toContainText('✓', { timeout: 15_000 });
 
     // Record time after marking
     const afterScanTs = Date.now();

@@ -4,7 +4,7 @@ import path from 'path';
 // TC-051: Homepage shows "Apply" link (not "Buy Ticket") for a class with airwallex_price.
 // Uses route interception so the test is deterministic regardless of prod DB state.
 const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-051: Homepage shows Apply button for Airwallex-priced class', () => {
   test('TC-051 homepage renders Apply link to /apply/[class_id] when airwallex_price is set, not Buy Ticket', async ({ page }) => {
@@ -20,6 +20,7 @@ test.describe('TC-051: Homepage shows Apply button for Airwallex-priced class', 
             {
               class_id: KNOWN_CLASS_ID,
               name_zh: className,
+              sessions: [],
               airwallex_price: 1200,
               airwallex_currency: 'HKD',
             },
@@ -36,8 +37,8 @@ test.describe('TC-051: Homepage shows Apply button for Airwallex-priced class', 
     // Class heading must be visible
     await expect(page.getByRole('heading', { name: className })).toBeVisible({ timeout: 15_000 });
 
-    // "Apply" link pointing to /apply/[class_id] must be present
-    const applyLink = page.getByRole('link', { name: 'Apply' });
+    // Apply link (立即報名 in the default ZH UI) pointing to /apply/[class_id] must be present
+    const applyLink = page.getByRole('link', { name: '立即報名' });
     await expect(applyLink).toBeVisible({ timeout: 10_000 });
     const href = await applyLink.getAttribute('href');
     expect(href).toBe(`/apply/${KNOWN_CLASS_ID}`);

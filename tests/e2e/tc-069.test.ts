@@ -19,6 +19,7 @@ test.describe('TC-069: Mobile apply page redirects to Alipay HK URL', () => {
           classes: [{
             class_id: KNOWN_CLASS_ID,
             name_zh: 'TC069 Test Class',
+            sessions: [],
             airwallex_price: 500,
             airwallex_currency: 'HKD',
           }],

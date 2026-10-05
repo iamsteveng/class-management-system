@@ -21,6 +21,7 @@ test.describe('TC-073: QR code expiry and Regenerate button', () => {
           classes: [{
             class_id: KNOWN_CLASS_ID,
             name_zh: 'TC073 Class',
+            sessions: [],
             airwallex_price: 500,
             airwallex_currency: 'HKD',
           }],

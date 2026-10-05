@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // TC-055: POST /api/payment/create-intent returns 400 when required fields are missing.
 // Does not require Airwallex credentials — validates input guard only.
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-055: /api/payment/create-intent validates required fields', () => {
   test('TC-055 POST /api/payment/create-intent with missing body returns 400', async ({ request }) => {
