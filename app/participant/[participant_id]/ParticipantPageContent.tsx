@@ -123,7 +123,19 @@ export function ParticipantPageContent({
       <section className="rounded-xl border border-zinc-200 p-5">
         <h2 className="text-lg font-medium text-zinc-900">{tr.qrCodeSection}</h2>
         <div className="mx-auto mt-4 max-w-md">
-          <AttendanceQrCard qrCodeDataUrl={qrCodeDataUrl} className={className} />
+          <AttendanceQrCard
+            qrCodeDataUrl={qrCodeDataUrl}
+            className={className}
+            session={{
+              date: pageData.session_date,
+              time: pageData.session_time,
+              endTime: pageData.session_end_time,
+              locationZh: pageData.session_location,
+              locationEn: pageData.session_location_en,
+              googleMapsUrl: pageData.session_google_maps_url,
+            }}
+            sessionChanged={changeSucceeded}
+          />
         </div>
       </section>
 

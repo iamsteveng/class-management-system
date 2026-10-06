@@ -99,9 +99,10 @@ seat once, a Participant Link is theirs for good.
 
 **Attendance QR**:
 The QR code that identifies one Participant at the door. It encodes their Participant
-Link, so scanning it with any phone opens their details. It stays valid when they change
-Session, so a saved copy is good until the class. Participants are asked to save it as
-soon as they accept the terms.
+Link, so scanning it with any phone opens their details. It is shown with their current
+Session's date, time and location. The code itself stays valid when they change Session,
+but the Session shown beside a saved copy does not, so they are asked to save it again.
+Participants are asked to save it as soon as they accept the terms.
 _Avoid_: Pass, Ticket, QR Pass
 
 **Change Cutoff**:

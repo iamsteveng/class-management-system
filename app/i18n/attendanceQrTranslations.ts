@@ -7,6 +7,8 @@ export interface AttendanceQrTranslations {
   saveFailed: string;
   imageReminder: string;
   imageFileName: string;
+  mapButton: string;
+  resaveNotice: string;
 }
 
 export const attendanceQrTranslations: Record<'zh-TW' | 'en', AttendanceQrTranslations> = {
@@ -19,6 +21,8 @@ export const attendanceQrTranslations: Record<'zh-TW' | 'en', AttendanceQrTransl
     saveFailed: '未能儲存圖片，請直接截圖。',
     imageReminder: '請保留至上課當日，報到時出示',
     imageFileName: 'attendance-qr.png',
+    mapButton: 'Google Map 導航',
+    resaveNotice: '你的時段已更改，請重新儲存 QR 碼。',
   },
   en: {
     reminder: 'Save or screenshot this QR code and keep it until the class. Show it at check-in.',
@@ -29,5 +33,7 @@ export const attendanceQrTranslations: Record<'zh-TW' | 'en', AttendanceQrTransl
     saveFailed: "Couldn't save the image. Please take a screenshot instead.",
     imageReminder: 'Keep until the class. Show it at check-in.',
     imageFileName: 'attendance-qr.png',
+    mapButton: 'Open in Google Maps',
+    resaveNotice: 'Your session has changed. Please save your QR code again.',
   },
 };

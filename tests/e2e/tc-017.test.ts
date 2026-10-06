@@ -41,9 +41,20 @@ test.describe('TC-017: Success page shows the Attendance QR and links to correct
       location_zh: `TC017 Studio ${testId}`,
       date: '2030-12-25',
       time: '10:00',
+      end_time: '12:00',
       quota_defined: 10,
       admin_username: 'admin',
+      google_maps_url: 'https://maps.google.com/?q=tc017',
     });
+    // A second Session of the same Class to change into from the success page
+    const otherSession = await convexMutation('adminSessions:createSession', {
+      class_id: createdClass.class_id,
+      location_zh: `TC017 Other Studio ${testId}`,
+      date: '2030-12-26',
+      time: '14:00',
+      quota_defined: 10,
+      admin_username: 'admin',
+    }) as { session_id: string };
     console.log(`TC-017 setup: class=${createdClass.class_id}`);
 
     // Step 1: Create a test purchase (participant_count=1 so only one participant is created)
@@ -62,7 +73,7 @@ test.describe('TC-017: Success page shows the Attendance QR and links to correct
     if (!termsData || !termsData.sessions || termsData.sessions.length === 0) {
       throw new Error('TC-017: No available sessions found — cannot submit terms form');
     }
-    const sessionId = termsData.sessions[0].session_id;
+    const sessionId = termsData.sessions.find((s) => s.session_id !== otherSession.session_id)!.session_id;
     console.log(`TC-017 using session_id: ${sessionId}`);
 
     // Step 3: Navigate to the terms page
@@ -124,6 +135,23 @@ test.describe('TC-017: Success page shows the Attendance QR and links to correct
     const reminderBox = await reminder.boundingBox();
     const cardBox = await card.boundingBox();
     expect(reminderBox!.y + reminderBox!.height).toBeLessThanOrEqual(cardBox!.y + 1);
+
+    // Step 11: Session date (with weekday), time and location on the card, plus the map button
+    await expect(page.getByTestId('attendance-qr-datetime')).toHaveText('2030-12-25（星期三）10:00–12:00');
+    await expect(page.getByTestId('attendance-qr-location')).toHaveText(`TC017 Studio ${testId}`);
+    const mapButton = card.getByRole('link', { name: /Google Map/ });
+    await expect(mapButton).toHaveAttribute('href', 'https://maps.google.com/?q=tc017');
+    await expect(mapButton).toHaveAttribute('target', '_blank');
+
+    // Step 12: Change Session from the success page; the card updates and asks to save again
+    await page.getByRole('button', { name: '更改時段' }).click();
+    await page.locator('select#new_session_id').selectOption(otherSession.session_id);
+    await page.getByRole('button', { name: '確認' }).click();
+    await page.waitForURL(/session_changed=1/, { timeout: 30_000 });
+    await expect(page.getByText('你的時段已更改，請重新儲存 QR 碼。')).toBeVisible();
+    await expect(page.getByTestId('attendance-qr-datetime')).toHaveText('2030-12-26（星期四）14:00');
+    await expect(page.getByTestId('attendance-qr-location')).toHaveText(`TC017 Other Studio ${testId}`);
+    await expect(card.getByRole('link', { name: /Google Map/ })).toHaveCount(0);
 
     // Final screenshot as evidence
     await page.screenshot({ path: path.join(screenshotDir, 'tc-017-success-qr-button.png'), fullPage: true });

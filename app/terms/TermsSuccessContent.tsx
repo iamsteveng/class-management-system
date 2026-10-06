@@ -3,24 +3,53 @@
 import { AttendanceQrCard } from "../components/AttendanceQrCard";
 import { useLanguage } from "../contexts/LanguageContext";
 import { termsTranslations } from "../i18n/termsTranslations";
+import { SessionChangeModal } from "../participant/[participant_id]/session-change-modal";
+
+export type SuccessParticipant = {
+  qrCodeDataUrl: string;
+  class_name: string;
+  class_name_en?: string;
+  session_date: string;
+  session_time: string;
+  session_end_time?: string;
+  session_location: string;
+  session_location_en?: string;
+  session_google_maps_url?: string;
+  can_change_session: boolean;
+  session_options: Array<{
+    session_id: string;
+    location_zh: string;
+    location_en?: string;
+    end_time?: string;
+    date: string;
+    time: string;
+    available_quota: number;
+  }>;
+};
 
 type Props = {
   participantId?: string;
-  attendanceQr: {
-    qrCodeDataUrl: string;
-    classNameZh: string;
-    classNameEn?: string;
-  } | null;
+  participant: SuccessParticipant | null;
   hasOtherTickets: boolean;
+  changeSessionAction: (formData: FormData) => void | Promise<void>;
+  sessionChanged: boolean;
+  errorMessage?: string;
 };
 
-export function TermsSuccessContent({ participantId, attendanceQr, hasOtherTickets }: Props) {
+export function TermsSuccessContent({
+  participantId,
+  participant,
+  hasOtherTickets,
+  changeSessionAction,
+  sessionChanged,
+  errorMessage,
+}: Props) {
   const { language } = useLanguage();
   const tr = termsTranslations[language];
-  const className = attendanceQr
+  const className = participant
     ? language === "en"
-      ? (attendanceQr.classNameEn ?? attendanceQr.classNameZh)
-      : attendanceQr.classNameZh
+      ? (participant.class_name_en ?? participant.class_name)
+      : participant.class_name
     : "";
 
   return (
@@ -41,8 +70,32 @@ export function TermsSuccessContent({ participantId, attendanceQr, hasOtherTicke
         </svg>
       </div>
       <h1 className="text-2xl font-semibold text-zinc-900">{tr.successHeading}</h1>
-      {attendanceQr ? (
-        <AttendanceQrCard qrCodeDataUrl={attendanceQr.qrCodeDataUrl} className={className} />
+      {participant ? (
+        <>
+          <AttendanceQrCard
+            qrCodeDataUrl={participant.qrCodeDataUrl}
+            className={className}
+            session={{
+              date: participant.session_date,
+              time: participant.session_time,
+              endTime: participant.session_end_time,
+              locationZh: participant.session_location,
+              locationEn: participant.session_location_en,
+              googleMapsUrl: participant.session_google_maps_url,
+            }}
+            sessionChanged={sessionChanged}
+          />
+          {participant.can_change_session ? (
+            <div className="w-full text-left">
+              <SessionChangeModal
+                sessionOptions={participant.session_options}
+                submitAction={changeSessionAction}
+                errorMessage={errorMessage}
+                success={sessionChanged}
+              />
+            </div>
+          ) : null}
+        </>
       ) : null}
       {hasOtherTickets ? (
         <p className="rounded-lg bg-zinc-50 px-4 py-3 text-sm text-zinc-700">{tr.otherTicketsNote}</p>

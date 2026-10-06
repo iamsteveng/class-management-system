@@ -3,7 +3,7 @@ import { makeFunctionReference } from "convex/server";
 import { redirect } from "next/navigation";
 
 import { TermsForm } from "./terms-form";
-import { TermsSuccessContent } from "./TermsSuccessContent";
+import { TermsSuccessContent, type SuccessParticipant } from "./TermsSuccessContent";
 import { PurchaseDetailsSection } from "./PurchaseDetailsSection";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 import { buildAttendanceQrDataUrl } from "@/lib/attendanceQr";
@@ -144,14 +144,48 @@ export default async function TermsPage({ searchParams }: TermsPageProps) {
   }
 
   if (submissionSucceeded || alreadyAccepted) {
-    const attendanceQr = participantId ? await loadAttendanceQr(participantId) : null;
+    const participant = participantId ? await loadSuccessParticipant(participantId) : null;
+    // Server actions can only close over serializable values, so keep this a plain string.
+    const successUrl = `/terms?token=${encodeURIComponent(tokenValue)}&status=success&participant_id=${encodeURIComponent(
+      participantId ?? ""
+    )}`;
+
+    async function changeSession(formData: FormData) {
+      "use server";
+
+      const newSessionId = formData.get("new_session_id");
+      if (typeof newSessionId !== "string" || newSessionId.length === 0) {
+        redirect(`${successUrl}&error=${encodeURIComponent("Please select a session.")}`);
+      }
+
+      const client = createConvexHttpClient();
+      const result = await client.mutation(
+        makeFunctionReference<"mutation">("participants:changeParticipantSession"),
+        {
+          participant_id: participantId,
+          session_id: newSessionId,
+        }
+      );
+
+      if (!result.success) {
+        redirect(
+          `${successUrl}&error=${encodeURIComponent(result.error_message ?? "Unable to change session.")}`
+        );
+      }
+
+      redirect(`${successUrl}&session_changed=1`);
+    }
+
     return (
       <LanguageProvider>
         <LanguageToggleHeader />
         <TermsSuccessContent
           participantId={participantId}
-          attendanceQr={attendanceQr}
+          participant={participant}
           hasOtherTickets={(pageData.order_ticket_count ?? 1) > 1}
+          changeSessionAction={changeSession}
+          sessionChanged={readSingleQueryParam(params.session_changed) === "1"}
+          errorMessage={errorMessage}
         />
       </LanguageProvider>
     );
@@ -201,7 +235,7 @@ async function loadTermsData(token: string): Promise<TermsPageData | null> {
   }
 }
 
-async function loadAttendanceQr(participantId: string) {
+async function loadSuccessParticipant(participantId: string): Promise<SuccessParticipant | null> {
   try {
     const client = createConvexHttpClient();
     const participant = await client.query(
@@ -212,9 +246,8 @@ async function loadAttendanceQr(participantId: string) {
       return null;
     }
     return {
+      ...(participant as Omit<SuccessParticipant, "qrCodeDataUrl">),
       qrCodeDataUrl: await buildAttendanceQrDataUrl(participantId),
-      classNameZh: participant.class_name as string,
-      classNameEn: participant.class_name_en as string | undefined,
     };
   } catch {
     return null;
