@@ -1,11 +1,16 @@
+import type { Metadata } from "next";
 import { makeFunctionReference } from "convex/server";
 import { redirect } from "next/navigation";
-import QRCode from "qrcode";
 
 import { ParticipantPageContent } from "./ParticipantPageContent";
 import { createConvexHttpClient } from "@/lib/convexHttp";
+import { buildAttendanceQrDataUrl } from "@/lib/attendanceQr";
 import { LanguageProvider } from "../../components/LanguageProvider";
 import { LanguageToggleHeader } from "../../components/LanguageToggleHeader";
+
+export const metadata: Metadata = {
+  title: "我的課程及 QR 碼",
+};
 
 type ParticipantPageProps = {
   params: Promise<{
@@ -69,11 +74,7 @@ export default async function ParticipantPage({
     );
   }
 
-  const qrCodeDataUrl = await QRCode.toDataURL(pageData.qr_code_data, {
-    width: 480,
-    margin: 1,
-    errorCorrectionLevel: "M",
-  });
+  const qrCodeDataUrl = await buildAttendanceQrDataUrl(pageData.participant_id);
   const changeSucceeded = status === "session_changed";
 
   async function changeSession(formData: FormData) {

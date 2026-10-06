@@ -21,6 +21,14 @@ test.describe('TC-060: Passes page renders participant pass cards', () => {
     await expect(banner).toBeVisible({ timeout: 10_000 });
     await expect(banner).toContainText(mobile);
 
+    // Registration-incomplete warning sits above the WhatsApp banner
+    const incomplete = page.getByTestId('registration-incomplete-banner');
+    await expect(incomplete).toBeVisible();
+    await expect(incomplete).toContainText('報名尚未完成');
+    const incompleteBox = await incomplete.boundingBox();
+    const bannerBox = await banner.boundingBox();
+    expect(incompleteBox!.y).toBeLessThan(bannerBox!.y);
+
     // 3 pass cards (each has a "複製連結" button)
     const copyButtons = page.getByRole('button', { name: '複製連結' });
     await expect(copyButtons).toHaveCount(3);

@@ -9,6 +9,8 @@ type Lang = "zh-TW" | "en";
 const t = {
   "zh-TW": {
     title: "報名連結",
+    incompleteTitle: "報名尚未完成",
+    incompleteBody: "付款已成功，但報名尚未完成。請為每位參加者按「填寫資料」並提交表格，才算完成報名。",
     reminder: (mobile: string) =>
       `以下連結已傳送至您的 WhatsApp 號碼 ${mobile}，請每位參加者分別點擊連結填寫資料。`,
     copyButton: "複製連結",
@@ -18,6 +20,9 @@ const t = {
   },
   en: {
     title: "Application Links",
+    incompleteTitle: "Registration not complete yet",
+    incompleteBody:
+      "Your payment was successful, but registration isn't finished. Tap \"Fill Details\" for each participant and submit the form to complete it.",
     reminder: (mobile: string) =>
       `The following links have been sent to your WhatsApp number ${mobile}. Each participant should click their own link to fill in their details.`,
     copyButton: "Copy Link",
@@ -86,6 +91,21 @@ function PassesContent() {
       <div className="w-full max-w-md space-y-4">
         {/* Title */}
         <h1 className="text-xl font-semibold text-zinc-900">{copy.title}</h1>
+
+        {/* Registration-incomplete warning: payment alone does not register anyone */}
+        <div
+          role="alert"
+          data-testid="registration-incomplete-banner"
+          className="rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-4 flex gap-3 items-start"
+        >
+          <svg className="mt-0.5 shrink-0 text-amber-600" width="22" height="22" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <div className="space-y-1">
+            <p className="text-base font-semibold text-amber-900">{copy.incompleteTitle}</p>
+            <p className="text-sm text-amber-900">{copy.incompleteBody}</p>
+          </div>
+        </div>
 
         {/* WhatsApp reminder banner */}
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex gap-3 items-start">

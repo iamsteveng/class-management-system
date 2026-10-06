@@ -15,15 +15,15 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   return json.value;
 }
 
-test.describe('TC-016: Terms success state shows Open your QR Code button', () => {
-  test('TC-016 Open your QR Code button is visible on terms success state when participant_id is present', async ({ page }) => {
+test.describe('TC-016: Terms success state links to the participant page', () => {
+  test('TC-016 View my class details link is visible on terms success state when participant_id is present', async ({ page }) => {
     // Create a test purchase to get a valid token
     const result = await convexMutation('testPurchase:createTestPurchase', {
       customer_mobile: '+6599016016',
     }) as { token: string };
     const token = result.token;
 
-    // Use a fake participant_id — page renders the button based on URL param presence only
+    // Use a fake participant_id — the details link renders from the URL param alone
     const fakeParticipantId = 'tc016-test-participant';
 
     // Navigate directly to success state URL with participant_id
@@ -33,8 +33,8 @@ test.describe('TC-016: Terms success state shows Open your QR Code button', () =
     const screenshotDir = path.join(process.cwd(), 'test-results');
     await page.screenshot({ path: path.join(screenshotDir, 'tc-016-success-state.png'), fullPage: true });
 
-    // Pass criteria: QR Code button is visible (zh-TW default text)
-    const qrButton = page.getByRole('link', { name: '開啟你的 QR 碼' });
+    // Pass criteria: details link is visible (zh-TW default text)
+    const qrButton = page.getByRole('link', { name: '查看我的課程詳情' });
     await expect(qrButton).toBeVisible({ timeout: 15_000 });
 
     // Verify the link href points to the participant page

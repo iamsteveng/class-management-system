@@ -19,6 +19,9 @@ test.describe('TC-061: Passes page English language', () => {
     // EN reminder banner
     await expect(page.getByText('The following links have been sent')).toBeVisible({ timeout: 10_000 });
 
+    // EN registration-incomplete warning
+    await expect(page.getByTestId('registration-incomplete-banner')).toContainText('Registration not complete yet');
+
     // EN button labels
     await expect(page.getByRole('button', { name: 'Copy Link' })).toHaveCount(2);
     await expect(page.getByRole('link', { name: 'Fill Details' })).toHaveCount(2);

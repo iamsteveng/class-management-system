@@ -13,7 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "樂區單車安全教室",
+  title: {
+    default: "樂區單車安全教室",
+    template: "%s | 樂區單車安全教室",
+  },
   description: "致力透過系統化訓練，陪伴你發展恆久又安全的踩車能力",
 };
 
