@@ -2,6 +2,7 @@ import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
 import { applyParticipantSessionChange } from "./participants";
+import { remainingQuotaBySession } from "./remainingQuota";
 
 export const getAvailableSessionsForClassChange = queryGeneric({
   args: {
@@ -25,12 +26,14 @@ export const getAvailableSessionsForClassChange = queryGeneric({
       .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
       .collect();
 
+    const remaining = await remainingQuotaBySession(ctx.db, sessions);
+
     return sessions
       .filter(
         (s) =>
           s.session_id !== args.current_session_id &&
           s.status === "scheduled" &&
-          s.quota_used < s.quota_defined
+          (remaining.get(s.session_id) ?? 0) > 0
       )
       .map((s) => ({
         session_id: s.session_id,
@@ -38,7 +41,7 @@ export const getAvailableSessionsForClassChange = queryGeneric({
         time: s.time,
         location_zh: s.location_zh ?? "",
         location_en: s.location_en,
-        quota_available: s.quota_defined - s.quota_used,
+        quota_available: remaining.get(s.session_id) ?? 0,
         hidden: s.hidden === true,
       }))
       .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));

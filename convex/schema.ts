@@ -50,6 +50,13 @@ export default defineSchema({
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),
     email: v.optional(v.string()),
+    riding_experience: v.optional(
+      v.union(v.literal("never"), v.literal("training_wheels"), v.literal("short_distance"))
+    ),
+    health_notes: v.optional(v.string()),
+    photo_consent: v.optional(v.boolean()),
+    // Who gave the Terms Acceptance: the Participant (Legacy Tickets) or the Customer on their behalf.
+    terms_accepted_by: v.optional(v.union(v.literal("participant"), v.literal("customer"))),
     created_at: v.number(),
   })
     .index("by_participant_id", ["participant_id"])
@@ -69,8 +76,35 @@ export default defineSchema({
     airwallex_group_price: v.optional(v.number()),
     airwallex_group_min_qty: v.optional(v.number()),
     is_free: v.optional(v.boolean()),
+    age_min: v.optional(v.number()),
+    age_max: v.optional(v.number()),
+    class_size: v.optional(v.number()),
     created_at: v.number(),
   }).index("by_class_id", ["class_id"]),
+
+  venues: defineTable({
+    venue_id: v.string(),
+    name_zh: v.string(),
+    name_en: v.optional(v.string()),
+    district_zh: v.string(),
+    district_en: v.optional(v.string()),
+    address_zh: v.string(),
+    address_en: v.optional(v.string()),
+    opening_hours: v.optional(v.string()),
+    latitude: v.number(),
+    longitude: v.number(),
+    mtr_station_zh: v.optional(v.string()),
+    mtr_station_en: v.optional(v.string()),
+    mtr_line_zh: v.optional(v.string()),
+    mtr_line_en: v.optional(v.string()),
+    mtr_latitude: v.optional(v.number()),
+    mtr_longitude: v.optional(v.number()),
+    walk_minutes: v.optional(v.number()),
+    directions_zh: v.optional(v.string()),
+    directions_en: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_venue_id", ["venue_id"]),
 
   sessions: defineTable({
     session_id: v.string(),
@@ -91,10 +125,13 @@ export default defineSchema({
     cancellation_reason: v.optional(v.literal("rain")),
     // A Hidden Session is not shown to or selectable by Customers and Participants.
     hidden: v.optional(v.boolean()),
+    // New Sessions are held at a Venue; older ones only have the free-text location above.
+    venue_id: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_session_id", ["session_id"])
-    .index("by_class_id", ["class_id"]),
+    .index("by_class_id", ["class_id"])
+    .index("by_venue_id", ["venue_id"]),
 
   terms_versions: defineTable({
     version: v.string(),

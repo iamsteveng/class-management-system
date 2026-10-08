@@ -1,7 +1,9 @@
-import { queryGeneric } from "convex/server";
+import { queryGeneric, type GenericDatabaseReader } from "convex/server";
 import { v } from "convex/values";
 
 import { resolveAppBaseUrl } from "../lib/appBaseUrl";
+import type { DataModel } from "./_generated/dataModel";
+import { remainingQuotaBySession } from "./remainingQuota";
 
 const upcomingSessionValidator = v.object({
   session_id: v.string(),
@@ -27,13 +29,15 @@ type SessionDoc = {
 };
 
 /** Visible scheduled Sessions dated today or later, soonest first, as shown to Customers. */
-function toUpcomingSessions(sessions: SessionDoc[]) {
+async function toUpcomingSessions(db: GenericDatabaseReader<DataModel>, sessions: SessionDoc[]) {
   const today = new Date().toISOString().split("T")[0];
 
-  return sessions
-    .filter(
-      (session) => session.status === "scheduled" && session.hidden !== true && session.date >= today
-    )
+  const upcoming = sessions.filter(
+    (session) => session.status === "scheduled" && session.hidden !== true && session.date >= today
+  );
+  const remaining = await remainingQuotaBySession(db, upcoming);
+
+  return upcoming
     .map((session) => ({
       session_id: session.session_id,
       location_zh: session.location_zh ?? "",
@@ -41,7 +45,7 @@ function toUpcomingSessions(sessions: SessionDoc[]) {
       end_time: session.end_time,
       date: session.date,
       time: session.time,
-      quota_available: Math.max(0, session.quota_defined - session.quota_used),
+      quota_available: remaining.get(session.session_id) ?? 0,
     }))
     .sort((left, right) =>
       `${left.date}T${left.time}`.localeCompare(`${right.date}T${right.time}`)
@@ -115,7 +119,7 @@ export const listClassesOnSale = queryGeneric({
           airwallex_group_price: cls.airwallex_group_price,
           airwallex_group_min_qty: cls.airwallex_group_min_qty,
           is_free: cls.is_free,
-          sessions: toUpcomingSessions(sessions),
+          sessions: await toUpcomingSessions(ctx.db, sessions),
         };
       })
     );
@@ -162,6 +166,6 @@ export const getAvailableSessionsByClass = queryGeneric({
       .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
       .collect();
 
-    return toUpcomingSessions(sessions);
+    return toUpcomingSessions(ctx.db, sessions);
   },
 });

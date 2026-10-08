@@ -6,6 +6,8 @@ import {
 import { normalizeToE164 } from "../lib/phone";
 import { v } from "convex/values";
 
+import { remainingQuota, remainingQuotaBySession } from "./remainingQuota";
+
 export const getTermsPageData = queryGeneric({
   args: {
     token: v.string(),
@@ -103,13 +105,13 @@ export const getTermsPageData = queryGeneric({
     }
 
     const now = new Date();
-    const sessions = rawSessions
-      .filter((session) => session.status === "scheduled" && session.hidden !== true)
+    const visibleSessions = rawSessions.filter(
+      (session) => session.status === "scheduled" && session.hidden !== true
+    );
+    const remaining = await remainingQuotaBySession(ctx.db, visibleSessions);
+    const sessions = visibleSessions
       .map((session) => {
-        const availableQuota = Math.max(
-          session.quota_defined - session.quota_used,
-          0
-        );
+        const availableQuota = remaining.get(session.session_id) ?? 0;
         const classInfo = classDocs.get(session.class_id);
         return {
           session_id: session.session_id,
@@ -253,7 +255,7 @@ export const acceptTermsByToken = mutationGeneric({
       .first();
 
     const slotsRequired = Math.max(1, purchase.participant_count);
-    const availableQuota = session.quota_defined - session.quota_used;
+    const availableQuota = await remainingQuota(ctx.db, session);
     if (availableQuota < slotsRequired) {
       return {
         success: false,
@@ -302,6 +304,7 @@ export const acceptTermsByToken = mutationGeneric({
         qr_code_data: participantId,
         terms_accepted_at: acceptedAt,
         terms_version_id: currentTerms._id,
+        terms_accepted_by: "participant",
         height: args.height,
         age: args.age,
         emergency_contact_name: args.emergency_contact_name,
