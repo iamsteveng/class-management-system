@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+
+import { convex } from './helpers/applyFixture';
 import path from 'path';
 
 // TC-064: Homepage Apply button text matches selected language.
@@ -8,6 +10,9 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-064: Homepage Apply button is bilingual', () => {
   test('TC-064 Apply button shows 立即報名 by default and Apply Now after switching to EN', async ({ page }) => {
+    // Covers the old homepage, shown until the launch switch turns the cycling landing page on.
+    const { live } = (await convex('query', 'landing:getLandingData', {})) as { live: boolean };
+    test.skip(live, 'The cycling landing page is live on this deployment');
     await page.route('**/api/classes**', async (route) => {
       await route.fulfill({
         status: 200,

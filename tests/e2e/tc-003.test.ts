@@ -1,10 +1,15 @@
 import { test, expect } from '@playwright/test';
+
+import { convex } from './helpers/applyFixture';
 import path from 'path';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-003: Homepage shows empty state when no classes are on sale', () => {
   test('TC-003 homepage displays empty state message when API returns no classes', async ({ page }) => {
+    // Covers the old homepage, shown until the launch switch turns the cycling landing page on.
+    const { live } = (await convex('query', 'landing:getLandingData', {})) as { live: boolean };
+    test.skip(live, 'The cycling landing page is live on this deployment');
     // Intercept the /api/classes endpoint to return an empty list
     // This ensures the test is deterministic regardless of prod data state
     await page.route('**/api/classes', async (route) => {
