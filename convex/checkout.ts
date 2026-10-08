@@ -1,4 +1,5 @@
 import {
+  internalQueryGeneric,
   makeFunctionReference,
   mutationGeneric,
   queryGeneric,
@@ -186,6 +187,13 @@ async function seatOrder(
     },
     created_at: now,
   });
+
+  // Once per Order: seatOrder only runs when a hold first becomes an Order.
+  await ctx.scheduler.runAfter(
+    0,
+    makeFunctionReference<"action">("orderConfirmation:sendOrderConfirmation"),
+    { hold_id: hold.hold_id }
+  );
 
   return participantIds;
 }
@@ -539,10 +547,18 @@ export const getCheckoutResult = queryGeneric({
     v.null(),
     v.object({
       status: v.string(),
-      participant_ids: v.array(v.string()),
-      session_id: v.string(),
-      class_id: v.string(),
       quantity: v.number(),
+      class_id: v.string(),
+      class_name_zh: v.string(),
+      class_name_en: v.optional(v.string()),
+      session_id: v.string(),
+      session_date: v.string(),
+      session_time: v.string(),
+      session_end_time: v.optional(v.string()),
+      session_location_zh: v.string(),
+      session_location_en: v.optional(v.string()),
+      session_google_maps_url: v.optional(v.string()),
+      participants: v.array(v.object({ participant_id: v.string(), name: v.string() })),
     })
   ),
   handler: async (ctx, args) => {
@@ -551,12 +567,81 @@ export const getCheckoutResult = queryGeneric({
       .withIndex("by_hold_id", (q) => q.eq("hold_id", args.hold_id))
       .first();
     if (!hold) return null;
+
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", hold.session_id))
+      .first();
+    const cls = await ctx.db
+      .query("classes")
+      .withIndex("by_class_id", (q) => q.eq("class_id", hold.class_id))
+      .first();
+
+    const participants = (hold.participant_ids ?? []).map((participantId: string, i: number) => ({
+      participant_id: participantId,
+      name: hold.participants[i]?.name ?? "",
+    }));
+
     return {
       status: hold.status,
-      participant_ids: hold.participant_ids ?? [],
-      session_id: hold.session_id,
-      class_id: hold.class_id,
       quantity: hold.quantity,
+      class_id: hold.class_id,
+      class_name_zh: cls?.name_zh ?? "",
+      class_name_en: cls?.name_en,
+      session_id: hold.session_id,
+      session_date: session?.date ?? "",
+      session_time: session?.time ?? "",
+      session_end_time: session?.end_time,
+      session_location_zh: session?.location_zh ?? "",
+      session_location_en: session?.location_en,
+      session_google_maps_url: session?.google_maps_url,
+      participants,
+    };
+  },
+});
+
+/** What the confirmation WhatsApp needs, including the Customer's mobile; internal only. */
+export const getOrderForConfirmation = internalQueryGeneric({
+  args: { hold_id: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      customer_mobile: v.string(),
+      class_name_zh: v.string(),
+      session_date: v.string(),
+      session_time: v.string(),
+      session_end_time: v.optional(v.string()),
+      session_location_zh: v.string(),
+      session_google_maps_url: v.optional(v.string()),
+      participants: v.array(v.object({ participant_id: v.string(), name: v.string() })),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const hold = await ctx.db
+      .query("seat_holds")
+      .withIndex("by_hold_id", (q) => q.eq("hold_id", args.hold_id))
+      .first();
+    if (!hold || hold.status !== "completed") return null;
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", hold.session_id))
+      .first();
+    const cls = await ctx.db
+      .query("classes")
+      .withIndex("by_class_id", (q) => q.eq("class_id", hold.class_id))
+      .first();
+    return {
+      customer_mobile: hold.customer_mobile,
+      class_name_zh: cls?.name_zh ?? "",
+      session_date: session?.date ?? "",
+      session_time: session?.time ?? "",
+      session_end_time: session?.end_time,
+      session_location_zh: session?.location_zh ?? "",
+      session_google_maps_url: session?.google_maps_url,
+      participants: (hold.participant_ids ?? []).map((participantId: string, i: number) => ({
+        participant_id: participantId,
+        name: hold.participants[i]?.name ?? "",
+      })),
     };
   },
 });

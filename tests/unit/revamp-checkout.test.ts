@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('convex/server', () => ({
   queryGeneric: (def: any) => def,
+  internalQueryGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   internalMutationGeneric: (def: any) => def,
   makeFunctionReference: (name: string) => name,
@@ -217,13 +218,17 @@ describe('completeCheckout', () => {
     expect(await remainingQuota(db as any, db.tables.sessions[0])).toBe(0);
   });
 
-  it('is safe to call twice for the same payment', async () => {
-    const { ctx, db } = world();
+  it('is safe to call twice for the same payment, and WhatsApps the Customer once', async () => {
+    const { ctx, db, scheduler } = world();
     const hold = await start(ctx);
     const a = await complete(ctx, hold);
     const b = await complete(ctx, hold);
     expect(b).toEqual(a);
     expect(db.tables.participants).toHaveLength(1);
+    const confirmations = scheduler.runAfter.mock.calls.filter(
+      (call: unknown[]) => call[1] === 'orderConfirmation:sendOrderConfirmation'
+    );
+    expect(confirmations).toEqual([[0, 'orderConfirmation:sendOrderConfirmation', { hold_id: hold.hold_id }]]);
   });
 
   it('refuses a payment for the wrong amount', async () => {

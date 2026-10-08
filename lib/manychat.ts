@@ -310,3 +310,87 @@ export async function sendRainCancellationWhatsApp({
     return { success: false, subscriberId: null };
   }
 }
+
+// ── Order confirmation WhatsApp (new apply flow) ─────────────────────────────
+//
+// Sent once to the Customer when an Order is paid: the Session details and each
+// Participant's link, as one text custom field shown by the flow.
+// Set MANYCHAT_ORDER_FLOW_NS and MANYCHAT_ORDER_SUMMARY_FIELD (cuf_…) once the ManyChat
+// flow exists; until then the send is skipped and logged.
+
+type SendOrderConfirmationParams = {
+  to: string; // E.164 phone number
+  summary: string;
+  subscriberId?: string | null;
+};
+
+export type SendOrderConfirmationResult = SendTermsResult & { skipped?: boolean };
+
+export async function sendOrderConfirmationWhatsApp({
+  to,
+  summary,
+  subscriberId: existingSubscriberId,
+}: SendOrderConfirmationParams): Promise<SendOrderConfirmationResult> {
+  const apiKey = process.env.MANYCHAT_API_KEY;
+  const flowNs = process.env.MANYCHAT_ORDER_FLOW_NS ?? "";
+  const summaryField = process.env.MANYCHAT_ORDER_SUMMARY_FIELD ?? "";
+  if (!apiKey || !flowNs || !summaryField) {
+    console.warn(
+      "[manychat] Order confirmation not configured (MANYCHAT_API_KEY / MANYCHAT_ORDER_FLOW_NS / MANYCHAT_ORDER_SUMMARY_FIELD) — skipping WhatsApp"
+    );
+    return { success: false, subscriberId: null, skipped: true };
+  }
+
+  const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+  let subscriberId: string | null = existingSubscriberId ?? null;
+
+  try {
+    if (!subscriberId) {
+      const createRes = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/createSubscriber`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          whatsapp_phone: to,
+          phone: stripPlus(to),
+          has_opt_in_whatsapp: true,
+          has_opt_in_sms: false,
+          has_opt_in_email: false,
+          consent_phrase: "User agreed to receive WhatsApp messages",
+        }),
+      });
+      const createData = await createRes.json();
+      if (!createRes.ok || !createData?.data?.id) {
+        console.error(`[manychat] createSubscriber failed for ${to}: ${createRes.status} ${JSON.stringify(createData)}`);
+        return { success: false, subscriberId: null };
+      }
+      subscriberId = String(createData.data.id);
+    }
+
+    const setFieldRes = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/setCustomFields`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        subscriber_id: Number(subscriberId),
+        fields: [{ field_id: Number(summaryField.replace("cuf_", "")), field_value: summary }],
+      }),
+    });
+    if (!setFieldRes.ok) {
+      console.error(`[manychat] setCustomFields (order) failed: ${setFieldRes.status} ${await setFieldRes.text()}`);
+      return { success: false, subscriberId };
+    }
+
+    const sendRes = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlow`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ subscriber_id: subscriberId, flow_ns: flowNs }),
+    });
+    if (!sendRes.ok) {
+      console.error(`[manychat] sendFlow (order) failed: ${sendRes.status} ${await sendRes.text()}`);
+      return { success: false, subscriberId };
+    }
+    return { success: true, subscriberId };
+  } catch (err) {
+    console.error(`[manychat] Order confirmation to ${to} failed:`, err);
+    return { success: false, subscriberId };
+  }
+}

@@ -73,6 +73,10 @@ test.describe('TC-079: apply flow books named Participants into the chosen Sessi
 
       const links = page.locator('[data-participant-link]');
       await expect(links).toHaveCount(2);
+      // Each Participant gets their own Attendance QR card, and the Session can go in a calendar
+      await expect(page.locator('[data-participant-card] img')).toHaveCount(2);
+      const [ics] = await Promise.all([page.waitForEvent('download'), page.getByTestId('add-to-calendar').click()]);
+      expect(ics.suggestedFilename()).toBe('2030-11-01-class.ics');
       await page.screenshot({ path: path.join('test-results', 'tc-079-done.png'), fullPage: true });
 
       const ids = await links.evaluateAll((els) => els.map((e) => e.getAttribute('data-participant-link')!));
