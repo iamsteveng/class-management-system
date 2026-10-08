@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 import { openTimetableSessions } from "./timetable";
 import type { VenueFields } from "./venues";
+import { KIDS_CLASS_ID, REGULAR_CLASS_ID } from "../lib/catalogueIds";
 
 /**
  * The real cycling catalogue launched with the homepage revamp: its Classes, Venues and
@@ -17,8 +18,7 @@ export const CYCLE_ANCHOR = "2026-10-05"; // Monday of week 1
 const CYCLE_WEEKS = 2;
 const WINDOW_DAYS = 28;
 
-export const KIDS_CLASS_ID = "class_cycling_kids";
-export const REGULAR_CLASS_ID = "class_cycling_regular";
+export { KIDS_CLASS_ID, REGULAR_CLASS_ID };
 
 type ClassSeed = {
   class_id: string;
@@ -42,10 +42,8 @@ export const CLASSES: ClassSeed[] = [
     class_id: KIDS_CLASS_ID,
     name_zh: "幼兒班",
     name_en: "Kids Class",
-    description_zh:
-      "以遊戲帶技巧：先學平衡，再學起步、煞車同轉向，建立信心。家長或陪同者須留喺場內，直至教練交回小朋友。",
-    description_en:
-      "Skills through games: balance first, then starting, braking and steering, building confidence. A parent or carer must stay on site until the coach hands the child back.",
+    description_zh: "以遊戲帶技巧：先學平衡，再學起步、煞車同轉向，建立信心。",
+    description_en: "Skills through games: balance first, then starting, braking and steering, building confidence.",
     duration_minutes: 60,
     image_url: "/images/revamp/class-kids.jpg",
     airwallex_price: 180,

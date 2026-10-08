@@ -17,6 +17,8 @@ export type ApplyClass = {
   class_id: string;
   name_zh: string;
   name_en?: string;
+  description_zh?: string;
+  description_en?: string;
   duration_minutes?: number;
   image_url?: string;
   price: number;
@@ -92,7 +94,7 @@ type ApplyFormProps = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#1f6f5c]";
+  "w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0B6FB8]";
 
 export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: ApplyFormProps) {
   const copy = applyCopy[lang];
@@ -385,7 +387,7 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
   return (
     <div className="space-y-4" data-testid="apply-form">
       <ol className="flex gap-2 text-xs font-medium text-zinc-500" aria-label={copy.pageTitle}>
-        <li className={session ? "text-[#1f6f5c]" : "text-zinc-900"}>1 {copy.stepSession}{session ? " ✓" : ""}</li>
+        <li className={session ? "text-[#0B6FB8]" : "text-zinc-900"}>1 {copy.stepSession}{session ? " ✓" : ""}</li>
         <li aria-hidden>›</li>
         <li className={session ? "text-zinc-900" : ""}>2 {copy.stepDetails}</li>
         <li aria-hidden>›</li>
@@ -428,7 +430,7 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
           {session && !pickingSession ? (
             <button
               type="button"
-              className="text-sm font-medium text-[#1f6f5c] underline"
+              className="text-sm font-medium text-[#0B6FB8] underline"
               onClick={() => (onChangeSession ? onChangeSession() : setPickingSession(true))}
             >
               {copy.change}
@@ -459,8 +461,8 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
                         setPickingSession(false);
                       }}
                       className={`rounded-lg border p-3 text-left text-sm ${
-                        s.session_id === sessionId ? "border-[#1f6f5c] bg-emerald-50" : "border-zinc-200 bg-white"
-                      } ${full ? "cursor-not-allowed opacity-50" : "hover:border-[#1f6f5c]"}`}
+                        s.session_id === sessionId ? "border-[#0B6FB8] bg-emerald-50" : "border-zinc-200 bg-white"
+                      } ${full ? "cursor-not-allowed opacity-50" : "hover:border-[#0B6FB8]"}`}
                     >
                       <span className="block font-medium text-zinc-900">{sessionLabel(s)}</span>
                       <span className="block text-zinc-600">{location(s)}</span>
@@ -697,7 +699,7 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
                 {data.terms ? <span className="ml-1 font-normal text-zinc-500">({data.terms.version})</span> : null}
               </h3>
               {data.terms ? (
-                <button type="button" className="text-sm text-[#1f6f5c] underline" onClick={() => setShowTerms((s) => !s)}>
+                <button type="button" className="text-sm text-[#0B6FB8] underline" onClick={() => setShowTerms((s) => !s)}>
                   {showTerms ? copy.hideTerms : copy.readTerms}
                 </button>
               ) : null}
@@ -790,7 +792,7 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
               type="button"
               onClick={() => void handleSubmit()}
               disabled={busy}
-              className="rounded-xl bg-[#e16036] px-6 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
+              className="rounded-full bg-[#0B6FB8] px-6 py-3 hover:bg-[#08548C] text-base font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {busy ? copy.processing : cls.is_free ? copy.register : copy.pay}
             </button>
