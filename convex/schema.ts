@@ -136,6 +136,58 @@ export default defineSchema({
     .index("by_venue_id", ["venue_id"])
     .index("by_timetable_entry_date", ["timetable_entry_id", "date"]),
 
+  // A Seat Hold: a Customer's chosen seats in one Session, kept while they pay, with the
+  // details of everyone being booked so the Order can be created as soon as payment succeeds.
+  seat_holds: defineTable({
+    hold_id: v.string(),
+    request_id: v.string(),
+    class_id: v.string(),
+    session_id: v.string(),
+    quantity: v.number(),
+    customer_mobile: v.string(),
+    participants: v.array(
+      v.object({
+        name: v.string(),
+        age: v.number(),
+        height: v.number(),
+        riding_experience: v.union(
+          v.literal("never"),
+          v.literal("training_wheels"),
+          v.literal("short_distance")
+        ),
+        mobile: v.string(),
+        emergency_contact_name: v.string(),
+        emergency_contact_phone: v.string(),
+        health_notes: v.optional(v.string()),
+        photo_consent: v.boolean(),
+      })
+    ),
+    terms_version_id: v.id("terms_versions"),
+    unit_price: v.number(),
+    total_price: v.number(),
+    currency: v.string(),
+    is_free: v.boolean(),
+    status: v.union(
+      v.literal("held"), // seats held while the Customer pays
+      v.literal("released"), // given up before paying
+      v.literal("completed"), // paid; the Order's Tickets and Participants exist
+      v.literal("refund_pending"), // paid after lapsing with no room left; refund under way
+      v.literal("refunded"),
+      v.literal("refund_failed")
+    ),
+    expires_at: v.number(),
+    intent_id: v.optional(v.string()),
+    order_id: v.optional(v.string()),
+    participant_ids: v.optional(v.array(v.string())),
+    refund_id: v.optional(v.string()),
+    created_at: v.number(),
+    completed_at: v.optional(v.number()),
+  })
+    .index("by_hold_id", ["hold_id"])
+    .index("by_request_id", ["request_id"])
+    .index("by_session_status", ["session_id", "status"])
+    .index("by_intent_id", ["intent_id"]),
+
   // One repeating slot of the Timetable: a Class at a Venue, on a weekday of one week of the cycle.
   timetable_entries: defineTable({
     entry_id: v.string(),

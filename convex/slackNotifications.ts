@@ -3,7 +3,7 @@
 import { actionGeneric } from "convex/server";
 import { v } from "convex/values";
 
-import { sendTermsAcceptanceSlack } from "../lib/slack";
+import { sendLatePaymentRefundSlack, sendTermsAcceptanceSlack } from "../lib/slack";
 
 export const notifyTermsAccepted = actionGeneric({
   args: {
@@ -32,4 +32,33 @@ export const notifyTermsAccepted = actionGeneric({
     }
     return result;
   },
+});
+
+export const notifyLatePaymentRefund = actionGeneric({
+  args: {
+    refunded: v.boolean(),
+    customer_mobile: v.string(),
+    session_date: v.string(),
+    session_time: v.string(),
+    session_location_zh: v.string(),
+    quantity: v.number(),
+    amount: v.number(),
+    currency: v.string(),
+    intent_id: v.string(),
+    error: v.optional(v.string()),
+  },
+  returns: v.object({ success: v.boolean() }),
+  handler: async (_ctx, args) =>
+    sendLatePaymentRefundSlack({
+      refunded: args.refunded,
+      customerMobile: args.customer_mobile,
+      sessionDate: args.session_date,
+      sessionTime: args.session_time,
+      sessionLocationZh: args.session_location_zh,
+      quantity: args.quantity,
+      amount: args.amount,
+      currency: args.currency,
+      intentId: args.intent_id,
+      error: args.error,
+    }),
 });

@@ -92,6 +92,7 @@ describe('TC-041 US-012 height is stored as a number in participants table', () 
     ctx.db.query.mockImplementation((table: string) => ({
       withIndex: () => ({
         first: async () => docsByTable[table] ?? null,
+        collect: async () => [],
       }),
     }));
 

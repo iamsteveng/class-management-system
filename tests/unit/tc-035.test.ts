@@ -72,6 +72,7 @@ describe('TC-035 getTermsPageData excludes past sessions', () => {
         if (table === 'terms_versions') return makeQueryChain(currentTerms);
         if (table === 'classes') return makeQueryChain(classRecord);
         if (table === 'sessions') return makeQueryChain(sessions);
+        if (table === 'seat_holds') return makeQueryChain([]);
         return makeQueryChain(null);
       }),
     };
