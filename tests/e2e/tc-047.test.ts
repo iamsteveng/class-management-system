@@ -89,7 +89,8 @@ test('TC-047: Rain-cancelled participant can successfully change to a future ses
   await page.screenshot({ path: 'tc047-evidence.png', fullPage: true });
 
   // Step 10: Assert the page now shows the new session details (target session location)
-  await expect(page.getByText(`TC047-Target-${testId}`)).toBeVisible({ timeout: 10_000 });
+  // The location shows in both the details list and the Attendance QR card; check the card
+  await expect(page.getByTestId('attendance-qr-location')).toHaveText(`TC047-Target-${testId}`, { timeout: 10_000 });
 
   // Step 11: Assert the rain banner is no longer shown (participant is now in a new session)
   await expect(page.locator('section.rounded-xl.border.border-amber-200')).toHaveCount(0);
