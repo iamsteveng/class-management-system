@@ -42,10 +42,8 @@ export const CLASSES: ClassSeed[] = [
     class_id: KIDS_CLASS_ID,
     name_zh: "幼兒班",
     name_en: "Kids Class",
-    description_zh:
-      "以遊戲帶技巧：先學平衡，再學起步、煞車同轉向，建立信心。家長或陪同者須留喺場內，直至教練交回小朋友。",
-    description_en:
-      "Skills through games: balance first, then starting, braking and steering, building confidence. A parent or carer must stay on site until the coach hands the child back.",
+    description_zh: "以遊戲帶技巧：先學平衡，再學起步、煞車同轉向，建立信心。",
+    description_en: "Skills through games: balance first, then starting, braking and steering, building confidence.",
     duration_minutes: 60,
     image_url: "/images/revamp/class-kids.jpg",
     airwallex_price: 180,
