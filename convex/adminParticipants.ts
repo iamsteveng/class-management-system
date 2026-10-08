@@ -100,6 +100,10 @@ export const getParticipantAdminDetails = queryGeneric({
       age: v.optional(v.number()),
       emergency_contact_name: v.optional(v.string()),
       emergency_contact_phone: v.optional(v.string()),
+      riding_experience: v.optional(v.string()),
+      health_notes: v.optional(v.string()),
+      photo_consent: v.optional(v.boolean()),
+      terms_accepted_by: v.optional(v.string()),
     })
   ),
   handler: async (ctx, args) => {
@@ -151,6 +155,10 @@ export const getParticipantAdminDetails = queryGeneric({
       age: participant.age,
       emergency_contact_name: participant.emergency_contact_name,
       emergency_contact_phone: participant.emergency_contact_phone,
+      riding_experience: participant.riding_experience,
+      health_notes: participant.health_notes,
+      photo_consent: participant.photo_consent,
+      terms_accepted_by: participant.terms_accepted_by,
     };
   },
 });

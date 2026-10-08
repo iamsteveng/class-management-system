@@ -9,9 +9,20 @@ type ParticipantRow = {
   mobile: string;
   email?: string;
   height?: number;
+  age?: number;
+  riding_experience?: string;
+  health_notes?: string;
+  photo_consent?: boolean;
   terms_accepted: boolean;
+  terms_accepted_by?: string;
   terms_version?: string;
   attendance_status: string;
+};
+
+export const RIDING_EXPERIENCE_LABELS: Record<string, string> = {
+  never: "Never ridden",
+  training_wheels: "Training wheels",
+  short_distance: "Short distances",
 };
 
 type ScanResult = {
@@ -284,6 +295,10 @@ export function SessionParticipantsPanel({
                   <th className="px-4 py-3 font-medium">Mobile</th>
                   <th className="px-4 py-3 font-medium">Email</th>
                   <th className="px-4 py-3 font-medium">Height</th>
+                  <th className="px-4 py-3 font-medium">Age</th>
+                  <th className="px-4 py-3 font-medium">Riding</th>
+                  <th className="px-4 py-3 font-medium">Health Notes</th>
+                  <th className="px-4 py-3 font-medium">Photos OK</th>
                   <th className="px-4 py-3 font-medium">Terms Accepted</th>
                   <th className="px-4 py-3 font-medium">Terms Version</th>
                   <th className="px-4 py-3 font-medium">Attendance Status</th>
@@ -293,7 +308,7 @@ export function SessionParticipantsPanel({
               <tbody>
                 {participants.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-4 py-6 text-center text-zinc-600">
+                    <td colSpan={13} className="px-4 py-6 text-center text-zinc-600">
                       No participants found for this session.
                     </td>
                   </tr>
@@ -309,8 +324,28 @@ export function SessionParticipantsPanel({
                       <td className="px-4 py-3 text-zinc-700">
                         {participant.height != null ? participant.height : "—"}
                       </td>
+                      <td className="px-4 py-3 text-zinc-700">{participant.age ?? "—"}</td>
                       <td className="px-4 py-3 text-zinc-700">
-                        {participant.terms_accepted ? "Yes" : "No"}
+                        {participant.riding_experience
+                          ? (RIDING_EXPERIENCE_LABELS[participant.riding_experience] ?? participant.riding_experience)
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {participant.health_notes ? (
+                          <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-900">{participant.health_notes}</span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {participant.photo_consent === undefined ? "—" : participant.photo_consent ? "Yes" : "No"}
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700">
+                        {participant.terms_accepted
+                          ? participant.terms_accepted_by === "customer"
+                            ? "Yes (by Customer)"
+                            : "Yes"
+                          : "No"}
                       </td>
                       <td className="px-4 py-3 text-zinc-700">
                         {participant.terms_version ?? "-"}

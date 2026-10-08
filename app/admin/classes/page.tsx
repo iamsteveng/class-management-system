@@ -24,6 +24,9 @@ type ClassRow = {
   airwallex_group_price?: number;
   airwallex_group_min_qty?: number;
   is_free?: boolean;
+  age_min?: number;
+  age_max?: number;
+  class_size?: number;
 };
 
 type AdminClassesPageProps = {
@@ -109,9 +112,9 @@ export default async function AdminClassesPage({
     const durationMinutesRaw = (formData.get("duration_minutes") as string | null)?.trim() || undefined;
     const durationMinutes = durationMinutesRaw ? parseInt(durationMinutesRaw, 10) : undefined;
     const imageUrl = (formData.get("image_url") as string | null)?.trim() || undefined;
-    if (imageUrl && !/^https?:\/\/[^/\s]+/i.test(imageUrl)) {
+    if (imageUrl && !/^https?:\/\/[^/\s]+/i.test(imageUrl) && !/^\/[^/\s]/.test(imageUrl)) {
       redirect(
-        `/admin/classes?error=${encodeURIComponent("Image URL must be a full URL starting with https://")}`
+        `/admin/classes?error=${encodeURIComponent("Image URL must be a full URL starting with https:// or a path starting with /")}`
       );
     }
     const airwallexPriceRaw = (formData.get("airwallex_price") as string | null)?.trim() || undefined;
@@ -123,6 +126,16 @@ export default async function AdminClassesPage({
     const airwallexGroupMinQtyRaw = (formData.get("airwallex_group_min_qty") as string | null)?.trim() || undefined;
     const airwallexGroupMinQty = airwallexGroupMinQtyRaw ? parseInt(airwallexGroupMinQtyRaw, 10) : undefined;
     const isFree = formData.get("is_free") === "true";
+    const readInt = (name: string) => {
+      const raw = (formData.get(name) as string | null)?.trim();
+      return raw ? parseInt(raw, 10) : undefined;
+    };
+    const ageMin = readInt("age_min");
+    const ageMax = readInt("age_max");
+    const classSize = readInt("class_size");
+    if (ageMin !== undefined && ageMax !== undefined && ageMin > ageMax) {
+      redirect(`/admin/classes?error=${encodeURIComponent("The youngest age must not be above the oldest age.")}`);
+    }
 
     if (!classId || !nameZh) {
       redirect(
@@ -148,6 +161,9 @@ export default async function AdminClassesPage({
           airwallex_group_price: airwallexGroupPrice,
           airwallex_group_min_qty: airwallexGroupMinQty,
           is_free: isFree,
+          age_min: ageMin,
+          age_max: ageMax,
+          class_size: classSize,
           admin_username: adminUsername,
         }
       );
@@ -304,6 +320,9 @@ export default async function AdminClassesPage({
                           initialAirwallexGroupPrice={cls.airwallex_group_price}
                           initialAirwallexGroupMinQty={cls.airwallex_group_min_qty}
                           initialIsFree={cls.is_free}
+                          initialAgeMin={cls.age_min}
+                          initialAgeMax={cls.age_max}
+                          initialClassSize={cls.class_size}
                           submitAction={editClassAction}
                         />
                         <ClassStatusToggle
