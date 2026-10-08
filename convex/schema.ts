@@ -89,6 +89,8 @@ export default defineSchema({
     ),
     google_maps_url: v.optional(v.string()),
     cancellation_reason: v.optional(v.literal("rain")),
+    // A Hidden Session is not shown to or selectable by Customers and Participants.
+    hidden: v.optional(v.boolean()),
     created_at: v.number(),
   })
     .index("by_session_id", ["session_id"])

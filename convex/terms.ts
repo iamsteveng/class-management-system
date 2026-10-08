@@ -104,7 +104,7 @@ export const getTermsPageData = queryGeneric({
 
     const now = new Date();
     const sessions = rawSessions
-      .filter((session) => session.status === "scheduled")
+      .filter((session) => session.status === "scheduled" && session.hidden !== true)
       .map((session) => {
         const availableQuota = Math.max(
           session.quota_defined - session.quota_used,
@@ -240,7 +240,7 @@ export const acceptTermsByToken = mutationGeneric({
       .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
       .first();
 
-    if (!session || session.status !== "scheduled") {
+    if (!session || session.status !== "scheduled" || session.hidden === true) {
       return {
         success: false,
         error_message: "Selected session is not available.",

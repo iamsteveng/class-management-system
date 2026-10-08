@@ -28,6 +28,7 @@ export const getSessionManagementPageData = queryGeneric({
           ),
           google_maps_url: v.optional(v.string()),
           cancellation_reason: v.optional(v.literal("rain")),
+          hidden: v.boolean(),
         })
       ),
     })
@@ -60,6 +61,7 @@ export const getSessionManagementPageData = queryGeneric({
       status: s.status,
       google_maps_url: s.google_maps_url,
       cancellation_reason: s.cancellation_reason,
+      hidden: s.hidden === true,
     }));
 
     sessionRows.sort((a, b) => {
@@ -206,6 +208,65 @@ export const updateSession = mutationGeneric({
         next_quota_defined: nextQuotaDefined,
       },
       created_at: now,
+    });
+
+    return { session_id: sessionRecord.session_id };
+  },
+});
+
+/**
+ * Hide or show a scheduled Session. Hiding only controls whether Customers and
+ * Participants can see and pick it; Participants already in it are untouched.
+ */
+export const setSessionHidden = mutationGeneric({
+  args: {
+    session_id: v.string(),
+    hidden: v.boolean(),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    session_id: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const sessionRecord = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+      .first();
+
+    if (!sessionRecord) {
+      throw new Error("Session not found.");
+    }
+
+    const admin = await ctx.db
+      .query("admins")
+      .withIndex("by_username", (q) => q.eq("username", args.admin_username))
+      .first();
+
+    if (!admin || admin.role !== "super_admin") {
+      throw new Error("Only super admins can hide or show sessions.");
+    }
+
+    if (sessionRecord.status !== "scheduled") {
+      throw new Error("Only scheduled sessions can be hidden or shown.");
+    }
+
+    const wasHidden = sessionRecord.hidden === true;
+    if (wasHidden === args.hidden) {
+      return { session_id: sessionRecord.session_id };
+    }
+
+    await ctx.db.patch(sessionRecord._id, { hidden: args.hidden });
+
+    await ctx.db.insert("audit_logs", {
+      admin_id: admin._id,
+      action: args.hidden ? "session_hidden" : "session_shown",
+      entity_type: "sessions",
+      entity_id: sessionRecord.session_id,
+      metadata: {
+        previous_hidden: wasHidden,
+        next_hidden: args.hidden,
+      },
+      created_at: Date.now(),
     });
 
     return { session_id: sessionRecord.session_id };

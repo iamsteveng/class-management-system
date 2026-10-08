@@ -23,14 +23,17 @@ type SessionDoc = {
   quota_defined: number;
   quota_used: number;
   status: "scheduled" | "completed" | "cancelled";
+  hidden?: boolean;
 };
 
-/** Scheduled Sessions dated today or later, soonest first, as shown to Customers. */
+/** Visible scheduled Sessions dated today or later, soonest first, as shown to Customers. */
 function toUpcomingSessions(sessions: SessionDoc[]) {
   const today = new Date().toISOString().split("T")[0];
 
   return sessions
-    .filter((session) => session.status === "scheduled" && session.date >= today)
+    .filter(
+      (session) => session.status === "scheduled" && session.hidden !== true && session.date >= today
+    )
     .map((session) => ({
       session_id: session.session_id,
       location_zh: session.location_zh ?? "",

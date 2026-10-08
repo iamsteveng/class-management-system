@@ -6,6 +6,7 @@ import { AddSessionModal } from "./add-session-modal";
 import { CancelSessionButton } from "./cancel-session-button";
 import { RainCancelSessionButton } from "./rain-cancel-session-button";
 import { EditSessionModal } from "./edit-session-modal";
+import { SessionVisibilityToggle } from "./session-visibility-toggle";
 import { getServerAuthSession } from "@/lib/auth";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
@@ -22,6 +23,7 @@ type SessionRow = {
   status: "scheduled" | "completed" | "cancelled";
   google_maps_url?: string;
   cancellation_reason?: "rain";
+  hidden: boolean;
 };
 
 type PageData = {
@@ -51,6 +53,8 @@ export default async function AdminClassSessionsPage({
   const sessionUpdated = sp.status === "session_updated";
   const sessionCancelled = sp.status === "session_cancelled";
   const sessionRainCancelled = sp.status === "session_rain_cancelled";
+  const sessionHidden = sp.status === "session_hidden";
+  const sessionShown = sp.status === "session_shown";
   const isSuperAdmin = session.user.role === "super_admin";
   const adminUsername = session.user.username;
 
@@ -240,6 +244,40 @@ export default async function AdminClassSessionsPage({
     redirect(`/admin/classes/${classId}/sessions?status=session_rain_cancelled`);
   }
 
+  async function setSessionHiddenAction(formData: FormData) {
+    "use server";
+
+    const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
+    const hidden = formData.get("hidden") === "true";
+    if (!sessionId) {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          "Session ID is required."
+        )}`
+      );
+    }
+
+    try {
+      const client = createConvexHttpClient();
+      await client.mutation(
+        makeFunctionReference<"mutation">("adminSessions:setSessionHidden"),
+        {
+          session_id: sessionId,
+          hidden,
+          admin_username: adminUsername,
+        }
+      );
+    } catch {
+      redirect(
+        `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
+          hidden ? "Failed to hide session. Please try again." : "Failed to show session. Please try again."
+        )}`
+      );
+    }
+
+    redirect(`/admin/classes/${classId}/sessions?status=${hidden ? "session_hidden" : "session_shown"}`);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl space-y-6 px-4 py-8">
       <section className="flex flex-wrap items-center justify-between gap-4">
@@ -280,6 +318,17 @@ export default async function AdminClassSessionsPage({
       {sessionRainCancelled ? (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
           Session marked as rain-cancelled. Participants can now change to another session.
+        </p>
+      ) : null}
+
+      {sessionHidden ? (
+        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          Session hidden. Customers and participants can no longer see or pick it.
+        </p>
+      ) : null}
+      {sessionShown ? (
+        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">
+          Session shown. It is visible to customers and participants again.
         </p>
       ) : null}
 
@@ -342,6 +391,14 @@ export default async function AdminClassSessionsPage({
                     >
                       {s.cancellation_reason === "rain" ? "cancelled (rain)" : s.status}
                     </span>
+                    {s.hidden && s.status === "scheduled" ? (
+                      <span
+                        data-testid="session-hidden-badge"
+                        className="ml-1.5 inline-flex rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-white"
+                      >
+                        Hidden
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3">
                     <Link
@@ -370,6 +427,13 @@ export default async function AdminClassSessionsPage({
                           disabled={s.status === "cancelled"}
                           submitAction={cancelSessionAction}
                         />
+                        {s.status === "scheduled" ? (
+                          <SessionVisibilityToggle
+                            sessionId={s.session_id}
+                            hidden={s.hidden}
+                            submitAction={setSessionHiddenAction}
+                          />
+                        ) : null}
                         {s.status === "scheduled" ? (
                           <RainCancelSessionButton
                             sessionId={s.session_id}

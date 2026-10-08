@@ -39,6 +39,7 @@ type AvailableSession = {
   location_zh: string;
   location_en?: string;
   quota_available: number;
+  hidden: boolean;
 };
 
 export default async function ParticipantDetailPage({ params, searchParams }: ParticipantDetailPageProps) {
@@ -95,8 +96,8 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
     try {
       const client = createConvexHttpClient();
       const result = await client.mutation(
-        makeFunctionReference<"mutation">("participants:changeParticipantSession"),
-        { participant_id: pId, session_id: sessionId }
+        makeFunctionReference<"mutation">("adminParticipants:changeParticipantSession"),
+        { participant_id: pId, session_id: sessionId, admin_username: adminUsername }
       );
       if (!result.success) {
         redirect(
