@@ -197,6 +197,7 @@ const startCheckoutResult = v.union(
     amount: v.number(),
     currency: v.string(),
     expires_at: v.number(),
+    intent_id: v.optional(v.string()),
   }),
   v.object({
     kind: v.literal("completed"),
@@ -254,6 +255,7 @@ export const startCheckout = mutationGeneric({
           amount: previous.total_price,
           currency: previous.currency,
           expires_at: previous.expires_at,
+          intent_id: previous.intent_id,
         };
       }
       return fail("expired", "This checkout has expired. Please start again.");

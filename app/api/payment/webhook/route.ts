@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchAction } from "convex/nextjs";
 import { makeFunctionReference } from "convex/server";
 
+import { completePaidHold } from "@/lib/checkoutServer";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text();
@@ -16,7 +18,11 @@ export async function POST(req: NextRequest) {
         const class_id = metadata.class_id;
         const mobile = metadata.mobile;
 
-        if (class_id && mobile) {
+        if (metadata.hold_id) {
+          // New apply flow: the Seat Hold already holds everyone's details.
+          const outcome = await completePaidHold(metadata.hold_id, intent.id as string);
+          console.log("[webhook] seat hold", metadata.hold_id, "->", outcome.outcome);
+        } else if (class_id && mobile) {
           const quantity = metadata.quantity ? Math.max(1, Math.min(15, parseInt(metadata.quantity, 10))) : 1;
           const unitAmount = quantity > 1 ? Math.round((intent.amount as number) / quantity) : ((intent.amount as number) ?? 0);
           await fetchAction(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
