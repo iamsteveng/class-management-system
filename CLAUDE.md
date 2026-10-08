@@ -116,7 +116,7 @@ CONVEX_DEPLOYMENT=dev:graceful-mole-393
 
 ### Issue tracker
 
-Issues live as GitHub issues in `iamsteveng/class-management-system`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live as GitHub issues in `locohk/class-management-system`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
