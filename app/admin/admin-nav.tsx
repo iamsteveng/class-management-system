@@ -29,6 +29,11 @@ const navItems: NavItem[] = [
         !pathname.includes("/participants")),
   },
   {
+    label: "Timetable",
+    href: "/admin/timetable",
+    isActive: (pathname) => pathname.startsWith("/admin/timetable"),
+  },
+  {
     label: "Participants",
     href: "/admin/participants",
     isActive: (pathname) =>
