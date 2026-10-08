@@ -10,9 +10,13 @@ sessions and mark attendance.
 
 **Class**:
 A kind of class that is sold and run repeatedly, e.g. 單車班, 導賞團. Carries the name,
-description (in Chinese and English), price, duration, image and whether it is
-currently on sale. Everything the public sees about a Class comes from the Class itself.
+description (in Chinese and English), price, duration, image, Age Range and whether it
+is currently on sale. Everything the public sees about a Class comes from the Class itself.
 _Avoid_: Course, Product, 課程, 班別 (in admin contexts, 班級)
+
+**Age Range**:
+The youngest and oldest age a Participant of a Class may be, e.g. 5–12 for 幼兒班 and
+13–60 for 常規班. Every Participant named for the Class must fall within it.
 
 **Duration**:
 The advertised length of a Class, shown to Customers before they buy. A Session's own
@@ -35,12 +39,25 @@ _Avoid_: Application URL, Payment URL, Application link (that is the Token's del
 A lower Price for a Class that applies when an Order holds at least a set minimum number
 of Tickets.
 
+**Venue**:
+A place where Sessions are held, e.g. 青衣樂區單車亭: its district, address, opening
+hours, map position and how to walk there from the nearest MTR station. Customers can
+browse Sessions by district.
+_Avoid_: Site, Location (as free text), Kiosk
+
 **Session**:
-One scheduled occurrence of a Class, identified by its location, date and time, with a
+One scheduled occurrence of a Class, identified by its Venue, date and time, with a
 fixed quota of Participants. Bare "session" always means this. A Session is scheduled,
 completed once it has taken place, or cancelled; a cancelled Session still holds its
 Participants.
 _Avoid_: Class, Timeslot, Occurrence, 班別 (use 時段)
+
+**Timetable**:
+The repeating pattern a Class is run to: which Class runs at which Venue, on which
+weekday and at what time, over a cycle of weeks (e.g. a two-week rotation of Venues).
+Sessions are opened from it automatically a fixed time ahead, so admins never create
+routine Sessions by hand.
+_Avoid_: Schedule, Recurrence, Template
 
 **Hidden Session**:
 A scheduled Session that Customers and Participants can neither see nor pick; only
@@ -51,27 +68,46 @@ _Avoid_: Inactive, Private, Draft, Unlisted
 **Quota**:
 The number of Participants a Session can hold.
 
-**Capacity**:
-A Class's remaining room for new Tickets: the unused Quota summed across its scheduled
-Sessions, less the Tickets already sold but not yet claimed. Cancelled Sessions
-contribute nothing.
+**Class Size**:
+The usual Quota of a Session of a Class, and what Customers are told the class is
+limited to (e.g. 6 for 幼兒班, 8 for 常規班). New Sessions start with it; an individual
+Session's Quota may still differ.
+
+**Remaining Quota**:
+A Session's Quota less the Participants already in it. A Session with none left is
+full. Tickets for a Session are never sold beyond its Remaining Quota.
+_Avoid_: Capacity (a Class-wide pool that applied only to Legacy Tickets)
 
 ### Buying
 
 **Order**:
 One Customer's single act of buying, paid or free, covering one or more Tickets. An Order placed on
-this site is always for one Class. Orders were once imported from an external seller and
+this site is always for one Session of one Class. Orders were once imported from an external seller and
 may span several Classes; those remain as history, and no new ones are imported.
 _Avoid_: Purchase, Transaction
 
 **Ticket**:
-One seat within an Order: the right for one person to attend one Session of the Class
-that was bought. Exists from the moment of payment, before anyone is named. Never sold
-beyond the Class's Capacity.
+One seat within an Order: the right for one named person to attend one chosen Session.
+The Customer picks the Session and names each person before paying, so a Ticket and its
+Participant come into existence together at payment.
 _Avoid_: Purchase, Seat, Slot, Pass
 
+**Legacy Ticket**:
+A Ticket sold before the Customer chose the Session upfront: bought for a Class, with no
+Session and no one named until its Token was redeemed. Unredeemed Legacy Tickets are
+still honoured.
+
+**Seat Hold**:
+A temporary claim on a Session's Remaining Quota while a Customer is paying, so the seats
+they chose cannot be sold to someone else meanwhile. It becomes Tickets when payment
+succeeds and lapses if payment is abandoned or takes too long. Held seats count as taken.
+A payment that succeeds after its Seat Hold lapsed still gets its Tickets if the Session
+has room for all of them; otherwise the whole Order is refunded automatically, never
+split.
+_Avoid_: Reservation, Booking
+
 **Token**:
-The secret identifying one Ticket, delivered to the Customer as a link so the seat can
+The secret identifying one Legacy Ticket, delivered to the Customer as a link so the seat can
 be claimed without logging in. It claims the seat once; opened again afterwards, it
 leads back to the Participant Link.
 _Avoid_: Pass, Link, Application link, 報名連結 (these are UI copy for how a Token is delivered, not the thing itself)
@@ -89,8 +125,8 @@ _Avoid_: Buyer, Client, Account
 
 **Participant**:
 A person attending one Session: the body at the class, with their own contact details,
-height, age and emergency contact. Comes into existence when a Ticket's Token is
-redeemed and the terms are accepted. Receives every message about their Session. The
+height, age, riding experience, health notes, emergency contact and photo consent. Named by the Customer at purchase and comes into
+existence when the Order is paid (for a Legacy Ticket, when its Token was redeemed). Receives every message about their Session. The
 Session a Participant holds is the only record of where they are currently booked.
 _Avoid_: Attendee, Customer, User
 
@@ -143,8 +179,10 @@ One immutable published revision of the terms and conditions. Exactly one is cur
 a time; publishing a new one never alters an existing one.
 
 **Terms Acceptance**:
-One Participant agreeing to one Terms Version at a moment in time. It is an audit
-record: what was agreed must remain provable, not merely referenced.
+One Participant agreeing to one Terms Version at a moment in time, either themselves
+(Legacy Tickets) or through the Customer accepting on their behalf at purchase; which of
+the two is part of the record. It is an audit record: what was agreed must remain
+provable, not merely referenced.
 
 ### At the class
 
