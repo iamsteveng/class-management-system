@@ -1,6 +1,8 @@
 import { makeFunctionReference, mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
 
+import { remainingQuotaBySession } from "./remainingQuota";
+
 export const getSessionManagementPageData = queryGeneric({
   args: {
     class_id: v.string(),
@@ -48,6 +50,8 @@ export const getSessionManagementPageData = queryGeneric({
       .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
       .collect();
 
+    const remaining = await remainingQuotaBySession(ctx.db, sessions);
+
     const sessionRows = sessions.map((s) => ({
       session_id: s.session_id,
       location_zh: s.location_zh ?? "",
@@ -57,7 +61,7 @@ export const getSessionManagementPageData = queryGeneric({
       time: s.time,
       quota_defined: s.quota_defined,
       quota_used: s.quota_used,
-      quota_available: Math.max(0, s.quota_defined - s.quota_used),
+      quota_available: remaining.get(s.session_id) ?? 0,
       status: s.status,
       google_maps_url: s.google_maps_url,
       cancellation_reason: s.cancellation_reason,

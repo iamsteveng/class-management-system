@@ -8,6 +8,8 @@ import {
 import type { DataModel, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
+import { remainingQuota, remainingQuotaBySession } from "./remainingQuota";
+
 export const getParticipantPageData = queryGeneric({
   args: {
     participant_id: v.string(),
@@ -84,16 +86,17 @@ export const getParticipantPageData = queryGeneric({
     const canChangeSession = isMoreThanTwoDaysAway(session.date, session.time) || isRainCancelled;
 
     const now = new Date();
+    const classSessions = canChangeSession
+      ? await ctx.db
+          .query("sessions")
+          .withIndex("by_class_id", (q) => q.eq("class_id", session.class_id))
+          .collect()
+      : [];
+    const remaining = await remainingQuotaBySession(ctx.db, classSessions);
     const availableOptions = canChangeSession
-      ? (
-          await ctx.db
-            .query("sessions")
-            .withIndex("by_class_id", (q) => q.eq("class_id", session.class_id))
-            .collect()
-        )
+      ? classSessions
           .filter((candidateSession) => {
-            const availableQuota =
-              candidateSession.quota_defined - candidateSession.quota_used;
+            const availableQuota = remaining.get(candidateSession.session_id) ?? 0;
             const isFutureSession =
               new Date(`${candidateSession.date}T${candidateSession.time}`) > now;
             return (
@@ -111,8 +114,7 @@ export const getParticipantPageData = queryGeneric({
             end_time: candidateSession.end_time,
             date: candidateSession.date,
             time: candidateSession.time,
-            available_quota:
-              candidateSession.quota_defined - candidateSession.quota_used,
+            available_quota: remaining.get(candidateSession.session_id) ?? 0,
           }))
           .sort((left, right) =>
             `${left.date}T${left.time}`.localeCompare(`${right.date}T${right.time}`)
@@ -242,7 +244,7 @@ export async function applyParticipantSessionChange(
     return { success: true };
   }
 
-  const newSessionAvailable = newSession.quota_defined - newSession.quota_used;
+  const newSessionAvailable = await remainingQuota(ctx.db, newSession);
   if (newSessionAvailable < 1) {
     return {
       success: false,
