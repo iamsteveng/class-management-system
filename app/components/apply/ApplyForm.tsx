@@ -323,10 +323,10 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
     const found = validateCheckout(customerMobile, toInputs(), cls);
     setErrors(found);
     if (found.length > 0 || !termsAccepted) {
-      setFormError(found.length > 0 ? copy.errorFix : copy.termsAgree(isMinorsClass));
+      setFormError(found.length > 0 ? copy.errorFix : copy.errorTerms);
       return;
     }
-    if (!cls.is_free && paymentMethod === "card" && !cardRef.current) {
+    if (!cls.is_free && paymentMethod === "card" && (!cardRef.current || !cardReady)) {
       setFormError(copy.errorCardNotReady);
       return;
     }
@@ -789,7 +789,7 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
             <button
               type="button"
               onClick={() => void handleSubmit()}
-              disabled={busy || (!cls.is_free && paymentMethod === "card" && !cardReady)}
+              disabled={busy}
               className="rounded-xl bg-[#e16036] px-6 py-3 text-base font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-400"
             >
               {busy ? copy.processing : cls.is_free ? copy.register : copy.pay}
