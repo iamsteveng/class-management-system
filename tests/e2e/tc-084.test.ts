@@ -4,7 +4,8 @@ import { test, expect, type Page } from '@playwright/test';
 // - A Participant from a Legacy Ticket and one from the new apply flow both mark
 //   attendance at the door, whether staff enter the bare ID (old QRs) or the Participant
 //   Link (new QRs).
-// - A new-flow Participant can change Session themselves, but never into a Hidden Session.
+// - A new-flow Participant can change Session themselves, but never into a Hidden Session
+//   or out of a Session inside its Change Cutoff.
 // - Hidden Sessions stay out of the new apply flow, and booking one directly is refused.
 // (The Legacy Token terms page and self-service change are covered by TC-017; Hidden
 // Sessions on the terms page by TC-078.)
@@ -50,21 +51,23 @@ test('TC-084 legacy and new Participants work at the door and when changing Sess
     is_free: true,
     admin_username: 'admin',
   })) as { class_id: string };
-  const session = async (date: string, location: string) =>
+  const session = async (date: string, location: string, time = '10:00') =>
     (
       (await convex('mutation', 'adminSessions:createSession', {
         class_id: classId,
         location_zh: `${location} ${testId}`,
         date,
-        time: '10:00',
+        time,
         quota_defined: 5,
         admin_username: 'admin',
       })) as { session_id: string }
     ).session_id;
-  const today = new Date().toISOString().slice(0, 10);
-  const sessionA = await session(today, 'TC084 Today'); // attendance can be marked today
+  // Today in Hong Kong, late enough that it has not started: attendance can be marked today
+  const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10);
+  const sessionA = await session(today, 'TC084 Today', '23:59');
   const sessionB = await session('2030-11-02', 'TC084 Hidden');
   const sessionC = await session('2030-11-03', 'TC084 Later');
+  const sessionD = await session('2030-11-04', 'TC084 Later Still');
   await convex('mutation', 'adminSessions:setSessionHidden', {
     session_id: sessionB,
     hidden: true,
@@ -93,47 +96,49 @@ test('TC-084 legacy and new Participants work at the door and when changing Sess
     });
     expect((await hiddenBooking.json()).code).toBe('session');
 
-    // One Participant from a Legacy Ticket, one from the new apply flow, both in Session A
+    // One Participant from a Legacy Ticket, one from the new apply flow, both in today's Session
     const legacy = (await convex('mutation', 'testPurchase:createTestParticipant', {
       session_id: sessionA,
       name: 'Legacy Person',
       mobile: '+85291084000',
     })) as { participant_id: string };
-    const booking = await request.post(`${BASE_URL}/api/checkout/start`, {
-      data: {
-        request_id: crypto.randomUUID(),
-        class_id: classId,
-        session_id: sessionC,
-        customer_mobile: '+85291084084',
-        participants: [person],
-        terms_accepted: true,
-      },
-    });
-    const { hold_id: holdId } = await booking.json();
-    const result = (await convex('query', 'checkout:getCheckoutResult', { hold_id: holdId })) as {
-      participants: Array<{ participant_id: string }>;
+    const book = async (sessionId: string, name: string) => {
+      const res = await request.post(`${BASE_URL}/api/checkout/start`, {
+        data: {
+          request_id: crypto.randomUUID(),
+          class_id: classId,
+          session_id: sessionId,
+          customer_mobile: '+85291084084',
+          participants: [{ ...person, name }],
+          terms_accepted: true,
+        },
+      });
+      const { hold_id: holdId } = await res.json();
+      const result = (await convex('query', 'checkout:getCheckoutResult', { hold_id: holdId })) as {
+        participants: Array<{ participant_id: string }>;
+      };
+      return result.participants[0].participant_id;
     };
-    const newId = result.participants[0].participant_id;
+    const newId = await book(sessionA, 'New Flow Person');
 
-    // The new Participant changes Session themselves: not into the Hidden one, but into A
+    // A new-flow Participant changes Session themselves, but never into a Hidden Session
+    const mover = await book(sessionC, 'Mover');
     const toHidden = (await convex('mutation', 'participants:changeParticipantSession', {
-      participant_id: newId,
+      participant_id: mover,
       session_id: sessionB,
     })) as { success: boolean };
     expect(toHidden.success).toBe(false);
-    const toA = (await convex('mutation', 'participants:changeParticipantSession', {
-      participant_id: newId,
-      session_id: sessionA,
-    })) as { success: boolean; error_message?: string };
-    // Session A is today, inside the Change Cutoff, so a self-service move is refused...
-    expect(toA.success).toBe(false);
-    // ...and a Super Admin moves them instead.
-    const adminMove = (await convex('mutation', 'adminParticipants:changeParticipantSession', {
-      participant_id: newId,
-      session_id: sessionA,
-      admin_username: 'admin',
+    const toD = (await convex('mutation', 'participants:changeParticipantSession', {
+      participant_id: mover,
+      session_id: sessionD,
     })) as { success: boolean };
-    expect(adminMove.success).toBe(true);
+    expect(toD.success).toBe(true);
+    // Inside today's Change Cutoff, a Participant can't move themselves out
+    const outOfToday = (await convex('mutation', 'participants:changeParticipantSession', {
+      participant_id: newId,
+      session_id: sessionD,
+    })) as { success: boolean };
+    expect(outOfToday.success).toBe(false);
 
     // At the door: the old QR held the bare ID, the new one holds the Participant Link
     await login(page);
