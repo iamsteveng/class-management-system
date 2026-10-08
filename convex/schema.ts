@@ -127,11 +127,36 @@ export default defineSchema({
     hidden: v.optional(v.boolean()),
     // New Sessions are held at a Venue; older ones only have the free-text location above.
     venue_id: v.optional(v.string()),
+    // Set when the Session was opened from the Timetable; after that it stands on its own.
+    timetable_entry_id: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_session_id", ["session_id"])
     .index("by_class_id", ["class_id"])
-    .index("by_venue_id", ["venue_id"]),
+    .index("by_venue_id", ["venue_id"])
+    .index("by_timetable_entry_date", ["timetable_entry_id", "date"]),
+
+  // One repeating slot of the Timetable: a Class at a Venue, on a weekday of one week of the cycle.
+  timetable_entries: defineTable({
+    entry_id: v.string(),
+    class_id: v.string(),
+    venue_id: v.string(),
+    cycle_week: v.number(),
+    weekday: v.number(), // 0 = Monday … 6 = Sunday
+    start_time: v.string(),
+    end_time: v.string(),
+    paused: v.optional(v.boolean()),
+    created_at: v.number(),
+  }).index("by_entry_id", ["entry_id"]),
+
+  timetable_settings: defineTable({
+    key: v.literal("default"),
+    cycle_anchor: v.string(), // the Monday that starts week 1 of the cycle
+    cycle_weeks: v.number(),
+    window_days: v.number(),
+    paused: v.optional(v.boolean()),
+    updated_at: v.number(),
+  }).index("by_key", ["key"]),
 
   terms_versions: defineTable({
     version: v.string(),
