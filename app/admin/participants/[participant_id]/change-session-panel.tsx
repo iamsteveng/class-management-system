@@ -10,6 +10,7 @@ type AvailableSession = {
   location_zh: string;
   location_en?: string;
   quota_available: number;
+  hidden: boolean;
 };
 
 type ChangeSessionPanelProps = {
@@ -67,6 +68,11 @@ export function ChangeSessionPanel({
                       <div className="text-sm">
                         <p className="font-medium text-zinc-900">
                           {session.date} {session.time}
+                          {session.hidden ? (
+                            <span className="ml-1.5 inline-flex rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-white">
+                              Hidden
+                            </span>
+                          ) : null}
                         </p>
                         <p className="text-zinc-600">{session.location_zh}</p>
                         <p className="text-zinc-500">{session.quota_available} spot(s) available</p>

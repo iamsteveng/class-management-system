@@ -1,4 +1,11 @@
-import { makeFunctionReference, mutationGeneric, queryGeneric } from "convex/server";
+import {
+  makeFunctionReference,
+  mutationGeneric,
+  queryGeneric,
+  type GenericMutationCtx,
+} from "convex/server";
+
+import type { DataModel, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
 export const getParticipantPageData = queryGeneric({
@@ -91,6 +98,7 @@ export const getParticipantPageData = queryGeneric({
               new Date(`${candidateSession.date}T${candidateSession.time}`) > now;
             return (
               candidateSession.status === "scheduled" &&
+              candidateSession.hidden !== true &&
               candidateSession.session_id !== session.session_id &&
               availableQuota > 0 &&
               isFutureSession
@@ -149,6 +157,7 @@ export const getParticipantPageData = queryGeneric({
   },
 });
 
+/** Self-service Session change, authorised by the Participant Link. Never into a Hidden Session. */
 export const changeParticipantSession = mutationGeneric({
   args: {
     participant_id: v.string(),
@@ -158,127 +167,143 @@ export const changeParticipantSession = mutationGeneric({
     success: v.boolean(),
     error_message: v.optional(v.string()),
   }),
-  handler: async (ctx, args) => {
-    const participant = await ctx.db
-      .query("participants")
-      .withIndex("by_participant_id", (q) => q.eq("participant_id", args.participant_id))
-      .first();
+  handler: async (ctx, args) =>
+    applyParticipantSessionChange(ctx, args, { allowHiddenSession: false }),
+});
 
-    if (!participant) {
-      return {
-        success: false,
-        error_message: "Participant was not found.",
-      };
-    }
+/**
+ * Moves a Participant to another Session of the same Class. Shared by the self-service
+ * change and the admin move; only an admin move may target a Hidden Session.
+ */
+export async function applyParticipantSessionChange(
+  ctx: GenericMutationCtx<DataModel>,
+  args: { participant_id: string; session_id: string },
+  options: { allowHiddenSession: boolean; adminId?: Id<"admins"> }
+): Promise<{ success: boolean; error_message?: string }> {
+  const participant = await ctx.db
+    .query("participants")
+    .withIndex("by_participant_id", (q) => q.eq("participant_id", args.participant_id))
+    .first();
 
-    const currentSession = await ctx.db
-      .query("sessions")
-      .withIndex("by_session_id", (q) => q.eq("session_id", participant.session_id))
-      .first();
+  if (!participant) {
+    return {
+      success: false,
+      error_message: "Participant was not found.",
+    };
+  }
 
-    if (!currentSession) {
-      return {
-        success: false,
-        error_message: "Current session is not available.",
-      };
-    }
+  const currentSession = await ctx.db
+    .query("sessions")
+    .withIndex("by_session_id", (q) => q.eq("session_id", participant.session_id))
+    .first();
 
-    if (
-      !isMoreThanTwoDaysAway(currentSession.date, currentSession.time) &&
-      currentSession.cancellation_reason !== "rain"
-    ) {
-      return {
-        success: false,
-        error_message:
-          "Session changes are only allowed more than 2 days before the class date.",
-      };
-    }
+  if (!currentSession) {
+    return {
+      success: false,
+      error_message: "Current session is not available.",
+    };
+  }
 
-    const newSession = await ctx.db
-      .query("sessions")
-      .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
-      .first();
+  if (
+    !isMoreThanTwoDaysAway(currentSession.date, currentSession.time) &&
+    currentSession.cancellation_reason !== "rain"
+  ) {
+    return {
+      success: false,
+      error_message:
+        "Session changes are only allowed more than 2 days before the class date.",
+    };
+  }
 
-    if (!newSession || newSession.status !== "scheduled") {
-      return {
-        success: false,
-        error_message: "Selected session is not available.",
-      };
-    }
+  const newSession = await ctx.db
+    .query("sessions")
+    .withIndex("by_session_id", (q) => q.eq("session_id", args.session_id))
+    .first();
 
-    if (newSession.class_id !== currentSession.class_id) {
-      return {
-        success: false,
-        error_message: "You can only switch to another session of the same class.",
-      };
-    }
+  if (
+    !newSession ||
+    newSession.status !== "scheduled" ||
+    (newSession.hidden === true && !options.allowHiddenSession)
+  ) {
+    return {
+      success: false,
+      error_message: "Selected session is not available.",
+    };
+  }
 
-    if (newSession.session_id === currentSession.session_id) {
-      return { success: true };
-    }
+  if (newSession.class_id !== currentSession.class_id) {
+    return {
+      success: false,
+      error_message: "You can only switch to another session of the same class.",
+    };
+  }
 
-    const newSessionAvailable = newSession.quota_defined - newSession.quota_used;
-    if (newSessionAvailable < 1) {
-      return {
-        success: false,
-        error_message: "Selected session is already full.",
-      };
-    }
+  if (newSession.session_id === currentSession.session_id) {
+    return { success: true };
+  }
 
-    const changedAt = Date.now();
+  const newSessionAvailable = newSession.quota_defined - newSession.quota_used;
+  if (newSessionAvailable < 1) {
+    return {
+      success: false,
+      error_message: "Selected session is already full.",
+    };
+  }
 
-    await ctx.db.patch(participant._id, {
-      session_id: newSession.session_id,
-    });
+  const changedAt = Date.now();
 
-    await ctx.db.patch(currentSession._id, {
-      quota_used: Math.max(0, currentSession.quota_used - 1),
-    });
+  await ctx.db.patch(participant._id, {
+    session_id: newSession.session_id,
+  });
 
-    await ctx.db.patch(newSession._id, {
-      quota_used: newSession.quota_used + 1,
-    });
+  await ctx.db.patch(currentSession._id, {
+    quota_used: Math.max(0, currentSession.quota_used - 1),
+  });
 
+  await ctx.db.patch(newSession._id, {
+    quota_used: newSession.quota_used + 1,
+  });
+
+  await ctx.db.insert("audit_logs", {
+    admin_id: options.adminId,
+    action: "participant_session_changed",
+    entity_type: "participant",
+    entity_id: participant.participant_id,
+    metadata: {
+      previous_session_id: currentSession.session_id,
+      next_session_id: newSession.session_id,
+      changed_at: changedAt,
+    },
+    created_at: changedAt,
+  });
+
+  // Look up customer mobile from purchase and schedule WhatsApp notification
+  const purchase = await ctx.db.get(participant.purchase_id);
+  const customerMobile = purchase?.customer_mobile ?? participant.mobile;
+  if (customerMobile) {
+    await ctx.scheduler.runAfter(
+      0,
+      makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
+      {
+        customer_mobile: customerMobile,
+        participant_ids: [participant.participant_id],
+      }
+    );
     await ctx.db.insert("audit_logs", {
-      action: "participant_session_changed",
+      action: "whatsapp_notification_sent",
       entity_type: "participant",
       entity_id: participant.participant_id,
       metadata: {
-        previous_session_id: currentSession.session_id,
-        next_session_id: newSession.session_id,
-        changed_at: changedAt,
+        customer_mobile: customerMobile,
+        notification_type: "session_changed",
+        session_id: newSession.session_id,
       },
-      created_at: changedAt,
+      created_at: changedAt + 1,
     });
+  }
 
-    // Look up customer mobile from purchase and schedule WhatsApp notification
-    const purchase = await ctx.db.get(participant.purchase_id);
-    const customerMobile = purchase?.customer_mobile ?? participant.mobile;
-    if (customerMobile) {
-      await ctx.scheduler.runAfter(
-        0,
-        makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
-        {
-          customer_mobile: customerMobile,
-          participant_ids: [participant.participant_id],
-        }
-      );
-      await ctx.db.insert("audit_logs", {
-        action: "whatsapp_notification_sent",
-        entity_type: "participant",
-        entity_id: participant.participant_id,
-        metadata: {
-          customer_mobile: customerMobile,
-          notification_type: "session_changed",
-          session_id: newSession.session_id,
-        },
-        created_at: changedAt + 1,
-      });
-    }
-
-    return { success: true };
-  },
-});
+  return { success: true };
+}
 
 export const getParticipantMobileById = queryGeneric({
   args: {

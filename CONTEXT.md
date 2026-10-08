@@ -42,6 +42,12 @@ completed once it has taken place, or cancelled; a cancelled Session still holds
 Participants.
 _Avoid_: Class, Timeslot, Occurrence, 班別 (use 時段)
 
+**Hidden Session**:
+A scheduled Session that Customers and Participants can neither see nor pick; only
+admins see it and can move Participants into it. Participants already in it are
+unaffected. Hiding is separate from a Session's status.
+_Avoid_: Inactive, Private, Draft, Unlisted
+
 **Quota**:
 The number of Participants a Session can hold.
 

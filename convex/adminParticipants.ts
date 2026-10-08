@@ -1,5 +1,7 @@
-import { queryGeneric } from "convex/server";
+import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
+
+import { applyParticipantSessionChange } from "./participants";
 
 export const getAvailableSessionsForClassChange = queryGeneric({
   args: {
@@ -14,6 +16,7 @@ export const getAvailableSessionsForClassChange = queryGeneric({
       location_zh: v.string(),
       location_en: v.optional(v.string()),
       quota_available: v.number(),
+      hidden: v.boolean(),
     })
   ),
   handler: async (ctx, args) => {
@@ -36,8 +39,38 @@ export const getAvailableSessionsForClassChange = queryGeneric({
         location_zh: s.location_zh ?? "",
         location_en: s.location_en,
         quota_available: s.quota_defined - s.quota_used,
+        hidden: s.hidden === true,
       }))
       .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`));
+  },
+});
+
+/** Super Admin move of a Participant to another Session; unlike self-service, Hidden Sessions are allowed. */
+export const changeParticipantSession = mutationGeneric({
+  args: {
+    participant_id: v.string(),
+    session_id: v.string(),
+    admin_username: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    error_message: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const admin = await ctx.db
+      .query("admins")
+      .withIndex("by_username", (q) => q.eq("username", args.admin_username))
+      .first();
+
+    if (!admin || admin.role !== "super_admin") {
+      return { success: false, error_message: "Only super admins can change a participant's session." };
+    }
+
+    return applyParticipantSessionChange(
+      ctx,
+      { participant_id: args.participant_id, session_id: args.session_id },
+      { allowHiddenSession: true, adminId: admin._id }
+    );
   },
 });
 
