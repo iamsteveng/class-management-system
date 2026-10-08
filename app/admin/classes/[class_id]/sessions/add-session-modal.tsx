@@ -3,13 +3,19 @@
 import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { VenueSelect, type VenueOption } from "./venue-select";
+
 type AddSessionModalProps = {
+  venues?: VenueOption[];
+  defaultQuota?: number;
   submitAction: (formData: FormData) => void | Promise<void>;
   errorMessage?: string;
   success: boolean;
 };
 
 export function AddSessionModal({
+  venues = [],
+  defaultQuota,
   submitAction,
   errorMessage,
   success,
@@ -63,18 +69,19 @@ export function AddSessionModal({
             </p>
 
             <form action={submitAction} className="mt-4 space-y-4">
+              <VenueSelect id="venue_id" venues={venues} />
               <div className="space-y-2">
                 <label
                   htmlFor="location_zh"
                   className="block text-sm font-medium text-zinc-900"
                 >
-                  地點（中文）Location (ZH) <span className="text-red-600">*</span>
+                  地點（中文）Location (ZH) {venues.length === 0 ? <span className="text-red-600">*</span> : null}
                 </label>
                 <input
                   id="location_zh"
                   name="location_zh"
                   type="text"
-                  required
+                  required={venues.length === 0}
                   placeholder="例如：香港公園"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400"
                 />
@@ -156,6 +163,7 @@ export function AddSessionModal({
                 <input
                   id="quota_defined"
                   name="quota_defined"
+                  defaultValue={defaultQuota}
                   type="number"
                   required
                   min={1}

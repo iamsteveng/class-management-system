@@ -30,6 +30,16 @@ type ParticipantDetails = {
   age?: number;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
+  riding_experience?: string;
+  health_notes?: string;
+  photo_consent?: boolean;
+  terms_accepted_by?: string;
+};
+
+const RIDING_EXPERIENCE_LABELS: Record<string, string> = {
+  never: "Never ridden",
+  training_wheels: "Used training wheels",
+  short_distance: "Can ride a short distance",
 };
 
 type AvailableSession = {
@@ -153,6 +163,24 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
             <dt className="font-medium text-zinc-600">Age</dt>
             <dd className="mt-0.5 text-zinc-900">{details.age != null ? `${details.age} years` : "—"}</dd>
           </div>
+          <div>
+            <dt className="font-medium text-zinc-600">Riding Experience</dt>
+            <dd className="mt-0.5 text-zinc-900">
+              {details.riding_experience
+                ? (RIDING_EXPERIENCE_LABELS[details.riding_experience] ?? details.riding_experience)
+                : "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-medium text-zinc-600">Health Notes</dt>
+            <dd className="mt-0.5 whitespace-pre-line text-zinc-900">{details.health_notes?.trim() || "—"}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-zinc-600">Photo Consent</dt>
+            <dd className="mt-0.5 text-zinc-900">
+              {details.photo_consent === undefined ? "—" : details.photo_consent ? "Yes" : "No"}
+            </dd>
+          </div>
         </dl>
       </section>
 
@@ -198,6 +226,16 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
           <div>
             <dt className="font-medium text-zinc-600">Terms Version</dt>
             <dd className="mt-0.5 text-zinc-900">{details.terms_version ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-zinc-600">Accepted By</dt>
+            <dd className="mt-0.5 text-zinc-900">
+              {details.terms_accepted_by === "customer"
+                ? "The Customer, on the participant's behalf"
+                : details.terms_accepted_by === "participant"
+                  ? "The participant"
+                  : "—"}
+            </dd>
           </div>
         </dl>
       </section>

@@ -12,8 +12,9 @@ function normalizeImageUrl(imageUrl: string | undefined): string | undefined {
   if (!trimmed) {
     return undefined;
   }
-  if (!/^https?:\/\/[^/\s]+/i.test(trimmed)) {
-    throw new Error("Image URL must be a full URL starting with https://");
+  // A full URL, or a path on this site such as /images/revamp/class-kids.jpg
+  if (!/^https?:\/\/[^/\s]+/i.test(trimmed) && !/^\/[^/\s]/.test(trimmed)) {
+    throw new Error("Image URL must be a full URL starting with https:// or a path starting with /");
   }
   return trimmed;
 }
@@ -36,6 +37,9 @@ export const getClassListPageData = queryGeneric({
       airwallex_group_price: v.optional(v.number()),
       airwallex_group_min_qty: v.optional(v.number()),
       is_free: v.optional(v.boolean()),
+      age_min: v.optional(v.number()),
+      age_max: v.optional(v.number()),
+      class_size: v.optional(v.number()),
     })
   ),
   handler: async (ctx) => {
@@ -63,6 +67,9 @@ export const getClassListPageData = queryGeneric({
       airwallex_group_price: cls.airwallex_group_price,
       airwallex_group_min_qty: cls.airwallex_group_min_qty,
       is_free: cls.is_free,
+      age_min: cls.age_min,
+      age_max: cls.age_max,
+      class_size: cls.class_size,
     }));
   },
 });
@@ -141,6 +148,9 @@ export const updateClass = mutationGeneric({
     airwallex_group_price: v.optional(v.number()),
     airwallex_group_min_qty: v.optional(v.number()),
     is_free: v.optional(v.boolean()),
+    age_min: v.optional(v.number()),
+    age_max: v.optional(v.number()),
+    class_size: v.optional(v.number()),
     admin_username: v.string(),
   },
   returns: v.object({
@@ -165,6 +175,14 @@ export const updateClass = mutationGeneric({
       throw new Error("Only super admins can edit classes.");
     }
 
+    if (
+      args.age_min !== undefined &&
+      args.age_max !== undefined &&
+      args.age_min > args.age_max
+    ) {
+      throw new Error("The youngest age must not be above the oldest age.");
+    }
+
     const now = Date.now();
     const nextNameZh = args.name_zh.trim();
     const nextNameEn = args.name_en?.trim() || undefined;
@@ -182,6 +200,9 @@ export const updateClass = mutationGeneric({
       airwallex_group_price: args.airwallex_group_price,
       airwallex_group_min_qty: args.airwallex_group_min_qty,
       is_free: args.is_free === true ? true : undefined,
+      age_min: args.age_min,
+      age_max: args.age_max,
+      class_size: args.class_size,
     });
 
     await ctx.db.insert("audit_logs", {
