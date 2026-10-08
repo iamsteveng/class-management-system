@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { extractParticipantId } from "@/lib/attendanceQrPayload";
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ParticipantRow = {
@@ -242,7 +244,8 @@ export function SessionParticipantsPanel({
 
   const onManualSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    await handleMarkAttendance(manualParticipantId);
+    // Accept a pasted Participant Link as well as a bare ID, like the scanner does.
+    await handleMarkAttendance(extractParticipantId(manualParticipantId) ?? "");
     setManualParticipantId("");
   };
 
@@ -272,7 +275,7 @@ export function SessionParticipantsPanel({
               type="text"
               value={manualParticipantId}
               onChange={(event) => setManualParticipantId(event.target.value)}
-              placeholder="Paste participant ID"
+              placeholder="Paste participant ID or link"
               className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900"
             />
             <button
@@ -392,24 +395,4 @@ export function SessionParticipantsPanel({
       ) : null}
     </>
   );
-}
-
-function extractParticipantId(payload: string): string | null {
-  const raw = payload.trim();
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    const parsed = new URL(raw);
-    const segments = parsed.pathname.split("/").filter(Boolean);
-    const participantSegmentIndex = segments.findIndex((segment) => segment === "participant");
-    if (participantSegmentIndex >= 0 && segments[participantSegmentIndex + 1]) {
-      return decodeURIComponent(segments[participantSegmentIndex + 1]);
-    }
-  } catch {
-    // payload is not a URL, continue
-  }
-
-  return raw;
 }
