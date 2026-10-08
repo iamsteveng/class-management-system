@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 import { openTimetableSessions } from "./timetable";
 import type { VenueFields } from "./venues";
+import { KIDS_CLASS_ID, REGULAR_CLASS_ID } from "../lib/catalogueIds";
 
 /**
  * The real cycling catalogue launched with the homepage revamp: its Classes, Venues and
@@ -17,8 +18,7 @@ export const CYCLE_ANCHOR = "2026-10-05"; // Monday of week 1
 const CYCLE_WEEKS = 2;
 const WINDOW_DAYS = 28;
 
-export const KIDS_CLASS_ID = "class_cycling_kids";
-export const REGULAR_CLASS_ID = "class_cycling_regular";
+export { KIDS_CLASS_ID, REGULAR_CLASS_ID };
 
 type ClassSeed = {
   class_id: string;
