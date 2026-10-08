@@ -180,13 +180,20 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
     return () => clearTimeout(timer);
   }, [hold]);
 
+  // Each new Alipay HK QR is valid for 10 minutes.
   useEffect(() => {
-    if (!alipayQr?.qrcode || !qrCanvasRef.current) return;
-    import("qrcode").then((QRCode) => QRCode.toCanvas(qrCanvasRef.current!, alipayQr.qrcode, { width: 220 }));
+    if (!alipayQr) return;
     setQrExpired(false);
     const timer = setTimeout(() => setQrExpired(true), 600_000 - (Date.now() - alipayQr.startedAt));
     return () => clearTimeout(timer);
   }, [alipayQr]);
+
+  // Draw the QR once its canvas is on screen.
+  useEffect(() => {
+    const canvas = qrCanvasRef.current;
+    if (!alipayQr?.qrcode || qrExpired || !canvas) return;
+    import("qrcode").then((QRCode) => QRCode.toCanvas(canvas, alipayQr.qrcode, { width: 220 }));
+  }, [alipayQr, qrExpired]);
 
   useEffect(() => {
     if (!alipayQr || qrExpired || !hold) return;

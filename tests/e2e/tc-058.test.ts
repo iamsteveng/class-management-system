@@ -1,49 +1,28 @@
 import { test, expect } from '@playwright/test';
 
-// TC-058: Apply page — quantity selector defaults to 1, respects min=1 and max=15.
-const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+import { BASE_URL, createApplyFixture } from './helpers/applyFixture';
 
-test.describe('TC-058: Apply page quantity selector', () => {
-  test('TC-058 quantity defaults to 1, increments up to 15, decrements down to 1', async ({ page }) => {
-    await page.route('**/api/classes**', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          classes: [{ class_id: KNOWN_CLASS_ID, name_zh: 'TC058 Class', sessions: [], airwallex_price: 298, airwallex_currency: 'HKD' }],
-        }),
-      });
-    });
+// TC-058: The number of people starts at 1 and goes up to the Session's Remaining Quota,
+// adding a participant form for each person.
 
-    await page.goto(`${BASE_URL}/apply/${KNOWN_CLASS_ID}`);
-    await page.waitForLoadState('networkidle');
-
-    // Default quantity is 1
-    const quantityDisplay = page.locator('span.text-center.font-semibold');
-    await expect(quantityDisplay).toHaveText('1', { timeout: 10_000 });
-
-    // Decrement at 1 should be disabled
-    const decrementBtn = page.getByRole('button', { name: '−' });
-    await expect(decrementBtn).toBeDisabled();
-
-    // Increment twice → quantity = 3
-    const incrementBtn = page.getByRole('button', { name: '+' });
-    await incrementBtn.click();
-    await incrementBtn.click();
-    await expect(quantityDisplay).toHaveText('3');
-
-    // Increment to 15 (12 more clicks)
-    for (let i = 0; i < 12; i++) await incrementBtn.click();
-    await expect(quantityDisplay).toHaveText('15');
-
-    // Increment at 15 should be disabled
-    await expect(incrementBtn).toBeDisabled();
-
-    // Decrement once → 14
-    await decrementBtn.click();
-    await expect(quantityDisplay).toHaveText('14');
-
-    console.log('TC-058 evidence:', JSON.stringify({ default: 1, max_reached: 15, min_disabled: true }));
-  });
+test('TC-058 quantity is 1 to the Remaining Quota, one form per person', async ({ page }) => {
+  const fx = await createApplyFixture(`TC058 Class ${Date.now()}`, { airwallex_price: 100 }, 3);
+  try {
+    await page.goto(`${BASE_URL}/apply/${fx.classId}?session=${fx.sessionId}`);
+    const qty = page.getByTestId('quantity');
+    const inc = page.getByRole('button', { name: '+' });
+    const dec = page.getByRole('button', { name: '−' });
+    await expect(qty).toHaveText('1');
+    await expect(dec).toBeDisabled();
+    await inc.click();
+    await inc.click();
+    await expect(qty).toHaveText('3');
+    await expect(inc).toBeDisabled();
+    await expect(page.locator('[data-participant]')).toHaveCount(3);
+    await dec.click();
+    await expect(qty).toHaveText('2');
+    await expect(page.locator('[data-participant]')).toHaveCount(2);
+  } finally {
+    await fx.cleanup();
+  }
 });

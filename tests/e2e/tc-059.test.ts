@@ -1,49 +1,24 @@
 import { test, expect } from '@playwright/test';
 
-// TC-059: Apply page — group price badge appears when qty >= group_min_qty;
-// total price switches between individual and group tier correctly.
-const KNOWN_CLASS_ID = '67261272-c799-4439-9146-4ee12ce51b7c';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+import { BASE_URL, createApplyFixture } from './helpers/applyFixture';
 
-test.describe('TC-059: Apply page tier pricing logic', () => {
-  test('TC-059 individual price at qty=1, group badge + price at qty=2', async ({ page }) => {
-    await page.route('**/api/classes**', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          classes: [{
-            class_id: KNOWN_CLASS_ID,
-            name_zh: 'TC059 Class',
-            sessions: [],
-            airwallex_price: 298,
-            airwallex_currency: 'HKD',
-            airwallex_group_price: 250,
-            airwallex_group_min_qty: 2,
-          }],
-        }),
-      });
-    });
+// TC-059: One person pays the single price; from the Group Price minimum, everyone pays the
+// Group Price.
 
-    await page.goto(`${BASE_URL}/apply/${KNOWN_CLASS_ID}`);
-    // Not 'networkidle': the Airwallex card SDK keeps the network busy
-    await page.waitForLoadState('domcontentloaded');
-
-    // qty=1: total = HKD 298, no group badge
-    await expect(page.getByText('HKD 298', { exact: true })).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('span.bg-emerald-100')).toHaveCount(0);
-
-    // Increment to qty=2 → group tier kicks in
-    await page.getByRole('button', { name: '+' }).click();
-
-    // Total = 250 × 2 = 500
-    await expect(page.getByText('HKD 500', { exact: true })).toBeVisible();
-
-    // Group badge visible
-    await expect(page.locator('span.bg-emerald-100')).toBeVisible();
-
-    console.log('TC-059 evidence:', JSON.stringify({
-      qty1_total: 298, qty2_total: 500, group_badge_at_qty2: true,
-    }));
+test('TC-059 single price at 1 person, Group Price from 2', async ({ page }) => {
+  const fx = await createApplyFixture(`TC059 Class ${Date.now()}`, {
+    airwallex_price: 298,
+    airwallex_group_price: 250,
+    airwallex_group_min_qty: 2,
+    airwallex_currency: 'HKD',
   });
+  try {
+    await page.goto(`${BASE_URL}/apply/${fx.classId}?session=${fx.sessionId}`);
+    await expect(page.getByTestId('total')).toHaveText('HKD 298');
+    await page.getByRole('button', { name: '+' }).click();
+    await expect(page.getByTestId('total')).toHaveText('HKD 500');
+    await expect(page.getByText('已享同行價 HKD 250 / 人')).toBeVisible();
+  } finally {
+    await fx.cleanup();
+  }
 });
