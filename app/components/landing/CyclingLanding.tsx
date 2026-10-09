@@ -45,6 +45,7 @@ export type LandingVenue = {
     opening_hours?: string;
     latitude: number;
     longitude: number;
+    maps_url?: string;
     mtr_station_zh?: string;
     mtr_line_zh?: string;
     mtr_latitude?: number;
@@ -668,6 +669,16 @@ export function CyclingLanding({ data }: { data: LandingData }) {
                   <div className="text-sm text-[#5B6B78]">
                     {venue.address_zh}
                     {venue.opening_hours ? `・營業 ${venue.opening_hours}` : ""}
+                    {"・"}
+                    <a
+                      href={venue.maps_url ?? mapsUrl(venue.latitude, venue.longitude)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#0B6FB8] underline"
+                      data-testid={`venue-map-${venue.venue_id}`}
+                    >
+                      地圖
+                    </a>
                   </div>
                   {venue.mtr_station_zh ? (
                     <div className="flex flex-col gap-2 rounded-[14px] bg-[#F5F8FA] p-3.5">

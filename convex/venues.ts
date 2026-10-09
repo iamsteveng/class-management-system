@@ -1,5 +1,7 @@
-import { queryGeneric } from "convex/server";
+import { queryGeneric, type GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
+
+import type { DataModel } from "./_generated/dataModel";
 
 export const venueValidator = v.object({
   venue_id: v.string(),
@@ -12,6 +14,7 @@ export const venueValidator = v.object({
   opening_hours: v.optional(v.string()),
   latitude: v.number(),
   longitude: v.number(),
+  maps_url: v.optional(v.string()),
   mtr_station_zh: v.optional(v.string()),
   mtr_station_en: v.optional(v.string()),
   mtr_line_zh: v.optional(v.string()),
@@ -34,6 +37,7 @@ export type VenueFields = {
   opening_hours?: string;
   latitude: number;
   longitude: number;
+  maps_url?: string;
   mtr_station_zh?: string;
   mtr_station_en?: string;
   mtr_line_zh?: string;
@@ -57,6 +61,7 @@ export function toVenueFields(venue: VenueFields): VenueFields {
     opening_hours: venue.opening_hours,
     latitude: venue.latitude,
     longitude: venue.longitude,
+    maps_url: venue.maps_url,
     mtr_station_zh: venue.mtr_station_zh,
     mtr_station_en: venue.mtr_station_en,
     mtr_line_zh: venue.mtr_line_zh,
@@ -69,9 +74,9 @@ export function toVenueFields(venue: VenueFields): VenueFields {
   };
 }
 
-/** Google Maps link to a Venue's position. */
-export function venueMapsUrl(venue: Pick<VenueFields, "latitude" | "longitude">): string {
-  return `https://www.google.com/maps/search/?api=1&query=${venue.latitude},${venue.longitude}`;
+/** Google Maps link to a Venue: its own place link, or one built from its position. */
+export function venueMapsUrl(venue: Pick<VenueFields, "latitude" | "longitude" | "maps_url">): string {
+  return venue.maps_url || `https://www.google.com/maps/search/?api=1&query=${venue.latitude},${venue.longitude}`;
 }
 
 /**
@@ -98,3 +103,34 @@ export const listVenues = queryGeneric({
       .map(toVenueFields);
   },
 });
+
+/**
+ * Gives a Venue's upcoming scheduled Sessions its current name and map link, so what
+ * Customers and Participants see stays in step with the Venue. Past and cancelled
+ * Sessions keep theirs. Returns how many Sessions changed.
+ */
+export async function refreshUpcomingSessionLocations(
+  ctx: GenericMutationCtx<DataModel>,
+  venue: VenueFields,
+  today: string
+): Promise<number> {
+  const sessions = await ctx.db
+    .query("sessions")
+    .withIndex("by_venue_id", (q) => q.eq("venue_id", venue.venue_id))
+    .collect();
+  const location = sessionLocationFromVenue(venue);
+  let updated = 0;
+  for (const session of sessions) {
+    if (session.status !== "scheduled" || session.date < today) continue;
+    if (
+      session.location_zh === location.location_zh &&
+      session.location_en === location.location_en &&
+      session.google_maps_url === location.google_maps_url
+    ) {
+      continue;
+    }
+    await ctx.db.patch(session._id, location);
+    updated++;
+  }
+  return updated;
+}

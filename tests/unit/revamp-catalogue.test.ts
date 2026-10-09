@@ -70,6 +70,21 @@ describe('seed', () => {
     expect(db.tables.timetable_settings[0].first_date).toBe('2026-10-21');
   });
 
+  it('links Sessions to each kiosk\'s official Google Maps place, and keeps open ones up to date', async () => {
+    const db = emptyWorld();
+    await handler(seed)({ db }, { today: '2026-10-21' });
+    const ty = db.tables.sessions.find((s: any) => s.venue_id === 'venue_ty');
+    expect(ty.google_maps_url).toBe('https://maps.app.goo.gl/RtQvZUgZhmEyp3Kr8');
+    // An already-open Session with an out-of-date link is refreshed by the next seed run
+    ty.google_maps_url = 'https://old.example/map';
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.parse('2026-10-20T00:00:00Z'));
+    await handler(seed)({ db }, { today: '2026-10-21' });
+    vi.useRealTimers();
+    expect(ty.google_maps_url).toBe('https://maps.app.goo.gl/RtQvZUgZhmEyp3Kr8');
+    expect(VENUES.every((v) => v.maps_url?.startsWith('https://maps.app.goo.gl/'))).toBe(true);
+  });
+
   it('running it twice changes nothing', async () => {
     const db = emptyWorld();
     await handler(seed)({ db }, { today: '2026-10-23' });

@@ -93,6 +93,8 @@ export default defineSchema({
     opening_hours: v.optional(v.string()),
     latitude: v.number(),
     longitude: v.number(),
+    // The kiosk's own Google Maps place link; without one, a link is built from the coordinates.
+    maps_url: v.optional(v.string()),
     mtr_station_zh: v.optional(v.string()),
     mtr_station_en: v.optional(v.string()),
     mtr_line_zh: v.optional(v.string()),
