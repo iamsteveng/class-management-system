@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
+  Award,
   Bike,
   Calendar,
   Check,
@@ -26,6 +27,7 @@ import { formatSessionDate } from "@/app/i18n/applyTranslations";
 import {
   CLASS_EXTRAS,
   FACEBOOK_URL,
+  OPERATOR_CLAIM,
   SLOT_LABELS,
   WEEKDAY_ZH,
   WHATSAPP_URL,
@@ -251,6 +253,10 @@ export function CyclingLanding({ data }: { data: LandingData }) {
               </a>
             </div>
             <ul className="mt-2 flex flex-wrap gap-x-8 gap-y-3 text-[15px] text-white">
+              <li className="flex items-center gap-2" data-testid="operator-claim">
+                <Award className="h-5 w-5 text-[#7CC4F2]" />
+                <b>{OPERATOR_CLAIM}</b>
+              </li>
               <li className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-[#7CC4F2]" />
                 <b>1,000+</b>&nbsp;學員
@@ -715,7 +721,7 @@ export function CyclingLanding({ data }: { data: LandingData }) {
             <div className="flex flex-[1_1_380px] flex-col gap-3.5">
               <h2 id="about-h" className="text-[28px] font-black text-[#0E2433]">安全騎行，樂在社區</h2>
               <p className="text-base leading-[1.75]">
-                由 LocoBike 樂區單車亭開辦。一位教練帶一小班，先學平衡再學踩，再學單車徑規則同手勢。安全行先：天氣、場地或學員狀況唔適合，教練會調整或取消課堂。
+                由<b>{OPERATOR_CLAIM}</b> LocoBike 開辦。一位教練帶一小班，先學平衡再學踩，再學單車徑規則同手勢。安全行先：天氣、場地或學員狀況唔適合，教練會調整或取消課堂。
               </p>
               <div className="mt-1.5 flex flex-wrap gap-7">
                 <div>
