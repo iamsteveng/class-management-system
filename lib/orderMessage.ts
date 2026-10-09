@@ -1,37 +1,40 @@
-import { buildParticipantPassUrl } from "./appBaseUrl";
-
 const ZH_WEEKDAYS = "日一二三四五六";
 
-export type OrderSummaryInput = {
+export type OrderFieldsInput = {
   baseUrl: string;
+  classId: string;
+  holdId: string;
   classNameZh: string;
   sessionDate: string;
   sessionTime: string;
   sessionEndTime?: string;
   locationZh: string;
-  googleMapsUrl?: string;
-  participants: Array<{ participant_id: string; name: string }>;
+};
+
+/** The ManyChat custom fields the booking confirmation template shows. */
+export type OrderFields = {
+  booking_class: string;
+  booking_when: string;
+  booking_venue: string;
+  booking_link: string;
 };
 
 /**
- * The text the Customer receives on WhatsApp after paying: the Session, where it is, and
- * each Participant's own link (which shows their Attendance QR).
+ * What the Customer's WhatsApp confirmation shows, one value per template variable.
+ * WhatsApp template variables can't hold line breaks, so each is a single line; the
+ * link opens the booking's page with every Participant's Attendance QR.
  */
-export function buildOrderSummary(input: OrderSummaryInput): string {
+export function buildOrderFields(input: OrderFieldsInput): OrderFields {
   const d = new Date(`${input.sessionDate}T00:00:00Z`);
   const date = `${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${ZH_WEEKDAYS[d.getUTCDay()]}）`;
   const time = input.sessionEndTime ? `${input.sessionTime}–${input.sessionEndTime}` : input.sessionTime;
-
-  const lines = [
-    input.classNameZh,
-    `${date} ${time}`,
-    input.locationZh,
-    ...(input.googleMapsUrl ? [input.googleMapsUrl] : []),
-    "",
-    "學員資料及出席 QR Code：",
-    ...input.participants.map((p) => `${p.name}：${buildParticipantPassUrl(input.baseUrl, p.participant_id)}`),
-  ];
-  return lines.join("\n");
+  const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
+  return {
+    booking_class: oneLine(input.classNameZh),
+    booking_when: `${date} ${time}`,
+    booking_venue: oneLine(input.locationZh),
+    booking_link: `${input.baseUrl}/apply/${encodeURIComponent(input.classId)}/done?hold=${encodeURIComponent(input.holdId)}`,
+  };
 }
 
 /** An .ics calendar file for one Session (Hong Kong time has no daylight saving: UTC+8). */

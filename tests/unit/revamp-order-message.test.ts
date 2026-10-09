@@ -1,34 +1,27 @@
 import { describe, it, expect } from 'vitest';
 
-import { buildOrderSummary, buildSessionIcs } from '../../lib/orderMessage';
+import { buildOrderFields, buildSessionIcs } from '../../lib/orderMessage';
 
-describe('buildOrderSummary', () => {
-  it('lists the Session, Venue and each Participant Link', () => {
-    const text = buildOrderSummary({
+describe('buildOrderFields', () => {
+  it('gives one single-line value per template variable, linking to everyone\'s QR', () => {
+    const fields = buildOrderFields({
       baseUrl: 'https://example.com',
+      classId: 'class_cycling_regular',
+      holdId: 'hold-1',
       classNameZh: '常規班',
       sessionDate: '2026-10-24',
       sessionTime: '14:00',
       sessionEndTime: '15:00',
-      locationZh: '天水圍樂區單車亭',
-      googleMapsUrl: 'https://maps.example/x',
-      participants: [
-        { participant_id: 'p-1', name: '陳大文' },
-        { participant_id: 'p-2', name: '陳小文' },
-      ],
+      locationZh: '天水圍\n樂區單車亭',
     });
-    expect(text).toBe(
-      [
-        '常規班',
-        '10月24日（六） 14:00–15:00',
-        '天水圍樂區單車亭',
-        'https://maps.example/x',
-        '',
-        '學員資料及出席 QR Code：',
-        '陳大文：https://example.com/participant/p-1',
-        '陳小文：https://example.com/participant/p-2',
-      ].join('\n')
-    );
+    expect(fields).toEqual({
+      booking_class: '常規班',
+      booking_when: '10月24日（六） 14:00–15:00',
+      booking_venue: '天水圍 樂區單車亭',
+      booking_link: 'https://example.com/apply/class_cycling_regular/done?hold=hold-1',
+    });
+    // WhatsApp template variables can't contain line breaks or tabs
+    for (const value of Object.values(fields)) expect(value).not.toMatch(/[\n\t]/);
   });
 });
 

@@ -5,9 +5,9 @@ import { v } from "convex/values";
 
 import { resolveAppBaseUrl } from "../lib/appBaseUrl";
 import { sendOrderConfirmationWhatsApp } from "../lib/manychat";
-import { buildOrderSummary } from "../lib/orderMessage";
+import { buildOrderFields } from "../lib/orderMessage";
 
-/** WhatsApps the Customer their booking: the Session and each Participant's link. */
+/** WhatsApps the Customer their booking: the Session, Venue and a link to everyone's QR. */
 export const sendOrderConfirmation = internalActionGeneric({
   args: { hold_id: v.string() },
   returns: v.object({ success: v.boolean(), skipped: v.optional(v.boolean()) }),
@@ -16,6 +16,7 @@ export const sendOrderConfirmation = internalActionGeneric({
       hold_id: args.hold_id,
     })) as {
       customer_mobile: string;
+      class_id: string;
       class_name_zh: string;
       session_date: string;
       session_time: string;
@@ -29,15 +30,15 @@ export const sendOrderConfirmation = internalActionGeneric({
       return { success: false };
     }
 
-    const summary = buildOrderSummary({
+    const fields = buildOrderFields({
       baseUrl: resolveAppBaseUrl(process.env.APP_BASE_URL),
+      classId: order.class_id,
+      holdId: args.hold_id,
       classNameZh: order.class_name_zh,
       sessionDate: order.session_date,
       sessionTime: order.session_time,
       sessionEndTime: order.session_end_time,
       locationZh: order.session_location_zh,
-      googleMapsUrl: order.session_google_maps_url,
-      participants: order.participants,
     });
 
     const storedSubscriberId = (await ctx.runQuery(
@@ -47,7 +48,7 @@ export const sendOrderConfirmation = internalActionGeneric({
 
     const result = await sendOrderConfirmationWhatsApp({
       to: order.customer_mobile,
-      summary,
+      fields,
       subscriberId: storedSubscriberId,
     });
 
