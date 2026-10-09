@@ -3,6 +3,7 @@ import { makeFunctionReference, mutationGeneric, queryGeneric, type GenericMutat
 import type { DataModel, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
+import { canSelfChange, OVERRIDE_REASON_MIN, sessionStartsAt } from "./changeCutoff";
 import { remainingQuota, remainingQuotaBySession } from "./remainingQuota";
 
 export const getParticipantPageData = queryGeneric({
@@ -78,7 +79,7 @@ export const getParticipantPageData = queryGeneric({
     }
 
     const isRainCancelled = session.cancellation_reason === "rain";
-    const canChangeSession = isMoreThanTwoDaysAway(session.date, session.time) || isRainCancelled;
+    const canChangeSession = canSelfChange(session, Date.now()) || isRainCancelled;
 
     const now = new Date();
     const classSessions = canChangeSession
@@ -92,8 +93,7 @@ export const getParticipantPageData = queryGeneric({
       ? classSessions
           .filter((candidateSession) => {
             const availableQuota = remaining.get(candidateSession.session_id) ?? 0;
-            const isFutureSession =
-              new Date(`${candidateSession.date}T${candidateSession.time}`) > now;
+            const isFutureSession = sessionStartsAt(candidateSession) > now.getTime();
             return (
               candidateSession.status === "scheduled" &&
               candidateSession.hidden !== true &&
@@ -170,12 +170,20 @@ export const changeParticipantSession = mutationGeneric({
 
 /**
  * Moves a Participant to another Session of the same Class. Shared by the self-service
- * change and the admin move; only an admin move may target a Hidden Session.
+ * change and the admin move. Participants are held to the Change Cutoff; a Super Admin
+ * may move someone past it (even after their Session, scanned or not) but must give a
+ * reason. Only an admin move may target a Hidden Session. Nobody is moved into a Session
+ * that has started, is not scheduled, or has no Remaining Quota.
  */
 export async function applyParticipantSessionChange(
   ctx: GenericMutationCtx<DataModel>,
   args: { participant_id: string; session_id: string },
-  options: { allowHiddenSession: boolean; adminId?: Id<"admins"> }
+  options: {
+    allowHiddenSession: boolean;
+    adminId?: Id<"admins">;
+    /** Set for a Super Admin move: may pass the Change Cutoff, with a reason. */
+    superAdminOverride?: { reason?: string };
+  }
 ): Promise<{ success: boolean; error_message?: string }> {
   const participant = await ctx.db
     .query("participants")
@@ -201,15 +209,23 @@ export async function applyParticipantSessionChange(
     };
   }
 
-  if (
-    !isMoreThanTwoDaysAway(currentSession.date, currentSession.time) &&
-    currentSession.cancellation_reason !== "rain"
-  ) {
-    return {
-      success: false,
-      error_message:
-        "Session changes are only allowed more than 2 days before the class date.",
-    };
+  const now = Date.now();
+  const pastCutoff = !canSelfChange(currentSession, now);
+  const reason = options.superAdminOverride?.reason?.trim() ?? "";
+  if (pastCutoff) {
+    if (!options.superAdminOverride) {
+      return {
+        success: false,
+        error_message:
+          "Session changes are only allowed until 00:00 two days before the class date.",
+      };
+    }
+    if (reason.length < OVERRIDE_REASON_MIN) {
+      return {
+        success: false,
+        error_message: "This participant is past the Change Cutoff. Please give a reason for the move.",
+      };
+    }
   }
 
   const newSession = await ctx.db
@@ -220,6 +236,7 @@ export async function applyParticipantSessionChange(
   if (
     !newSession ||
     newSession.status !== "scheduled" ||
+    sessionStartsAt(newSession) <= now ||
     (newSession.hidden === true && !options.allowHiddenSession)
   ) {
     return {
@@ -247,7 +264,7 @@ export async function applyParticipantSessionChange(
     };
   }
 
-  const changedAt = Date.now();
+  const changedAt = now;
 
   await ctx.db.patch(participant._id, {
     session_id: newSession.session_id,
@@ -270,6 +287,8 @@ export async function applyParticipantSessionChange(
       previous_session_id: currentSession.session_id,
       next_session_id: newSession.session_id,
       changed_at: changedAt,
+      past_cutoff: pastCutoff,
+      ...(pastCutoff ? { override_reason: reason } : {}),
     },
     created_at: changedAt,
   });
@@ -321,9 +340,3 @@ export const getParticipantMobileById = internalQueryGeneric({
     return { mobile: record.mobile ?? null };
   },
 });
-
-function isMoreThanTwoDaysAway(date: string, time: string): boolean {
-  const sessionStartsAt = Date.parse(`${date}T${time}:00`);
-  const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
-  return Number.isFinite(sessionStartsAt) && sessionStartsAt - Date.now() > twoDaysInMs;
-}

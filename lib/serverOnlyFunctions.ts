@@ -13,6 +13,7 @@ export const SERVER_ONLY_FUNCTIONS = new Set<string>([
   "adminParticipants:getAvailableSessionsForClassChange",
   "adminParticipants:changeParticipantSession",
   "adminParticipants:getParticipantAdminDetails",
+  "adminParticipants:getParticipantHistory",
   "adminPurchases:listPurchases",
   "adminSessions:getSessionManagementPageData",
   "adminSessions:createSession",

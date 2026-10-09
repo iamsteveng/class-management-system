@@ -155,7 +155,11 @@ export function ParticipantPageContent({
             success={changeSucceeded}
           />
         </section>
-      ) : null}
+      ) : (
+        <p className="rounded-lg bg-zinc-50 px-4 py-3 text-sm text-zinc-600" data-testid="change-cutoff-passed">
+          {tr.changeCutoffPassed}
+        </p>
+      )}
 
       {pageData.terms_version && pageData.terms_content ? (
         <section className="rounded-xl border border-zinc-200 p-5">

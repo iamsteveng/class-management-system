@@ -6,6 +6,7 @@ import {
 import { normalizeToE164 } from "../lib/phone";
 import { v } from "convex/values";
 
+import { sessionStartsAt } from "./changeCutoff";
 import { remainingQuota, remainingQuotaBySession } from "./remainingQuota";
 
 export const getTermsPageData = queryGeneric({
@@ -129,7 +130,7 @@ export const getTermsPageData = queryGeneric({
         };
       })
       .filter((session) => session.available_quota > 0)
-      .filter((session) => new Date(`${session.date}T${session.time}`) > now)
+      .filter((session) => sessionStartsAt(session) > now.getTime())
       .sort((left, right) => {
         const leftDateTime = `${left.date}T${left.time}`;
         const rightDateTime = `${right.date}T${right.time}`;

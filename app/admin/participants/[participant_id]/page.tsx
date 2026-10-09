@@ -34,6 +34,17 @@ type ParticipantDetails = {
   health_notes?: string;
   photo_consent?: boolean;
   terms_accepted_by?: string;
+  past_change_cutoff: boolean;
+};
+
+type HistoryItem = {
+  kind: "scan" | "move";
+  at: number;
+  admin_username?: string;
+  session_label: string;
+  to_session_label?: string;
+  past_cutoff?: boolean;
+  reason?: string;
 };
 
 const RIDING_EXPERIENCE_LABELS: Record<string, string> = {
@@ -83,6 +94,8 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
     );
   }
 
+  const history = await loadParticipantHistory(participantId);
+
   let availableSessions: AvailableSession[] = [];
   if (isSuperAdmin) {
     availableSessions = await loadAvailableSessionsForChange(
@@ -96,6 +109,7 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
 
     const pId = (formData.get("participant_id") as string | null)?.trim() ?? "";
     const sessionId = (formData.get("session_id") as string | null)?.trim() ?? "";
+    const reason = (formData.get("reason") as string | null)?.trim() || undefined;
 
     if (!pId || !sessionId) {
       redirect(
@@ -107,7 +121,7 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
       const client = createConvexHttpClient();
       const result = await client.mutation(
         makeFunctionReference<"mutation">("adminParticipants:changeParticipantSession"),
-        { participant_id: pId, session_id: sessionId, admin_username: adminUsername }
+        { participant_id: pId, session_id: sessionId, admin_username: adminUsername, reason }
       );
       if (!result.success) {
         redirect(
@@ -240,6 +254,35 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
         </dl>
       </section>
 
+      <section className="space-y-3 rounded-xl border border-zinc-200 p-5" data-testid="participant-history">
+        <h2 className="text-lg font-medium text-zinc-900">History</h2>
+        {history.length === 0 ? (
+          <p className="text-sm text-zinc-600">No scans or session changes yet.</p>
+        ) : (
+          <ol className="space-y-2 text-sm">
+            {history.map((item, i) => (
+              <li key={i} className="rounded-lg bg-zinc-50 p-3">
+                <span className="text-zinc-500">{new Date(item.at).toLocaleString("en-GB", { timeZone: "Asia/Hong_Kong" })}</span>{" "}
+                {item.kind === "scan" ? (
+                  <span className="text-zinc-900">
+                    Scanned at <b>{item.session_label}</b>
+                    {item.admin_username ? ` by ${item.admin_username}` : ""}
+                  </span>
+                ) : (
+                  <span className="text-zinc-900">
+                    Moved from <b>{item.session_label}</b> to <b>{item.to_session_label}</b>
+                    {item.admin_username ? ` by ${item.admin_username}` : " by the participant"}
+                    {item.past_cutoff ? (
+                      <span className="mt-1 block text-amber-900">Past the Change Cutoff — reason: {item.reason}</span>
+                    ) : null}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+
       <div className="flex flex-wrap gap-3">
         <Link
           href={`/admin/sessions/${details.session_id}/participants`}
@@ -252,6 +295,7 @@ export default async function ParticipantDetailPage({ params, searchParams }: Pa
           <ChangeSessionPanel
             participantId={details.participant_id}
             availableSessions={availableSessions}
+            pastCutoff={details.past_change_cutoff}
             changeSessionAction={changeSessionAction}
           />
         ) : null}
@@ -288,6 +332,17 @@ async function loadAvailableSessionsForChange(
         "adminParticipants:getAvailableSessionsForClassChange"
       ),
       { class_id: classId, current_session_id: currentSessionId }
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function loadParticipantHistory(participantId: string): Promise<HistoryItem[]> {
+  try {
+    return await createConvexHttpClient().query(
+      makeFunctionReference<"query">("adminParticipants:getParticipantHistory"),
+      { participant_id: participantId }
     );
   } catch {
     return [];
