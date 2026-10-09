@@ -19,6 +19,7 @@ type TimetableEntry = {
 
 type Timetable = {
   cycle_anchor: string;
+  first_date?: string;
   cycle_weeks: number;
   window_days: number;
   paused: boolean;
@@ -102,6 +103,7 @@ export default async function AdminTimetablePage({ searchParams }: TimetablePage
         <>
           <p className="text-sm text-zinc-700">
             {timetable.cycle_weeks}-week cycle; week 1 starts on {timetable.cycle_anchor}.
+            {timetable.first_date ? ` First class: ${timetable.first_date}.` : ""}
             {timetable.paused ? (
               <span className="ml-2 rounded bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                 Paused — no new Sessions are being opened

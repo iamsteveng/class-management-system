@@ -60,6 +60,16 @@ describe('seed', () => {
     expect(regular.quota_defined).toBe(8);
   });
 
+  it('opens nothing before the first class on 21 Oct 2026, however early it runs', async () => {
+    const db = emptyWorld();
+    await handler(seed)({ db }, { today: '2026-10-12' });
+    const dates = db.tables.sessions.map((s: any) => s.date).sort();
+    expect(dates[0]).toBe('2026-10-21');
+    const first = new Set(db.tables.sessions.filter((s: any) => s.date === '2026-10-21').map((s: any) => s.location_zh));
+    expect(first).toEqual(new Set(['北角樂區單車亭'])); // Wednesday of week A
+    expect(db.tables.timetable_settings[0].first_date).toBe('2026-10-21');
+  });
+
   it('running it twice changes nothing', async () => {
     const db = emptyWorld();
     await handler(seed)({ db }, { today: '2026-10-23' });
