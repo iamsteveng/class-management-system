@@ -15,6 +15,7 @@ export interface ParticipantTranslations {
   directionsLink: string;
   qrCodeSection: string;
   changeSessionButton: string;
+  changeCutoffPassed: string;
   noSessionsAvailable: string;
   sessionChangedSuccess: string;
   changeSessionModalTitle: string;
@@ -48,6 +49,7 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     directionsLink: '查看路線',
     qrCodeSection: '報到 QR 碼',
     changeSessionButton: '更改時段',
+    changeCutoffPassed: '上課前兩日 00:00 之後不能自行更改時段。如有特別情況，請 WhatsApp 我哋。',
     noSessionsAvailable: '目前沒有其他可用名額的時段。',
     sessionChangedSuccess: '時段已成功更改。',
     changeSessionModalTitle: '更改時段',
@@ -79,6 +81,7 @@ export const participantTranslations: Record<'zh-TW' | 'en', ParticipantTranslat
     directionsLink: 'Get Directions',
     qrCodeSection: 'Check-in QR code',
     changeSessionButton: 'Change Session',
+    changeCutoffPassed: 'Sessions can only be changed until 00:00 two days before the class. For special circumstances, please WhatsApp us.',
     noSessionsAvailable: 'No alternate sessions with available quota are currently available.',
     sessionChangedSuccess: 'Session changed successfully.',
     changeSessionModalTitle: 'Change Session',
