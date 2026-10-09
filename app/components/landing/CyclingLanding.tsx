@@ -263,7 +263,7 @@ export function CyclingLanding({ data }: { data: LandingData }) {
               </li>
               <li className="flex items-center gap-2">
                 <User className="h-5 w-5 text-[#7CC4F2]" />
-                一位教練・{sizesLine}
+                一位教練 + 一位助教・{sizesLine}
               </li>
               <li className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-[#7CC4F2]" />
