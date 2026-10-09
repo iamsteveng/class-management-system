@@ -4,7 +4,7 @@ import { serverMutation, serverQuery } from "./serverOnly";
 
 import type { DataModel } from "./_generated/dataModel";
 import { hkDate } from "./timetable";
-import { sessionLocationFromVenue, toVenueFields, venueValidator, type VenueFields } from "./venues";
+import { refreshUpcomingSessionLocations, toVenueFields, venueValidator, type VenueFields } from "./venues";
 
 const venueInput = {
   name_zh: v.string(),
@@ -16,6 +16,7 @@ const venueInput = {
   opening_hours: v.optional(v.string()),
   latitude: v.number(),
   longitude: v.number(),
+  maps_url: v.optional(v.string()),
   mtr_station_zh: v.optional(v.string()),
   mtr_station_en: v.optional(v.string()),
   mtr_line_zh: v.optional(v.string()),
@@ -53,6 +54,7 @@ function cleanVenueInput(input: VenueInput): VenueInput {
     opening_hours: text(input.opening_hours),
     latitude: input.latitude,
     longitude: input.longitude,
+    maps_url: text(input.maps_url),
     mtr_station_zh: text(input.mtr_station_zh),
     mtr_station_en: text(input.mtr_station_en),
     mtr_line_zh: text(input.mtr_line_zh),
@@ -63,6 +65,9 @@ function cleanVenueInput(input: VenueInput): VenueInput {
     directions_zh: text(input.directions_zh),
     directions_en: text(input.directions_en),
   };
+  if (cleaned.maps_url && !/^https:\/\/\S+$/.test(cleaned.maps_url)) {
+    throw new Error("The Google Maps link must start with https://");
+  }
   if (!cleaned.name_zh || !cleaned.district_zh || !cleaned.address_zh) {
     throw new Error("Name, district and address are required.");
   }
@@ -151,17 +156,7 @@ export const updateVenue = serverMutation({
     const cleaned = cleanVenueInput(input);
     await ctx.db.patch(venue._id, { ...cleaned, updated_at: now });
 
-    const today = hkDate(now);
-    const sessions = await ctx.db
-      .query("sessions")
-      .withIndex("by_venue_id", (q) => q.eq("venue_id", venue_id))
-      .collect();
-    let updated = 0;
-    for (const session of sessions) {
-      if (session.status !== "scheduled" || session.date < today) continue;
-      await ctx.db.patch(session._id, sessionLocationFromVenue({ venue_id, ...cleaned }));
-      updated++;
-    }
+    const updated = await refreshUpcomingSessionLocations(ctx, { venue_id, ...cleaned }, hkDate(now));
 
     await ctx.db.insert("audit_logs", {
       admin_id: admin._id,

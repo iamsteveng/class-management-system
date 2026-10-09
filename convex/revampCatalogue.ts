@@ -1,13 +1,14 @@
 import { internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
-import { openTimetableSessions } from "./timetable";
-import type { VenueFields } from "./venues";
+import { hkDate, openTimetableSessions } from "./timetable";
+import { refreshUpcomingSessionLocations, type VenueFields } from "./venues";
 import { KIDS_CLASS_ID, REGULAR_CLASS_ID } from "../lib/catalogueIds";
 
 /**
  * The real cycling catalogue launched with the homepage revamp: its Classes, Venues and
- * Timetable. Changing the Timetable means editing this file and running the seed again;
+ * Timetable. Venue addresses, hours, positions and map links follow
+ * https://marketing.loco.hk/locokiosk.html. Changing the Timetable means editing this file and running the seed again;
  * only Sessions not yet opened are affected.
  *
  * Load it with:  npx convex run revampCatalogue:seed '{}'          (dev)
@@ -86,6 +87,7 @@ export const VENUES: VenueFields[] = [
     opening_hours: "10:00–20:00",
     latitude: 22.4512014,
     longitude: 114.0077887,
+    maps_url: "https://maps.app.goo.gl/JtMn7v9AgziStm9QA",
     mtr_station_zh: "天水圍站",
     mtr_station_en: "Tin Shui Wai Station",
     mtr_line_zh: "屯馬綫",
@@ -105,8 +107,9 @@ export const VENUES: VenueFields[] = [
     address_zh: "青衣東北公園單車亭（青衣担杆山路 10 號）",
     address_en: "Tsing Yi Northeast Park bike kiosk (10 Tam Kon Shan Road, Tsing Yi)",
     opening_hours: "10:00–20:00",
-    latitude: 22.3625166,
-    longitude: 114.0990749,
+    latitude: 22.3617677,
+    longitude: 114.0988369,
+    maps_url: "https://maps.app.goo.gl/RtQvZUgZhmEyp3Kr8",
     mtr_station_zh: "青衣站",
     mtr_station_en: "Tsing Yi Station",
     mtr_line_zh: "東涌綫",
@@ -127,8 +130,9 @@ export const VENUES: VenueFields[] = [
     address_zh: "將軍澳南公園（將軍澳海濱公園旁）",
     address_en: "Tseung Kwan O South Park (next to Tseung Kwan O Waterfront Park)",
     opening_hours: "11:00–21:00",
-    latitude: 22.3022332,
-    longitude: 114.2599821,
+    latitude: 22.30211,
+    longitude: 114.260241,
+    maps_url: "https://maps.app.goo.gl/ygs6PyUMwTE2rn5M6",
     mtr_station_zh: "將軍澳站",
     mtr_station_en: "Tseung Kwan O Station",
     mtr_line_zh: "將軍澳綫",
@@ -148,8 +152,9 @@ export const VENUES: VenueFields[] = [
     address_zh: "北角電照街 39–41 號",
     address_en: "39–41 Tin Chiu Street, North Point",
     opening_hours: "11:00–20:00",
-    latitude: 22.2936649,
-    longitude: 114.2026832,
+    latitude: 22.293779,
+    longitude: 114.202947,
+    maps_url: "https://maps.app.goo.gl/7cd6JSwq8VjUn3Zr8",
     mtr_station_zh: "北角站",
     mtr_station_en: "North Point Station",
     mtr_line_zh: "港島綫 / 將軍澳綫",
@@ -172,6 +177,7 @@ export const VENUES: VenueFields[] = [
     opening_hours: "10:00–20:00",
     latitude: 22.3316067,
     longitude: 114.1886791,
+    maps_url: "https://maps.app.goo.gl/jS2R1CSJqXwMvAjLA",
     mtr_station_zh: "宋皇臺站",
     mtr_station_en: "Sung Wong Toi Station",
     mtr_line_zh: "屯馬綫",
@@ -264,6 +270,8 @@ export const seed = internalMutationGeneric({
         .first();
       if (existing) {
         await ctx.db.patch(existing._id, { ...venue, updated_at: now });
+        // Sessions already open keep up with the Venue (name and map link).
+        await refreshUpcomingSessionLocations(ctx, venue, hkDate(now));
       } else {
         await ctx.db.insert("venues", { ...venue, created_at: now });
       }

@@ -10,6 +10,7 @@ export type VenueFormValues = {
   opening_hours?: string;
   latitude?: number;
   longitude?: number;
+  maps_url?: string;
   mtr_station_zh?: string;
   mtr_station_en?: string;
   mtr_line_zh?: string;
@@ -42,6 +43,7 @@ const SECTIONS: Array<{ title: string; fields: Field[] }> = [
       { name: "opening_hours", label: "Opening hours" },
       { name: "latitude", label: "Latitude", required: true, kind: "number", step: "any" },
       { name: "longitude", label: "Longitude", required: true, kind: "number", step: "any" },
+      { name: "maps_url", label: "Google Maps link (e.g. https://maps.app.goo.gl/…)" },
     ],
   },
   {
@@ -136,6 +138,7 @@ export function readVenueForm(formData: FormData) {
     // Required on the form; 0 is out of Hong Kong and still fails the server's checks loudly.
     latitude: optionalNumber("latitude") ?? 0,
     longitude: optionalNumber("longitude") ?? 0,
+    maps_url: optionalText("maps_url"),
     mtr_station_zh: optionalText("mtr_station_zh"),
     mtr_station_en: optionalText("mtr_station_en"),
     mtr_line_zh: optionalText("mtr_line_zh"),
