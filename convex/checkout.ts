@@ -591,6 +591,7 @@ export const getOrderForConfirmation = internalQueryGeneric({
     v.null(),
     v.object({
       customer_mobile: v.string(),
+      class_id: v.string(),
       class_name_zh: v.string(),
       session_date: v.string(),
       session_time: v.string(),
@@ -616,6 +617,7 @@ export const getOrderForConfirmation = internalQueryGeneric({
       .first();
     return {
       customer_mobile: hold.customer_mobile,
+      class_id: hold.class_id,
       class_name_zh: cls?.name_zh ?? "",
       session_date: session?.date ?? "",
       session_time: session?.time ?? "",

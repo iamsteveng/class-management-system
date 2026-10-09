@@ -313,30 +313,40 @@ export async function sendRainCancellationWhatsApp({
 
 // ── Order confirmation WhatsApp (new apply flow) ─────────────────────────────
 //
-// Sent once to the Customer when an Order is paid: the Session details and each
-// Participant's link, as one text custom field shown by the flow.
-// Set MANYCHAT_ORDER_FLOW_NS and MANYCHAT_ORDER_SUMMARY_FIELD (cuf_…) once the ManyChat
-// flow exists; until then the send is skipped and logged.
+// Sent once to the Customer when an Order is paid. The flow's template shows four
+// single-line custom fields. Set MANYCHAT_ORDER_FLOW_NS and the four field IDs (cuf_…):
+// MANYCHAT_ORDER_FIELD_CLASS, MANYCHAT_ORDER_FIELD_WHEN, MANYCHAT_ORDER_FIELD_VENUE and
+// MANYCHAT_ORDER_FIELD_LINK. Until all are set the send is skipped and logged.
 
 type SendOrderConfirmationParams = {
   to: string; // E.164 phone number
-  summary: string;
+  fields: { booking_class: string; booking_when: string; booking_venue: string; booking_link: string };
   subscriberId?: string | null;
 };
 
 export type SendOrderConfirmationResult = SendTermsResult & { skipped?: boolean };
 
+function orderFieldIds() {
+  const ids = {
+    booking_class: process.env.MANYCHAT_ORDER_FIELD_CLASS ?? "",
+    booking_when: process.env.MANYCHAT_ORDER_FIELD_WHEN ?? "",
+    booking_venue: process.env.MANYCHAT_ORDER_FIELD_VENUE ?? "",
+    booking_link: process.env.MANYCHAT_ORDER_FIELD_LINK ?? "",
+  };
+  return Object.values(ids).every(Boolean) ? ids : null;
+}
+
 export async function sendOrderConfirmationWhatsApp({
   to,
-  summary,
+  fields,
   subscriberId: existingSubscriberId,
 }: SendOrderConfirmationParams): Promise<SendOrderConfirmationResult> {
   const apiKey = process.env.MANYCHAT_API_KEY;
   const flowNs = process.env.MANYCHAT_ORDER_FLOW_NS ?? "";
-  const summaryField = process.env.MANYCHAT_ORDER_SUMMARY_FIELD ?? "";
-  if (!apiKey || !flowNs || !summaryField) {
+  const fieldIds = orderFieldIds();
+  if (!apiKey || !flowNs || !fieldIds) {
     console.warn(
-      "[manychat] Order confirmation not configured (MANYCHAT_API_KEY / MANYCHAT_ORDER_FLOW_NS / MANYCHAT_ORDER_SUMMARY_FIELD) — skipping WhatsApp"
+      "[manychat] Order confirmation not configured (MANYCHAT_API_KEY / MANYCHAT_ORDER_FLOW_NS / MANYCHAT_ORDER_FIELD_*) — skipping WhatsApp"
     );
     return { success: false, subscriberId: null, skipped: true };
   }
@@ -371,7 +381,10 @@ export async function sendOrderConfirmationWhatsApp({
       headers,
       body: JSON.stringify({
         subscriber_id: Number(subscriberId),
-        fields: [{ field_id: Number(summaryField.replace("cuf_", "")), field_value: summary }],
+        fields: (Object.keys(fieldIds) as Array<keyof typeof fieldIds>).map((name) => ({
+          field_id: Number(fieldIds[name].replace("cuf_", "")),
+          field_value: fields[name],
+        })),
       }),
     });
     if (!setFieldRes.ok) {
