@@ -204,6 +204,7 @@ export default defineSchema({
   timetable_settings: defineTable({
     key: v.literal("default"),
     cycle_anchor: v.string(), // the Monday that starts week 1 of the cycle
+    first_date: v.optional(v.string()), // no Session is opened before this date (the first class)
     cycle_weeks: v.number(),
     window_days: v.number(),
     paused: v.optional(v.boolean()),

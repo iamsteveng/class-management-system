@@ -50,6 +50,7 @@ type EntryLike = {
 
 type SettingsLike = {
   cycle_anchor: string;
+  first_date?: string;
   cycle_weeks: number;
   window_days: number;
   paused?: boolean;
@@ -69,7 +70,7 @@ export function occurrencesInWindow<E extends EntryLike>(
   const out: Array<{ entry: E; date: string }> = [];
   for (let i = 0; i < settings.window_days; i++) {
     const date = addDays(today, i);
-    if (date < settings.cycle_anchor) continue;
+    if (date < settings.cycle_anchor || (settings.first_date && date < settings.first_date)) continue;
     const week = cycleWeekOf(date, settings.cycle_anchor, settings.cycle_weeks);
     const weekday = weekdayOf(date);
     for (const entry of entries) {
@@ -177,6 +178,7 @@ export const getTimetable = serverQuery({
     v.null(),
     v.object({
       cycle_anchor: v.string(),
+      first_date: v.optional(v.string()),
       cycle_weeks: v.number(),
       window_days: v.number(),
       paused: v.boolean(),
@@ -214,6 +216,7 @@ export const getTimetable = serverQuery({
 
     return {
       cycle_anchor: settings.cycle_anchor,
+      first_date: settings.first_date,
       cycle_weeks: settings.cycle_weeks,
       window_days: settings.window_days,
       paused: settings.paused === true,

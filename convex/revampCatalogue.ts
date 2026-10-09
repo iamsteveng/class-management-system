@@ -15,6 +15,7 @@ import { KIDS_CLASS_ID, REGULAR_CLASS_ID } from "../lib/catalogueIds";
  */
 
 export const CYCLE_ANCHOR = "2026-10-05"; // Monday of week 1
+export const FIRST_CLASS_DATE = "2026-10-21"; // the first class; nothing is opened before it
 const CYCLE_WEEKS = 2;
 const WINDOW_DAYS = 28;
 
@@ -290,7 +291,12 @@ export const seed = internalMutationGeneric({
       .query("timetable_settings")
       .withIndex("by_key", (q) => q.eq("key", "default"))
       .first();
-    const cycle = { cycle_anchor: CYCLE_ANCHOR, cycle_weeks: CYCLE_WEEKS, window_days: WINDOW_DAYS };
+    const cycle = {
+      cycle_anchor: CYCLE_ANCHOR,
+      first_date: FIRST_CLASS_DATE,
+      cycle_weeks: CYCLE_WEEKS,
+      window_days: WINDOW_DAYS,
+    };
     if (settings) {
       await ctx.db.patch(settings._id, { ...cycle, updated_at: now });
     } else {

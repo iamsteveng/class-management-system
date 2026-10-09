@@ -82,6 +82,13 @@ describe('Timetable cycle', () => {
     expect(dates).toEqual(['sat-w2@2026-10-31', 'sat-w1@2026-11-07', 'sat-w2@2026-11-14']);
   });
 
+  it('opens nothing before the first class date', () => {
+    const entries = [entry({ entry_id: 'sat-w1' }), entry({ entry_id: 'sat-w2', cycle_week: 2 })];
+    const dates = occurrencesInWindow(entries, { ...settings, first_date: '2026-10-25' }, '2026-10-12', '00:00').map((o) => o.date);
+    expect(dates.every((d) => d >= '2026-10-25')).toBe(true);
+    expect(dates).not.toContain('2026-10-24');
+  });
+
   it('opens nothing for paused entries or a paused Timetable', () => {
     expect(occurrencesInWindow([entry({ paused: true })], settings, '2026-10-23', '00:00')).toEqual([]);
     expect(occurrencesInWindow([entry({})], { ...settings, paused: true }, '2026-10-23', '00:00')).toEqual([]);
