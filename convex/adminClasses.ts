@@ -1,6 +1,7 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+
 import type { GenericDataModel, GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 import type { GenericId } from "convex/values";
 
 /**
@@ -19,7 +20,7 @@ function normalizeImageUrl(imageUrl: string | undefined): string | undefined {
   return trimmed;
 }
 
-export const getClassListPageData = queryGeneric({
+export const getClassListPageData = serverQuery({
   args: {},
   returns: v.array(
     v.object({
@@ -74,7 +75,7 @@ export const getClassListPageData = queryGeneric({
   },
 });
 
-export const createClass = mutationGeneric({
+export const createClass = serverMutation({
   args: {
     name_zh: v.string(),
     name_en: v.optional(v.string()),
@@ -134,7 +135,7 @@ export const createClass = mutationGeneric({
   },
 });
 
-export const updateClass = mutationGeneric({
+export const updateClass = serverMutation({
   args: {
     class_id: v.string(),
     name_zh: v.string(),
@@ -276,7 +277,7 @@ async function applyClassStatus(
   return { class_id: args.class_id };
 }
 
-export const setClassStatus = mutationGeneric({
+export const setClassStatus = serverMutation({
   args: {
     class_id: v.string(),
     status: v.union(v.literal("active"), v.literal("inactive")),
@@ -289,7 +290,7 @@ export const setClassStatus = mutationGeneric({
 });
 
 /** Alias kept for existing callers; sets availability to inactive. */
-export const cancelClass = mutationGeneric({
+export const cancelClass = serverMutation({
   args: {
     class_id: v.string(),
     admin_username: v.string(),

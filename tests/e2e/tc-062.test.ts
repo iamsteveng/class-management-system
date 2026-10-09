@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { withServerSecret } from './helpers/serverSecret';
 
 // TC-062: Admin edit modal shows Group Price and Min Qty for Group Price fields
 // for super_admin.
@@ -10,7 +11,7 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);

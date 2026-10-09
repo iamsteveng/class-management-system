@@ -1,10 +1,9 @@
 import {
   internalMutationGeneric,
-  mutationGeneric,
-  queryGeneric,
   type GenericMutationCtx,
 } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 
 import type { DataModel } from "./_generated/dataModel";
 import { sessionLocationFromVenue } from "./venues";
@@ -172,7 +171,7 @@ export const openSessions = internalMutationGeneric({
 
 const WEEKDAY_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
 
-export const getTimetable = queryGeneric({
+export const getTimetable = serverQuery({
   args: {},
   returns: v.union(
     v.null(),
@@ -254,7 +253,7 @@ async function requireSuperAdmin(ctx: GenericMutationCtx<DataModel>, username: s
 }
 
 /** Pause or resume the whole Timetable. Sessions already open are untouched. */
-export const setTimetablePaused = mutationGeneric({
+export const setTimetablePaused = serverMutation({
   args: { paused: v.boolean(), admin_username: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -278,7 +277,7 @@ export const setTimetablePaused = mutationGeneric({
 });
 
 /** Pause or resume one Timetable entry. Sessions already open from it are untouched. */
-export const setTimetableEntryPaused = mutationGeneric({
+export const setTimetableEntryPaused = serverMutation({
   args: { entry_id: v.string(), paused: v.boolean(), admin_username: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {

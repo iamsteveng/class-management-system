@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { withServerSecret } from './helpers/serverSecret';
 
 // TC-083: Admin screens for the revamp. Super Admins manage Venues and see the new Class
 // fields; Regular Admins can view Venues but not edit them; the roster shows what the
@@ -11,7 +12,7 @@ async function convex(kind: 'mutation' | 'query', fnPath: string, args: Record<s
   const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = (await res.json()) as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`${fnPath} failed: ${json.errorMessage}`);

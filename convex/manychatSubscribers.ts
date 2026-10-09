@@ -1,11 +1,11 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { internalQueryGeneric, internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
 /**
  * Look up a ManyChat subscriber ID by WhatsApp phone number.
  * Returns the subscriber_id string, or null if not found.
  */
-export const getByPhone = queryGeneric({
+export const getByPhone = internalQueryGeneric({
   args: {
     whatsapp_phone: v.string(),
   },
@@ -24,7 +24,7 @@ export const getByPhone = queryGeneric({
 /**
  * Insert or update a ManyChat subscriber record keyed by WhatsApp phone number.
  */
-export const upsertSubscriber = mutationGeneric({
+export const upsertSubscriber = internalMutationGeneric({
   args: {
     whatsapp_phone: v.string(),
     subscriber_id: v.string(),

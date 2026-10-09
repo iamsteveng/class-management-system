@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { withServerSecret } from './serverSecret';
 
 // Shared setup for apply-flow tests: a throwaway Class with one Session on Convex dev.
 
@@ -9,7 +10,7 @@ export async function convex(kind: 'mutation' | 'query', fnPath: string, args: R
   const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = (await res.json()) as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`${fnPath} failed: ${json.errorMessage}`);

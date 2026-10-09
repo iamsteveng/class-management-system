@@ -1,10 +1,12 @@
-import { mutationGeneric } from "convex/server";
-import { v } from "convex/values";
+import { internalMutationGeneric, type GenericMutationCtx } from "convex/server";
+import { v, type ObjectType } from "convex/values";
+
+import type { DataModel } from "./_generated/dataModel";
 
 /**
  * Patch the manychat_subscriber_id on a purchase record for auditing.
  */
-export const updateManychatSubscriberId = mutationGeneric({
+export const updateManychatSubscriberId = internalMutationGeneric({
   args: {
     purchase_id: v.id("purchases"),
     manychat_subscriber_id: v.string(),
@@ -25,8 +27,7 @@ export const updateManychatSubscriberId = mutationGeneric({
  * Duplicate detection: if the same order_id + class_id already exists, returns
  * the existing purchase._id (idempotent — safe for reprocessing).
  */
-export const createPurchase = mutationGeneric({
-  args: {
+export const purchaseArgs = {
     order_id: v.string(),
     customer_mobile: v.string(),
     participant_count: v.number(),
@@ -37,9 +38,16 @@ export const createPurchase = mutationGeneric({
     currency: v.optional(v.string()),
     purchase_datetime: v.string(),
     slot_index: v.optional(v.number()),
-  },
-  returns: v.id("purchases"),
-  handler: async (ctx, args) => {
+  };
+
+/**
+ * Creates one purchase (Ticket) row, skipping a duplicate of the same order_id +
+ * class_id + slot_index (idempotent, safe for reprocessing).
+ */
+export async function insertPurchase(
+  ctx: GenericMutationCtx<DataModel>,
+  args: ObjectType<typeof purchaseArgs>
+) {
     const effectiveSlotIndex = args.slot_index ?? 0;
 
     // Duplicate detection: same order_id + class_id + slot_index
@@ -75,5 +83,10 @@ export const createPurchase = mutationGeneric({
       slot_index: effectiveSlotIndex,
       created_at: Date.now(),
     });
-  },
+}
+
+export const createPurchase = internalMutationGeneric({
+  args: purchaseArgs,
+  returns: v.id("purchases"),
+  handler: async (ctx, args) => insertPurchase(ctx, args),
 });

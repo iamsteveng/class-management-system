@@ -3,6 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock convex/server so mutationGeneric returns its definition object,
 // allowing us to access .handler directly in tests.
 vi.mock('convex/server', () => ({
+  queryGeneric: (def: any) => def,
+  internalQueryGeneric: (def: any) => def,
+  internalMutationGeneric: (def: any) => def,
+  internalActionGeneric: (def: any) => def,
   actionGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   makeFunctionReference: (name: string) => name,

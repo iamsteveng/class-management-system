@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { withServerSecret } from './helpers/serverSecret';
 
 // TC-050: Terms form stores participant mobile in E.164 format in DB after valid submission
 // Targets: feat/rain-cancellation-change-session branch (localhost:3000)
@@ -9,7 +10,7 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);
@@ -20,7 +21,7 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Query ${fnPath} failed: ${json.errorMessage}`);
@@ -94,9 +95,9 @@ test('TC-050: Valid E.164 mobile submitted in terms form is stored in E.164 form
   await page.screenshot({ path: 'tc050-success.png', fullPage: false });
 
   // Step 8: Query DB to verify participant.mobile is stored in E.164 format
-  const participantData = await convexQuery('participants:getParticipantMobileById', {
+  const participantData = await convexQuery('adminParticipants:getParticipantAdminDetails', {
     participant_id: participantId as string,
-  }) as { mobile: string | null } | null;
+  }) as { mobile?: string | null } | null;
 
   expect(participantData).not.toBeNull();
   expect(participantData?.mobile).toBe(testMobile);

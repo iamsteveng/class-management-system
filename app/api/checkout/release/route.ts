@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { makeFunctionReference } from "convex/server";
 
-import { checkoutServerSecret } from "@/lib/checkoutServer";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
 /** The Customer backed out before paying: give their held seats back straight away. */
@@ -12,7 +11,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     }
     await createConvexHttpClient().mutation(makeFunctionReference<"mutation">("checkout:releaseSeatHold"), {
-      server_secret: checkoutServerSecret(),
       hold_id,
     });
     return NextResponse.json({ ok: true });

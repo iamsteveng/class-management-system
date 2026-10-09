@@ -1,11 +1,11 @@
 "use node";
 
-import { actionGeneric } from "convex/server";
+import { internalActionGeneric } from "convex/server";
 import { v } from "convex/values";
 
 import { sendLatePaymentRefundSlack, sendTermsAcceptanceSlack } from "../lib/slack";
 
-export const notifyTermsAccepted = actionGeneric({
+export const notifyTermsAccepted = internalActionGeneric({
   args: {
     class_name_zh: v.string(),
     session_date: v.string(),
@@ -34,7 +34,7 @@ export const notifyTermsAccepted = actionGeneric({
   },
 });
 
-export const notifyLatePaymentRefund = actionGeneric({
+export const notifyLatePaymentRefund = internalActionGeneric({
   args: {
     refunded: v.boolean(),
     customer_mobile: v.string(),

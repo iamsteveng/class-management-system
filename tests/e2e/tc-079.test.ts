@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { withServerSecret } from './helpers/serverSecret';
 
 // TC-079: New apply flow, free Class. The Customer picks a Session, books two adults,
 // accepts the terms on their behalf, and both appear as Participants of that Session.
@@ -11,7 +12,7 @@ async function convex(kind: 'mutation' | 'query', fnPath: string, args: Record<s
   const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = (await res.json()) as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`${fnPath} failed: ${json.errorMessage}`);

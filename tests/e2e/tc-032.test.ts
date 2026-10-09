@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { withServerSecret } from './helpers/serverSecret';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
 
@@ -6,7 +7,7 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   return await res.json() as { status: string; value?: unknown; errorMessage?: string };
 }
@@ -15,7 +16,7 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Query ${fnPath} failed: ${json.errorMessage}`);

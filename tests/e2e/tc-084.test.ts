@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { withServerSecret } from './helpers/serverSecret';
 
 // TC-084: Nothing from before the revamp breaks.
 // - A Participant from a Legacy Ticket and one from the new apply flow both mark
@@ -17,7 +18,7 @@ async function convex(kind: 'mutation' | 'query', fnPath: string, args: Record<s
   const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = (await res.json()) as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`${fnPath} failed: ${json.errorMessage}`);

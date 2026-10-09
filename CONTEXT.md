@@ -151,7 +151,10 @@ _Avoid_: Pass, Ticket, QR Pass
 The latest moment a Participant may move themselves to another Session of the same
 Class: 00:00 Hong Kong time on the day two days before the Session (Thursday 00:00 for
 a Saturday Session). Lifted when their Session is rain-cancelled. A Super Admin may move a
-Participant past it, and must give a reason.
+Participant past it, even after their Session has taken place and even if they were
+scanned at it (e.g. they left sick part-way), and must give a reason. Nobody is moved
+into a Session that has started, is completed or is cancelled, or beyond its Remaining
+Quota.
 
 ### Admins
 

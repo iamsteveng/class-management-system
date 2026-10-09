@@ -1,7 +1,8 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
-import { v } from "convex/values";
 
-export const getPurchaseForRefund = queryGeneric({
+import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
+
+export const getPurchaseForRefund = serverQuery({
   args: { purchase_id: v.id("purchases") },
   returns: v.union(
     v.object({
@@ -41,7 +42,7 @@ export const getPurchaseForRefund = queryGeneric({
   },
 });
 
-export const applyCancellation = mutationGeneric({
+export const applyCancellation = serverMutation({
   args: {
     purchase_id: v.id("purchases"),
     admin_username: v.string(),

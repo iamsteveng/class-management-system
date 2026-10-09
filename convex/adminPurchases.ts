@@ -1,7 +1,8 @@
-import { queryGeneric } from "convex/server";
-import { v } from "convex/values";
 
-export const listPurchases = queryGeneric({
+import { v } from "convex/values";
+import { serverQuery } from "./serverOnly";
+
+export const listPurchases = serverQuery({
   args: {},
   returns: v.array(
     v.object({
