@@ -315,14 +315,6 @@ export const acceptTermsByToken = mutationGeneric({
       });
     }
 
-    await ctx.scheduler.runAfter(
-      0,
-      makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
-      {
-        customer_mobile: purchase.customer_mobile,
-        participant_ids: participantIds,
-      }
-    );
 
     await ctx.scheduler.runAfter(
       0,

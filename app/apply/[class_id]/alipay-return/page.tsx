@@ -33,10 +33,8 @@ export default function AlipayReturnPage({
   const searchParams = useSearchParams();
 
   const intentId = searchParams.get("intent_id") ?? "";
-  // Set by the new apply flow: the booking's Seat Hold.
-  const holdId = searchParams.get("hold_id");
-  const mobile = searchParams.get("mobile") ?? "";
-  const quantity = searchParams.get("quantity") ?? "1";
+  // The booking's Seat Hold, set by the apply form.
+  const holdId = searchParams.get("hold_id") ?? "";
   const lang = (searchParams.get("lang") ?? "zh-TW") as Lang;
 
   const copy = t[lang] ?? t["zh-TW"];
@@ -44,14 +42,13 @@ export default function AlipayReturnPage({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!intentId) {
+    if (!intentId || !holdId) {
       setError(copy.errorGeneric);
       return;
     }
 
     (async () => {
       try {
-        // Step 1: Check payment status
         const statusRes = await fetch(
           `/api/payment/alipay-hk/status?intent_id=${encodeURIComponent(intentId)}`
         );
@@ -66,45 +63,19 @@ export default function AlipayReturnPage({
           return;
         }
 
-        if (holdId) {
-          const completeRes = await fetch("/api/checkout/complete", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hold_id: holdId, intent_id: intentId }),
-          });
-          const result = completeRes.ok ? ((await completeRes.json()) as { outcome: string }) : null;
-          if (result?.outcome === "seated") {
-            router.push(`/apply/${classId}/done?hold=${encodeURIComponent(holdId)}&lang=${lang}`);
-          } else if (result?.outcome === "refunded") {
-            setError(copy.errorRefunded);
-          } else {
-            setError(copy.errorGeneric);
-          }
-          return;
-        }
-
-        // Step 2: Confirm payment and create records
-        const confirmRes = await fetch("/api/payment/confirm", {
+        const completeRes = await fetch("/api/checkout/complete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            intent_id: intentId,
-            class_id: classId,
-            mobile,
-            quantity: Number(quantity),
-          }),
+          body: JSON.stringify({ hold_id: holdId, intent_id: intentId }),
         });
-
-        if (!confirmRes.ok) {
+        const result = completeRes.ok ? ((await completeRes.json()) as { outcome: string }) : null;
+        if (result?.outcome === "seated") {
+          router.push(`/apply/${classId}/done?hold=${encodeURIComponent(holdId)}&lang=${lang}`);
+        } else if (result?.outcome === "refunded") {
+          setError(copy.errorRefunded);
+        } else {
           setError(copy.errorGeneric);
-          return;
         }
-
-        const { tokens } = (await confirmRes.json()) as { tokens: string[] };
-
-        router.push(
-          `/apply/${classId}/passes?tokens=${tokens.join(",")}&mobile=${encodeURIComponent(mobile)}&lang=${lang}`
-        );
       } catch {
         setError(copy.errorGeneric);
       }

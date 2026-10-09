@@ -293,50 +293,48 @@ export async function applyParticipantSessionChange(
     created_at: changedAt,
   });
 
-  // Look up customer mobile from purchase and schedule WhatsApp notification
-  const purchase = await ctx.db.get(participant.purchase_id);
-  const customerMobile = purchase?.customer_mobile ?? participant.mobile;
-  if (customerMobile) {
-    await ctx.scheduler.runAfter(
-      0,
-      makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
-      {
-        customer_mobile: customerMobile,
-        participant_ids: [participant.participant_id],
-      }
-    );
-    await ctx.db.insert("audit_logs", {
-      action: "whatsapp_notification_sent",
-      entity_type: "participant",
-      entity_id: participant.participant_id,
-      metadata: {
-        customer_mobile: customerMobile,
-        notification_type: "session_changed",
-        session_id: newSession.session_id,
-      },
-      created_at: changedAt + 1,
-    });
-  }
-
   return { success: true };
 }
 
-export const getParticipantMobileById = internalQueryGeneric({
+/** What a Participant's rain-cancellation WhatsApp needs; internal only. */
+export const getRainNoticeDetails = internalQueryGeneric({
   args: {
     participant_id: v.string(),
   },
   returns: v.union(
     v.null(),
-    v.object({ mobile: v.union(v.string(), v.null()) })
+    v.object({
+      mobile: v.union(v.string(), v.null()),
+      class_name_zh: v.string(),
+      session_date: v.string(),
+      session_time: v.string(),
+      session_end_time: v.optional(v.string()),
+      session_location_zh: v.string(),
+    })
   ),
   handler: async (ctx, args) => {
-    const record = await ctx.db
+    const participant = await ctx.db
       .query("participants")
-      .withIndex("by_participant_id", (q) =>
-        q.eq("participant_id", args.participant_id)
-      )
+      .withIndex("by_participant_id", (q) => q.eq("participant_id", args.participant_id))
       .first();
-    if (!record) return null;
-    return { mobile: record.mobile ?? null };
+    if (!participant) return null;
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", participant.session_id))
+      .first();
+    const cls = session
+      ? await ctx.db
+          .query("classes")
+          .withIndex("by_class_id", (q) => q.eq("class_id", session.class_id))
+          .first()
+      : null;
+    return {
+      mobile: participant.mobile ?? null,
+      class_name_zh: cls?.name_zh ?? "",
+      session_date: session?.date ?? "",
+      session_time: session?.time ?? "",
+      session_end_time: session?.end_time,
+      session_location_zh: session?.location_zh ?? "",
+    };
   },
 });

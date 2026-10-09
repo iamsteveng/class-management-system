@@ -19,7 +19,10 @@ vi.mock('convex/values', () => {
   return { v };
 });
 
-import { createPurchase } from '../../convex/purchases';
+import { insertPurchase } from '../../convex/purchases';
+
+// Purchases are created by checkout (and test helpers) through insertPurchase.
+const createPurchase = { handler: insertPurchase };
 
 describe('TC-023 Same order_id with different class_id is NOT a duplicate', () => {
   let handler: (ctx: any, args: any) => Promise<any>;
