@@ -52,7 +52,7 @@ test.describe('TC-076: Cancel & Refund triggers Airwallex refund and updates pur
     }) as { class_id: string };
 
     // 2. Create airwallex purchase in Convex dev
-    await convexMutation('purchases:createPurchase', {
+    await convexMutation('testPurchase:createPurchase', {
       order_id: `tc076-airwallex-${testId}`,
       customer_mobile: '+85291234567',
       participant_count: 1,

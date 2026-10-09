@@ -1,5 +1,6 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+
 import { v } from "convex/values";
+import { insertPurchase, purchaseArgs } from "./purchases";
 import { serverMutation, serverQuery } from "./serverOnly";
 import { buildTermsUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
 
@@ -388,4 +389,11 @@ export const debugTermsQuery = serverQuery({
       sample_session: withQuota[0],
     };
   },
+});
+
+/** Test helper: creates a purchase exactly as checkout and the payment webhook do. */
+export const createPurchase = serverMutation({
+  args: purchaseArgs,
+  returns: v.id("purchases"),
+  handler: async (ctx, args) => insertPurchase(ctx, args),
 });

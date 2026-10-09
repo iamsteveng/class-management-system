@@ -63,7 +63,7 @@ export default async function AdminIngestionPage() {
     try {
       const client = createConvexHttpClient();
       await client.action(
-        makeFunctionReference<"action">("purchaseConfirmation:sendPurchaseConfirmation"),
+        makeFunctionReference<"action">("whatsappResend:resendPurchaseConfirmation"),
         { purchase_id: purchaseId }
       );
     } catch {

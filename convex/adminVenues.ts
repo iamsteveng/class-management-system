@@ -1,4 +1,4 @@
-import { mutationGeneric, queryGeneric, type GenericMutationCtx } from "convex/server";
+import { type GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
 import { serverMutation, serverQuery } from "./serverOnly";
 

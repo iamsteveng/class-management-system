@@ -1,4 +1,4 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { queryGeneric } from "convex/server";
 import { v } from "convex/values";
 import { serverMutation } from "./serverOnly";
 

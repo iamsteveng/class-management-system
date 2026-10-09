@@ -1,6 +1,6 @@
 "use node";
 
-import { actionGeneric, internalActionGeneric } from "convex/server";
+import { internalActionGeneric } from "convex/server";
 import { v } from "convex/values";
 
 // WhatsApp sending has been removed from this action (previously used Twilio).

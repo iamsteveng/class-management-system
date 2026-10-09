@@ -1,6 +1,7 @@
-import { queryGeneric } from "convex/server";
+import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
-import { serverQuery } from "./serverOnly";
+
+import { serverAction, serverQuery } from "./serverOnly";
 
 export const listFailedWhatsappSends = serverQuery({
   args: {},
@@ -26,5 +27,27 @@ export const listFailedWhatsappSends = serverQuery({
         order_id: p.order_id,
         created_at: p.created_at,
       }));
+  },
+});
+
+/** Admin resend of the Token WhatsApp for a purchase whose first send failed. */
+export const resendPurchaseConfirmation = serverAction({
+  args: { purchase_id: v.id("purchases") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ctx.runAction(makeFunctionReference<"action">("purchaseConfirmation:sendPurchaseConfirmation"), {
+      purchase_id: args.purchase_id,
+    });
+    return null;
+  },
+});
+
+/** The Token of a purchase, so an admin can open its terms page. */
+export const getPurchaseToken = serverQuery({
+  args: { purchase_id: v.id("purchases") },
+  returns: v.union(v.null(), v.object({ token: v.string() })),
+  handler: async (ctx, args) => {
+    const purchase = await ctx.db.get(args.purchase_id);
+    return purchase ? { token: purchase.token } : null;
   },
 });

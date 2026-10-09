@@ -1,7 +1,5 @@
 import {
   makeFunctionReference,
-  mutationGeneric,
-  queryGeneric,
   type GenericDatabaseReader,
 } from "convex/server";
 import { v } from "convex/values";

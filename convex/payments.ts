@@ -1,6 +1,6 @@
 "use node";
 
-import { actionGeneric, makeFunctionReference } from "convex/server";
+import { makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 import { serverAction } from "./serverOnly";
 

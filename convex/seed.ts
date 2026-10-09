@@ -1,4 +1,4 @@
-import { mutationGeneric, internalMutationGeneric } from "convex/server";
+import { internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 import bcrypt from "bcryptjs";
 

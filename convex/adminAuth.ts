@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { actionGeneric, queryGeneric, makeFunctionReference, internalQueryGeneric } from "convex/server";
+import { makeFunctionReference, internalQueryGeneric } from "convex/server";
 import { v } from "convex/values";
 import { serverAction } from "./serverOnly";
 

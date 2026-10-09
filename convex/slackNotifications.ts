@@ -1,6 +1,6 @@
 "use node";
 
-import { actionGeneric, internalActionGeneric } from "convex/server";
+import { internalActionGeneric } from "convex/server";
 import { v } from "convex/values";
 
 import { sendLatePaymentRefundSlack, sendTermsAcceptanceSlack } from "../lib/slack";

@@ -1,6 +1,6 @@
 "use node";
 
-import { actionGeneric, makeFunctionReference, internalActionGeneric } from "convex/server";
+import { makeFunctionReference, internalActionGeneric } from "convex/server";
 import { v } from "convex/values";
 
 import { sendRainCancellationWhatsApp } from "../lib/manychat";

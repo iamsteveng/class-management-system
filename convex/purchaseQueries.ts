@@ -1,8 +1,7 @@
-import { mutationGeneric, queryGeneric, internalMutationGeneric, internalQueryGeneric } from "convex/server";
+import { internalMutationGeneric, internalQueryGeneric } from "convex/server";
 import { v } from "convex/values";
-import { serverQuery } from "./serverOnly";
 
-export const getPurchaseForConfirmation = serverQuery({
+export const getPurchaseForConfirmation = internalQueryGeneric({
   args: {
     purchase_id: v.id("purchases"),
   },

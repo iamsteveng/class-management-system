@@ -95,9 +95,9 @@ test('TC-050: Valid E.164 mobile submitted in terms form is stored in E.164 form
   await page.screenshot({ path: 'tc050-success.png', fullPage: false });
 
   // Step 8: Query DB to verify participant.mobile is stored in E.164 format
-  const participantData = await convexQuery('participants:getParticipantMobileById', {
+  const participantData = await convexQuery('adminParticipants:getParticipantAdminDetails', {
     participant_id: participantId as string,
-  }) as { mobile: string | null } | null;
+  }) as { mobile?: string | null } | null;
 
   expect(participantData).not.toBeNull();
   expect(participantData?.mobile).toBe(testMobile);

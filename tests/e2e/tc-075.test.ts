@@ -28,7 +28,7 @@ test.describe('TC-075: Cancel & Refund button visibility by purchase source', ()
     }) as { class_id: string };
 
     // Create airwallex purchase
-    await convexMutation('purchases:createPurchase', {
+    await convexMutation('testPurchase:createPurchase', {
       order_id: `tc075-airwallex-${testId}`,
       customer_mobile: '+85291234567',
       participant_count: 1,
@@ -42,7 +42,7 @@ test.describe('TC-075: Cancel & Refund button visibility by purchase source', ()
     });
 
     // Create s3 purchase
-    await convexMutation('purchases:createPurchase', {
+    await convexMutation('testPurchase:createPurchase', {
       order_id: `tc075-s3-${testId}`,
       customer_mobile: '+85299999999',
       participant_count: 1,
