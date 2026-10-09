@@ -5,6 +5,9 @@ import { KIDS_CLASS_ID, REGULAR_CLASS_ID } from "@/lib/catalogueIds";
  * Session (names, ages, sizes, prices, addresses, times) comes from data, not from here.
  */
 
+/** LocoBike's standing in Hong Kong, shown in the hero, the about section and search previews. */
+export const OPERATOR_CLAIM = "全港最大共享單車及單車亭營運商";
+
 export const WHATSAPP_URL = "https://wa.me/85293380433";
 export const FACEBOOK_URL = "https://www.facebook.com/locobikehk";
 
