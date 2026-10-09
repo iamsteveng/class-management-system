@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock convex/server so queryGeneric/mutationGeneric return their definition objects.
 vi.mock('convex/server', () => ({
+  actionGeneric: (def: any) => def,
+  internalQueryGeneric: (def: any) => def,
+  internalMutationGeneric: (def: any) => def,
+  internalActionGeneric: (def: any) => def,
   queryGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   makeFunctionReference: (name: string) => name,
@@ -23,7 +27,12 @@ import {
 } from '../../convex/adminParticipants';
 import { setSessionHidden } from '../../convex/adminSessions';
 
-const handler = (fn: unknown) => (fn as { handler: (ctx: any, args: any) => Promise<any> }).handler;
+// Called the way our server calls them: with the server secret (ADR 0003).
+const handler = (fn: unknown) => (ctx: any, args: any) =>
+  (fn as { handler: (ctx: any, args: any) => Promise<any> }).handler(ctx, {
+    server_secret: process.env.CONVEX_SERVER_SECRET,
+    ...args,
+  });
 
 /** Minimal in-memory stand-in for ctx.db: index lookups and filters match on field equality. */
 function makeDb(tables: Record<string, any[]>) {

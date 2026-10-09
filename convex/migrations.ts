@@ -1,11 +1,11 @@
-import { mutationGeneric } from "convex/server";
+import { mutationGeneric, internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
 /**
  * Migration: copy name → name_zh for all classes, location → location_zh for all sessions.
  * Run once after deploying the bilingual schema changes.
  */
-export const migrateToNameZhLocationZh = mutationGeneric({
+export const migrateToNameZhLocationZh = internalMutationGeneric({
   args: {},
   returns: v.object({
     classes_migrated: v.number(),

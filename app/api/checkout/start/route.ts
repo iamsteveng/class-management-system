@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { makeFunctionReference } from "convex/server";
 
 import { createPaymentIntentForHold, getPaymentIntent } from "@/lib/airwallex";
-import { checkoutServerSecret } from "@/lib/checkoutServer";
 import { createConvexHttpClient } from "@/lib/convexHttp";
 
 type StartResult =
@@ -35,9 +34,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const client = createConvexHttpClient();
-    const secret = checkoutServerSecret();
     const result = (await client.mutation(makeFunctionReference<"mutation">("checkout:startCheckout"), {
-      server_secret: secret,
       request_id,
       class_id,
       session_id,
@@ -59,8 +56,7 @@ export async function POST(req: NextRequest) {
       : await createPaymentIntentForHold(result.hold_id, result.amount, result.currency);
     if (!result.intent_id) {
       await client.mutation(makeFunctionReference<"mutation">("checkout:attachPaymentIntent"), {
-        server_secret: secret,
-        hold_id: result.hold_id,
+          hold_id: result.hold_id,
         intent_id: intent.id,
       });
     }

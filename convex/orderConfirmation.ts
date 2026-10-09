@@ -1,6 +1,6 @@
 "use node";
 
-import { actionGeneric, makeFunctionReference } from "convex/server";
+import { actionGeneric, makeFunctionReference, internalActionGeneric } from "convex/server";
 import { v } from "convex/values";
 
 import { resolveAppBaseUrl } from "../lib/appBaseUrl";
@@ -8,7 +8,7 @@ import { sendOrderConfirmationWhatsApp } from "../lib/manychat";
 import { buildOrderSummary } from "../lib/orderMessage";
 
 /** WhatsApps the Customer their booking: the Session and each Participant's link. */
-export const sendOrderConfirmation = actionGeneric({
+export const sendOrderConfirmation = internalActionGeneric({
   args: { hold_id: v.string() },
   returns: v.object({ success: v.boolean(), skipped: v.optional(v.boolean()) }),
   handler: async (ctx, args) => {

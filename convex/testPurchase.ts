@@ -1,8 +1,9 @@
 import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 import { buildTermsUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
 
-export const createTestPurchase = mutationGeneric({
+export const createTestPurchase = serverMutation({
   args: {
     customer_mobile: v.string(),
     participant_count: v.optional(v.number()),
@@ -35,7 +36,7 @@ export const createTestPurchase = mutationGeneric({
   },
 });
 
-export const createTestParticipant = mutationGeneric({
+export const createTestParticipant = serverMutation({
   args: {
     session_id: v.string(),
     name: v.optional(v.string()),
@@ -79,7 +80,7 @@ export const createTestParticipant = mutationGeneric({
   },
 });
 
-export const generateCsvUploadUrl = mutationGeneric({
+export const generateCsvUploadUrl = serverMutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
@@ -87,7 +88,7 @@ export const generateCsvUploadUrl = mutationGeneric({
   },
 });
 
-export const insertCsvFileRecord = mutationGeneric({
+export const insertCsvFileRecord = serverMutation({
   args: {
     filename: v.string(),
     file_storage_id: v.string(),
@@ -103,7 +104,7 @@ export const insertCsvFileRecord = mutationGeneric({
   },
 });
 
-export const setSessionQuotaUsed = mutationGeneric({
+export const setSessionQuotaUsed = serverMutation({
   args: {
     session_id: v.string(),
     quota_used: v.number(),
@@ -120,7 +121,7 @@ export const setSessionQuotaUsed = mutationGeneric({
   },
 });
 
-export const getPurchaseByToken = queryGeneric({
+export const getPurchaseByToken = serverQuery({
   args: {
     token: v.string(),
   },
@@ -151,7 +152,7 @@ export const getPurchaseByToken = queryGeneric({
   },
 });
 
-export const getParticipantsFullByToken = queryGeneric({
+export const getParticipantsFullByToken = serverQuery({
   args: {
     token: v.string(),
   },
@@ -191,7 +192,7 @@ export const getParticipantsFullByToken = queryGeneric({
   },
 });
 
-export const getParticipantsByToken = queryGeneric({
+export const getParticipantsByToken = serverQuery({
   args: {
     token: v.string(),
   },
@@ -223,7 +224,7 @@ export const getParticipantsByToken = queryGeneric({
   },
 });
 
-export const listPurchasesByOrderIds = queryGeneric({
+export const listPurchasesByOrderIds = serverQuery({
   args: {
     order_ids: v.array(v.string()),
   },
@@ -253,7 +254,7 @@ export const listPurchasesByOrderIds = queryGeneric({
   },
 });
 
-export const previewPurchaseConfirmationMessage = queryGeneric({
+export const previewPurchaseConfirmationMessage = serverQuery({
   args: {
     token: v.string(),
     app_base_url: v.optional(v.string()),
@@ -283,7 +284,7 @@ export const previewPurchaseConfirmationMessage = queryGeneric({
   },
 });
 
-export const getLatestAuditLogForEntity = queryGeneric({
+export const getLatestAuditLogForEntity = serverQuery({
   args: {
     entity_type: v.string(),
     entity_id: v.string(),
@@ -315,7 +316,7 @@ export const getLatestAuditLogForEntity = queryGeneric({
   },
 });
 
-export const getAuditLogsForEntity = queryGeneric({
+export const getAuditLogsForEntity = serverQuery({
   args: {
     entity_type: v.string(),
     entity_id: v.string(),
@@ -344,7 +345,7 @@ export const getAuditLogsForEntity = queryGeneric({
   },
 });
 
-export const deleteAllFaqs = mutationGeneric({
+export const deleteAllFaqs = serverMutation({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
@@ -356,7 +357,7 @@ export const deleteAllFaqs = mutationGeneric({
   },
 });
 
-export const debugTermsQuery = queryGeneric({
+export const debugTermsQuery = serverQuery({
   args: { token: v.string() },
   returns: v.any(),
   handler: async (ctx, args) => {

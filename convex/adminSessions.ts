@@ -5,6 +5,7 @@ import {
   type GenericDatabaseReader,
 } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 
 import type { DataModel } from "./_generated/dataModel";
 
@@ -35,7 +36,7 @@ async function resolveSessionLocation(
   };
 }
 
-export const getSessionManagementPageData = queryGeneric({
+export const getSessionManagementPageData = serverQuery({
   args: {
     class_id: v.string(),
   },
@@ -124,7 +125,7 @@ export const getSessionManagementPageData = queryGeneric({
   },
 });
 
-export const createSession = mutationGeneric({
+export const createSession = serverMutation({
   args: {
     class_id: v.string(),
     location_zh: v.string(),
@@ -187,7 +188,7 @@ export const createSession = mutationGeneric({
   },
 });
 
-export const updateSession = mutationGeneric({
+export const updateSession = serverMutation({
   args: {
     session_id: v.string(),
     location_zh: v.string(),
@@ -272,7 +273,7 @@ export const updateSession = mutationGeneric({
  * Hide or show a scheduled Session. Hiding only controls whether Customers and
  * Participants can see and pick it; Participants already in it are untouched.
  */
-export const setSessionHidden = mutationGeneric({
+export const setSessionHidden = serverMutation({
   args: {
     session_id: v.string(),
     hidden: v.boolean(),
@@ -327,7 +328,7 @@ export const setSessionHidden = mutationGeneric({
   },
 });
 
-export const cancelSession = mutationGeneric({
+export const cancelSession = serverMutation({
   args: {
     session_id: v.string(),
     admin_username: v.string(),
@@ -390,7 +391,7 @@ export const cancelSession = mutationGeneric({
   },
 });
 
-export const markSessionRainCancelled = mutationGeneric({
+export const markSessionRainCancelled = serverMutation({
   args: {
     session_id: v.string(),
     admin_username: v.string(),
@@ -462,7 +463,7 @@ export const markSessionRainCancelled = mutationGeneric({
   },
 });
 
-export const getSessionParticipantsPageData = queryGeneric({
+export const getSessionParticipantsPageData = serverQuery({
   args: {
     session_id: v.string(),
   },
@@ -595,7 +596,7 @@ export const getSessionParticipantsPageData = queryGeneric({
   },
 });
 
-export const getSessionAttendance = queryGeneric({
+export const getSessionAttendance = serverQuery({
   args: {
     session_id: v.string(),
   },
@@ -635,7 +636,7 @@ export const getSessionAttendance = queryGeneric({
   },
 });
 
-export const markAttendanceFromScan = mutationGeneric({
+export const markAttendanceFromScan = serverMutation({
   args: {
     session_id: v.string(),
     participant_id: v.string(),

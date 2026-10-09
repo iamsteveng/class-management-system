@@ -1,12 +1,13 @@
 import bcrypt from "bcryptjs";
-import { actionGeneric, queryGeneric, makeFunctionReference } from "convex/server";
+import { actionGeneric, queryGeneric, makeFunctionReference, internalQueryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { serverAction } from "./serverOnly";
 
 const getAdminByUsernameRef = makeFunctionReference<"query">(
   "adminAuth:getAdminByUsername"
 );
 
-export const getAdminByUsername = queryGeneric({
+export const getAdminByUsername = internalQueryGeneric({
   args: {
     username: v.string(),
   },
@@ -36,7 +37,7 @@ export const getAdminByUsername = queryGeneric({
   },
 });
 
-export const validateAdminCredentials = actionGeneric({
+export const validateAdminCredentials = serverAction({
   args: {
     username: v.string(),
     password: v.string(),

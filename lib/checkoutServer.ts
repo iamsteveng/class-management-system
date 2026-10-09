@@ -8,12 +8,6 @@ import { createConvexHttpClient } from "./convexHttp";
  * about a payment, always asks Airwallex.
  */
 
-export function checkoutServerSecret(): string {
-  const secret = process.env.CHECKOUT_SERVER_SECRET;
-  if (!secret) throw new Error("CHECKOUT_SERVER_SECRET is not configured.");
-  return secret;
-}
-
 export type CompleteOutcome =
   | { outcome: "seated"; order_id: string; participant_ids: string[] }
   | { outcome: "refunded"; status: string }
@@ -34,9 +28,7 @@ export async function completePaidHold(holdId: string, intentId: string): Promis
   }
 
   const client = createConvexHttpClient();
-  const secret = checkoutServerSecret();
   const result = (await client.mutation(makeFunctionReference<"mutation">("checkout:completeCheckout"), {
-    server_secret: secret,
     hold_id: holdId,
     intent_id: intent.id,
     amount: intent.amount,
@@ -57,7 +49,6 @@ export async function completePaidHold(holdId: string, intentId: string): Promis
     console.error("[checkout] late-payment refund failed:", err);
   }
   await client.mutation(makeFunctionReference<"mutation">("checkout:recordCheckoutRefund"), {
-    server_secret: secret,
     hold_id: holdId,
     refund_id: refundId,
     error,

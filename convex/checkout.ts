@@ -1,7 +1,6 @@
 import {
   internalQueryGeneric,
   makeFunctionReference,
-  mutationGeneric,
   queryGeneric,
   type GenericMutationCtx,
 } from "convex/server";
@@ -15,6 +14,7 @@ import {
 import { normalizeToE164 } from "../lib/phone";
 import type { DataModel, Doc } from "./_generated/dataModel";
 import { remainingQuota } from "./remainingQuota";
+import { serverMutation } from "./serverOnly";
 import { hkDate, hkTime } from "./timetable";
 
 /**
@@ -23,8 +23,8 @@ import { hkDate, hkTime } from "./timetable";
  * pay; when payment succeeds the Order's Tickets and Participants are created together.
  *
  * These functions are called only by the Next.js payment routes, which hold the Airwallex
- * credentials and verify payments. They require the shared server secret so nobody can
- * call them directly to take seats without paying.
+ * credentials and verify payments. They are server-only (ADR 0003) so nobody can call them
+ * directly to take seats without paying.
  */
 
 export const SEAT_HOLD_MINUTES = 15;
@@ -45,14 +45,6 @@ const participantInputValidator = v.object({
   health_notes: v.optional(v.string()),
   photo_consent: v.boolean(),
 });
-
-/** Refuses the call unless it carries the server secret shared with the Next.js app. */
-export function assertServerSecret(secret: string) {
-  const expected = process.env.CHECKOUT_SERVER_SECRET;
-  if (!expected || secret !== expected) {
-    throw new Error("Not allowed.");
-  }
-}
 
 type MutationCtx = GenericMutationCtx<DataModel>;
 
@@ -226,9 +218,8 @@ const startCheckoutResult = v.union(
  * for SEAT_HOLD_MINUTES. A free Class needs no payment, so its Order is created at once.
  * Repeating the same request_id returns the same hold.
  */
-export const startCheckout = mutationGeneric({
+export const startCheckout = serverMutation({
   args: {
-    server_secret: v.string(),
     request_id: v.string(),
     class_id: v.string(),
     session_id: v.string(),
@@ -238,7 +229,6 @@ export const startCheckout = mutationGeneric({
   },
   returns: startCheckoutResult,
   handler: async (ctx, args) => {
-    assertServerSecret(args.server_secret);
     const now = Date.now();
     const fail = (code: string, message: string, index?: number) =>
       ({ kind: "error" as const, code, message, ...(index === undefined ? {} : { index }) });
@@ -364,11 +354,10 @@ export const startCheckout = mutationGeneric({
 });
 
 /** Records which Airwallex payment intent is paying for a Seat Hold. */
-export const attachPaymentIntent = mutationGeneric({
-  args: { server_secret: v.string(), hold_id: v.string(), intent_id: v.string() },
+export const attachPaymentIntent = serverMutation({
+  args: { hold_id: v.string(), intent_id: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    assertServerSecret(args.server_secret);
     const hold = await ctx.db
       .query("seat_holds")
       .withIndex("by_hold_id", (q) => q.eq("hold_id", args.hold_id))
@@ -380,11 +369,10 @@ export const attachPaymentIntent = mutationGeneric({
 });
 
 /** Gives up a Seat Hold the Customer will not pay for, so its seats are free again at once. */
-export const releaseSeatHold = mutationGeneric({
-  args: { server_secret: v.string(), hold_id: v.string() },
+export const releaseSeatHold = serverMutation({
+  args: { hold_id: v.string() },
   returns: v.null(),
   handler: async (ctx, args) => {
-    assertServerSecret(args.server_secret);
     const hold = await ctx.db
       .query("seat_holds")
       .withIndex("by_hold_id", (q) => q.eq("hold_id", args.hold_id))
@@ -424,9 +412,8 @@ const completeResult = v.union(
  * A payment that arrives after its hold lapsed still gets its Tickets if the Session has
  * room for all of them; otherwise the whole Order is refunded, never split.
  */
-export const completeCheckout = mutationGeneric({
+export const completeCheckout = serverMutation({
   args: {
-    server_secret: v.string(),
     hold_id: v.string(),
     intent_id: v.string(),
     amount: v.number(),
@@ -434,7 +421,6 @@ export const completeCheckout = mutationGeneric({
   },
   returns: completeResult,
   handler: async (ctx, args) => {
-    assertServerSecret(args.server_secret);
     const now = Date.now();
     const hold = await ctx.db
       .query("seat_holds")
@@ -489,16 +475,14 @@ export const completeCheckout = mutationGeneric({
 });
 
 /** Records the outcome of refunding a late payment and alerts staff on Slack. */
-export const recordCheckoutRefund = mutationGeneric({
+export const recordCheckoutRefund = serverMutation({
   args: {
-    server_secret: v.string(),
     hold_id: v.string(),
     refund_id: v.optional(v.string()),
     error: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    assertServerSecret(args.server_secret);
     const hold = await ctx.db
       .query("seat_holds")
       .withIndex("by_hold_id", (q) => q.eq("hold_id", args.hold_id))

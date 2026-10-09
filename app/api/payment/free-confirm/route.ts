@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchAction } from "convex/nextjs";
+import { createConvexHttpClient } from "@/lib/convexHttp";
 import { makeFunctionReference } from "convex/server";
 
 const E164_REGEX = /^\+[1-9]\d{7,14}$/;
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     const qty = Math.max(1, Math.min(15, Number(quantity) || 1));
 
-    const result = (await fetchAction(
+    const result = (await createConvexHttpClient().action(
       makeFunctionReference<"action">("payments:createFreePurchase"),
       {
         class_id,

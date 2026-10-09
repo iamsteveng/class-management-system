@@ -1,9 +1,4 @@
-import {
-  makeFunctionReference,
-  mutationGeneric,
-  queryGeneric,
-  type GenericMutationCtx,
-} from "convex/server";
+import { makeFunctionReference, mutationGeneric, queryGeneric, type GenericMutationCtx, internalQueryGeneric } from "convex/server";
 
 import type { DataModel, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
@@ -307,7 +302,7 @@ export async function applyParticipantSessionChange(
   return { success: true };
 }
 
-export const getParticipantMobileById = queryGeneric({
+export const getParticipantMobileById = internalQueryGeneric({
   args: {
     participant_id: v.string(),
   },

@@ -1,5 +1,6 @@
-import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
+
+import { createConvexHttpClient } from "./convexHttp";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -32,19 +33,8 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const convexUrl =
-          process.env.NEXT_PUBLIC_CONVEX_URL ??
-          process.env.CONVEX_URL ??
-          process.env.NEXT_CONVEX_URL;
-        if (!convexUrl) {
-          return null;
-        }
-
         try {
-          const client = new ConvexHttpClient(
-            convexUrl.trim().replace(/\/+$/, ""),
-            { logger: false }
-          );
+          const client = createConvexHttpClient();
           const result = await client.action(
             makeFunctionReference<"action">("adminAuth:validateAdminCredentials"),
             {

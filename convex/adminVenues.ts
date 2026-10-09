@@ -1,5 +1,6 @@
 import { mutationGeneric, queryGeneric, type GenericMutationCtx } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 
 import type { DataModel } from "./_generated/dataModel";
 import { hkDate } from "./timetable";
@@ -76,7 +77,7 @@ function cleanVenueInput(input: VenueInput): VenueInput {
   return cleaned;
 }
 
-export const listVenuesForAdmin = queryGeneric({
+export const listVenuesForAdmin = serverQuery({
   args: {},
   returns: v.array(v.object({ venue: venueValidator, upcoming_sessions: v.number() })),
   handler: async (ctx) => {
@@ -97,7 +98,7 @@ export const listVenuesForAdmin = queryGeneric({
   },
 });
 
-export const getVenue = queryGeneric({
+export const getVenue = serverQuery({
   args: { venue_id: v.string() },
   returns: v.union(v.null(), venueValidator),
   handler: async (ctx, args) => {
@@ -109,7 +110,7 @@ export const getVenue = queryGeneric({
   },
 });
 
-export const createVenue = mutationGeneric({
+export const createVenue = serverMutation({
   args: { ...venueInput, admin_username: v.string() },
   returns: v.object({ venue_id: v.string() }),
   handler: async (ctx, args) => {
@@ -134,7 +135,7 @@ export const createVenue = mutationGeneric({
  * Updates a Venue. Its upcoming scheduled Sessions take the new name and map position,
  * so what Customers and Participants see stays in step; past Sessions keep theirs.
  */
-export const updateVenue = mutationGeneric({
+export const updateVenue = serverMutation({
   args: { ...venueInput, venue_id: v.string(), admin_username: v.string() },
   returns: v.object({ venue_id: v.string(), sessions_updated: v.number() }),
   handler: async (ctx, args) => {

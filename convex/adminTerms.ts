@@ -1,7 +1,8 @@
 import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 
-export const getCurrentTermsVersion = queryGeneric({
+export const getCurrentTermsVersion = serverQuery({
   args: {},
   returns: v.union(
     v.null(),
@@ -29,7 +30,7 @@ export const getCurrentTermsVersion = queryGeneric({
   },
 });
 
-export const createTermsVersion = mutationGeneric({
+export const createTermsVersion = serverMutation({
   args: {
     version: v.string(),
     content: v.string(),

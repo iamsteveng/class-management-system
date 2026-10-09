@@ -1,5 +1,6 @@
 import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation } from "./serverOnly";
 
 export const listFaqs = queryGeneric({
   args: {},
@@ -26,7 +27,7 @@ export const listFaqs = queryGeneric({
   },
 });
 
-export const createFaq = mutationGeneric({
+export const createFaq = serverMutation({
   args: {
     question: v.string(),
     answer: v.string(),
@@ -46,7 +47,7 @@ export const createFaq = mutationGeneric({
   },
 });
 
-export const updateFaq = mutationGeneric({
+export const updateFaq = serverMutation({
   args: {
     id: v.id("faqs"),
     question: v.string(),

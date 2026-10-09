@@ -1,7 +1,8 @@
 import { queryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { serverQuery } from "./serverOnly";
 
-export const listFailedWhatsappSends = queryGeneric({
+export const listFailedWhatsappSends = serverQuery({
   args: {},
   returns: v.array(
     v.object({

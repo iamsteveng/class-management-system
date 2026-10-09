@@ -2,8 +2,9 @@
 
 import { actionGeneric, makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
+import { serverAction } from "./serverOnly";
 
-export const createPurchaseFromAirwallex = actionGeneric({
+export const createPurchaseFromAirwallex = serverAction({
   args: {
     intent_id: v.string(),
     class_id: v.string(),
@@ -61,7 +62,7 @@ export const createPurchaseFromAirwallex = actionGeneric({
   },
 });
 
-export const createFreePurchase = actionGeneric({
+export const createFreePurchase = serverAction({
   args: {
     class_id: v.string(),
     customer_mobile: v.string(),

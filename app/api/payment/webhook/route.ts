@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchAction } from "convex/nextjs";
+import { createConvexHttpClient } from "@/lib/convexHttp";
 import { makeFunctionReference } from "convex/server";
 
 import { completePaidHold } from "@/lib/checkoutServer";
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         } else if (class_id && mobile) {
           const quantity = metadata.quantity ? Math.max(1, Math.min(15, parseInt(metadata.quantity, 10))) : 1;
           const unitAmount = quantity > 1 ? Math.round((intent.amount as number) / quantity) : ((intent.amount as number) ?? 0);
-          await fetchAction(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
+          await createConvexHttpClient().action(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
             intent_id: intent.id as string,
             class_id,
             customer_mobile: mobile,

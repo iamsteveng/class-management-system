@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('convex/server', () => ({
+  actionGeneric: (def: any) => def,
+  internalActionGeneric: (def: any) => def,
   queryGeneric: (def: any) => def,
   internalQueryGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
@@ -103,7 +105,7 @@ const complete = (ctx: any, hold: any, overrides: Record<string, unknown> = {}) 
   });
 
 beforeEach(() => {
-  process.env.CHECKOUT_SERVER_SECRET = SECRET;
+  process.env.CONVEX_SERVER_SECRET = SECRET;
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
 });
@@ -113,7 +115,7 @@ describe('startCheckout', () => {
   it('refuses calls without the server secret', async () => {
     const { ctx } = world();
     await expect(start(ctx, { server_secret: 'nope' })).rejects.toThrow('Not allowed');
-    delete process.env.CHECKOUT_SERVER_SECRET;
+    delete process.env.CONVEX_SERVER_SECRET;
     await expect(start(ctx, { server_secret: '' })).rejects.toThrow('Not allowed');
   });
 

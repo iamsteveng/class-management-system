@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock convex/server so queryGeneric returns its definition object.
 vi.mock('convex/server', () => ({
+  actionGeneric: (def: any) => def,
+  internalQueryGeneric: (def: any) => def,
+  internalMutationGeneric: (def: any) => def,
+  internalActionGeneric: (def: any) => def,
   queryGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   makeFunctionReference: (name: string) => name,

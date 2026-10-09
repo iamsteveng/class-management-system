@@ -1,10 +1,10 @@
-import { mutationGeneric } from "convex/server";
+import { mutationGeneric, internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
 /**
  * Patch the manychat_subscriber_id on a purchase record for auditing.
  */
-export const updateManychatSubscriberId = mutationGeneric({
+export const updateManychatSubscriberId = internalMutationGeneric({
   args: {
     purchase_id: v.id("purchases"),
     manychat_subscriber_id: v.string(),
@@ -25,7 +25,7 @@ export const updateManychatSubscriberId = mutationGeneric({
  * Duplicate detection: if the same order_id + class_id already exists, returns
  * the existing purchase._id (idempotent — safe for reprocessing).
  */
-export const createPurchase = mutationGeneric({
+export const createPurchase = internalMutationGeneric({
   args: {
     order_id: v.string(),
     customer_mobile: v.string(),

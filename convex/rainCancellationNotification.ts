@@ -1,13 +1,13 @@
 "use node";
 
-import { actionGeneric, makeFunctionReference } from "convex/server";
+import { actionGeneric, makeFunctionReference, internalActionGeneric } from "convex/server";
 import { v } from "convex/values";
 
 import { sendRainCancellationWhatsApp } from "../lib/manychat";
 import { buildParticipantPassUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
 import { normalizeToE164 } from "../lib/phone";
 
-export const sendRainCancellationNotification = actionGeneric({
+export const sendRainCancellationNotification = internalActionGeneric({
   args: {
     participant_id: v.string(),
   },

@@ -2,12 +2,13 @@
 
 import { actionGeneric, makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
+import { serverAction } from "./serverOnly";
 
 import { sendTermsAcceptanceWhatsApp } from "../lib/manychat";
 import { buildTermsUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
 import { normalizeToE164 } from "../lib/phone";
 
-export const sendPurchaseConfirmation = actionGeneric({
+export const sendPurchaseConfirmation = serverAction({
   args: {
     purchase_id: v.id("purchases"),
   },

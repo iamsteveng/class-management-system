@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchAction, fetchQuery } from "convex/nextjs";
+import { fetchQuery } from "convex/nextjs";
+import { createConvexHttpClient } from "@/lib/convexHttp";
 import { api } from "@/convex/_generated/api";
 import { makeFunctionReference } from "convex/server";
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
         ? cls.airwallex_group_price
         : (cls?.airwallex_price ?? 0);
 
-    const result = await fetchAction(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
+    const result = await createConvexHttpClient().action(makeFunctionReference<"action">("payments:createPurchaseFromAirwallex"), {
       intent_id,
       class_id,
       customer_mobile: mobile,

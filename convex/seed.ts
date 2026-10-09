@@ -1,8 +1,8 @@
-import { mutationGeneric } from "convex/server";
+import { mutationGeneric, internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 import bcrypt from "bcryptjs";
 
-export const seedInitialData = mutationGeneric({
+export const seedInitialData = internalMutationGeneric({
   args: {},
   returns: v.object({
     classes_created: v.number(),

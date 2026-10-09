@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('convex/server', () => ({
+  actionGeneric: (def: any) => def,
+  internalQueryGeneric: (def: any) => def,
+  internalActionGeneric: (def: any) => def,
   queryGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   internalMutationGeneric: (def: any) => def,

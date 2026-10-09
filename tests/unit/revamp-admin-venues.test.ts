@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('convex/server', () => ({
+  actionGeneric: (def: any) => def,
+  internalQueryGeneric: (def: any) => def,
+  internalActionGeneric: (def: any) => def,
   queryGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   internalMutationGeneric: (def: any) => def,
@@ -45,6 +48,11 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe('Venue admin', () => {
+  it('refuses calls that do not come from our server (ADR 0003)', async () => {
+    const raw = (createVenue as any).handler;
+    await expect(raw({ db: world() }, { ...venueArgs, admin_username: 'admin', server_secret: 'guess' })).rejects.toThrow('Not allowed');
+  });
+
   it('only lets a Super Admin add a Venue, and requires its position', async () => {
     const db = world();
     await expect(handler(createVenue)({ db }, { ...venueArgs, admin_username: 'staff' })).rejects.toThrow(/super admins/);

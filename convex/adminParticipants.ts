@@ -1,10 +1,11 @@
 import { mutationGeneric, queryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 
 import { applyParticipantSessionChange } from "./participants";
 import { remainingQuotaBySession } from "./remainingQuota";
 
-export const getAvailableSessionsForClassChange = queryGeneric({
+export const getAvailableSessionsForClassChange = serverQuery({
   args: {
     class_id: v.string(),
     current_session_id: v.string(),
@@ -49,7 +50,7 @@ export const getAvailableSessionsForClassChange = queryGeneric({
 });
 
 /** Super Admin move of a Participant to another Session; unlike self-service, Hidden Sessions are allowed. */
-export const changeParticipantSession = mutationGeneric({
+export const changeParticipantSession = serverMutation({
   args: {
     participant_id: v.string(),
     session_id: v.string(),
@@ -77,7 +78,7 @@ export const changeParticipantSession = mutationGeneric({
   },
 });
 
-export const getParticipantAdminDetails = queryGeneric({
+export const getParticipantAdminDetails = serverQuery({
   args: {
     participant_id: v.string(),
   },

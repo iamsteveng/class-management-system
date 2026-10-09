@@ -68,5 +68,9 @@ export function makeDb(tables: Record<string, any[]>) {
   };
 }
 
-export const handler = (fn: unknown) =>
-  (fn as { handler: (ctx: any, args: any) => Promise<any> }).handler;
+/** A Convex function's handler, called the way our server calls it (with the server secret). */
+export const handler = (fn: unknown) => (ctx: any, args: any) =>
+  (fn as { handler: (ctx: any, args: any) => Promise<any> }).handler(ctx, {
+    server_secret: process.env.CONVEX_SERVER_SECRET,
+    ...args,
+  });

@@ -1,7 +1,8 @@
-import { mutationGeneric, queryGeneric } from "convex/server";
+import { mutationGeneric, queryGeneric, internalMutationGeneric, internalQueryGeneric } from "convex/server";
 import { v } from "convex/values";
+import { serverQuery } from "./serverOnly";
 
-export const getPurchaseForConfirmation = queryGeneric({
+export const getPurchaseForConfirmation = serverQuery({
   args: {
     purchase_id: v.id("purchases"),
   },
@@ -38,7 +39,7 @@ export const getPurchaseForConfirmation = queryGeneric({
 // Returns true only if this caller transitioned status from pending_terms →
 // confirmation_sent. A concurrent duplicate call loses the race inside the
 // same Convex transaction and returns false, so only one caller ever sends.
-export const claimConfirmationSend = mutationGeneric({
+export const claimConfirmationSend = internalMutationGeneric({
   args: { purchase_id: v.id("purchases") },
   returns: v.boolean(),
   handler: async (ctx, args) => {
@@ -55,7 +56,7 @@ export const claimConfirmationSend = mutationGeneric({
 // last 60 minutes. Used to rate-limit abuse of the zero-cost free registration
 // endpoint. Reads via the by_mobile index, then filters in JS on
 // source/class_id/created_at.
-export const countRecentFreePurchasesForMobile = queryGeneric({
+export const countRecentFreePurchasesForMobile = internalQueryGeneric({
   args: {
     customer_mobile: v.string(),
     class_id: v.string(),
@@ -77,7 +78,7 @@ export const countRecentFreePurchasesForMobile = queryGeneric({
   },
 });
 
-export const updatePurchaseStatus = mutationGeneric({
+export const updatePurchaseStatus = internalMutationGeneric({
   args: {
     purchase_id: v.id("purchases"),
     status: v.union(
