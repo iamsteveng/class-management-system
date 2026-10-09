@@ -1,30 +1,26 @@
-// ManyChat WhatsApp integration (US-025 simplified)
+// ManyChat WhatsApp integration.
 //
-// sendTermsAcceptanceWhatsApp flow:
-//   1. If subscriberId provided (from DB cache) — use it directly
-//   2. If not found — call createSubscriber to get a new ID
-//      - On 400 "already exists" without stored ID: log error and return false
-//   3. setCustomFields (field_id 14438749 = termsUrl)
-//   4. sendFlow with TERMS_FLOW_NS
-//
-// Returns { success, subscriberId } so the caller can persist the ID to the
-// manychat_subscribers lookup table and purchases.manychat_subscriber_id.
+// Every message is a ManyChat flow whose only step sends an approved WhatsApp template.
+// The app fills the template's variables by setting single-line custom fields on the
+// subscriber, then starts the flow:
+//   1. Use the stored subscriber ID, or create the subscriber.
+//   2. setCustomFields with the message's values.
+//   3. sendFlow.
+// Each message is configured by its flow namespace and one env var per field ID (cuf_…);
+// until all are set, the send is skipped and logged.
 
 const MANYCHAT_API_BASE = "https://api.manychat.com";
-const TERMS_URL_FIELD = "cuf_14438749";
-// Flow NS for terms acceptance; can be overridden via MANYCHAT_TERMS_FLOW_NS env var
-const TERMS_FLOW_NS =
-  process.env.MANYCHAT_TERMS_FLOW_NS ?? "content20260331095255_664930";
 
-type SendTermsWhatsAppParams = {
-  to: string; // E.164 phone number, e.g. +85254304789
-  termsUrl: string;
-  subscriberId?: string | null; // pre-resolved from DB; if set, skips createSubscriber
-};
-
-export type SendTermsResult = {
+export type SendWhatsAppResult = {
   success: boolean;
   subscriberId: string | null;
+  skipped?: boolean;
+};
+
+type MessageConfig<F extends string> = {
+  label: string;
+  flowNsEnv: string;
+  fieldEnvs: Record<F, string>;
 };
 
 /** Remove leading + from a phone string (if present). */
@@ -32,327 +28,23 @@ function stripPlus(phone: string): string {
   return phone.startsWith("+") ? phone.slice(1) : phone;
 }
 
-export async function sendTermsAcceptanceWhatsApp({
-  to,
-  termsUrl,
-  subscriberId: existingSubscriberId,
-}: SendTermsWhatsAppParams): Promise<SendTermsResult> {
+async function sendTemplateFlow<F extends string>(
+  config: MessageConfig<F>,
+  params: { to: string; fields: Record<F, string>; subscriberId?: string | null }
+): Promise<SendWhatsAppResult> {
   const apiKey = process.env.MANYCHAT_API_KEY;
-  if (!apiKey) {
-    console.error(
-      "[manychat] MANYCHAT_API_KEY is not set — cannot send WhatsApp message"
-    );
-    return { success: false, subscriberId: null };
-  }
-
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
-
-  // ── Step 1: Resolve subscriber ID ────────────────────────────────────────
-
-  let subscriberId: string | null = existingSubscriberId ?? null;
-
-  if (!subscriberId) {
-    console.log(
-      `[manychat] No stored subscriber ID for ${to} — calling createSubscriber`
-    );
-    try {
-      const createRes = await fetch(
-        `${MANYCHAT_API_BASE}/fb/subscriber/createSubscriber`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            whatsapp_phone: to,
-            phone: stripPlus(to),
-            has_opt_in_whatsapp: true,
-            has_opt_in_sms: false,
-            has_opt_in_email: false,
-            consent_phrase: "User agreed to receive WhatsApp messages",
-          }),
-        }
-      );
-      const createData = await createRes.json();
-      console.log(
-        `[manychat] createSubscriber HTTP ${createRes.status} for ${to}: ${JSON.stringify(createData)}`
-      );
-
-      if (createRes.ok && createData?.data?.id) {
-        subscriberId = String(createData.data.id);
-        console.log(
-          `[manychat] Created new subscriber_id=${subscriberId} for ${to}`
-        );
-      } else if (
-        createRes.status === 400 &&
-        typeof createData?.message === "string" &&
-        createData.message.toLowerCase().includes("already exists")
-      ) {
-        // Subscriber already exists in ManyChat but no stored ID — cannot resolve
-        console.error(
-          `[manychat] createSubscriber 400 "already exists" for ${to} and no stored subscriber ID — cannot send WhatsApp`
-        );
-        return { success: false, subscriberId: null };
-      } else {
-        console.error(
-          `[manychat] createSubscriber failed for ${to} — status=${createRes.status}`
-        );
-        return { success: false, subscriberId: null };
-      }
-    } catch (err) {
-      console.error(
-        `[manychat] Error during createSubscriber for ${to}:`,
-        err
-      );
-      return { success: false, subscriberId: null };
-    }
-  } else {
-    console.log(
-      `[manychat] Using stored subscriber_id=${subscriberId} for ${to}`
-    );
-  }
-
-  // ── Step 2: Set custom field (terms URL) via setCustomFields ──────────────
-  try {
-    const setFieldRes = await fetch(
-      `${MANYCHAT_API_BASE}/fb/subscriber/setCustomFields`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          subscriber_id: Number(subscriberId),
-          fields: [
-            {
-              field_id: Number(TERMS_URL_FIELD.replace("cuf_", "")),
-              field_value: termsUrl,
-            },
-          ],
-        }),
-      }
-    );
-    const setFieldBody = await setFieldRes.text();
-    console.log(
-      `[manychat] setCustomFields response: status=${setFieldRes.status} body=${setFieldBody}`
-    );
-    if (!setFieldRes.ok) {
-      console.error(
-        `[manychat] setCustomFields HTTP ${setFieldRes.status} for subscriber ${subscriberId}: ${setFieldBody}`
-      );
-      return { success: false, subscriberId: null };
-    }
-  } catch (err) {
-    console.error(
-      `[manychat] Error setting custom field for subscriber ${subscriberId}:`,
-      err
-    );
-    return { success: false, subscriberId: null };
-  }
-
-  // ── Step 3: Send via sendFlow ─────────────────────────────────────────────
-  try {
-    const flowNs = TERMS_FLOW_NS;
-    const sendRes = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlow`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        subscriber_id: subscriberId,
-        flow_ns: flowNs,
-      }),
-    });
-
-    const responseBody = await sendRes.text();
-    console.log(
-      `[manychat] sendFlow response: status=${sendRes.status} body=${responseBody}`
-    );
-    if (!sendRes.ok) {
-      console.error(
-        `[manychat] sendFlow HTTP ${sendRes.status} for subscriber ${subscriberId}: ${responseBody}`
-      );
-      return { success: false, subscriberId: null };
-    }
-
-    return { success: true, subscriberId };
-  } catch (err) {
-    console.error(
-      `[manychat] Error sending flow to subscriber ${subscriberId}:`,
-      err
-    );
-    return { success: false, subscriberId: null };
-  }
-}
-
-// ── Rain Cancellation WhatsApp ────────────────────────────────────────────────
-//
-// sendRainCancellationWhatsApp flow:
-//   1. Resolve subscriber ID (cache or createSubscriber)
-//   2. setCustomFields with participant pass URL (field MANYCHAT_RAIN_CANCEL_PASS_URL_FIELD)
-//   3. sendFlow with MANYCHAT_RAIN_CANCEL_FLOW_NS
-//
-// Set env vars MANYCHAT_RAIN_CANCEL_PASS_URL_FIELD and MANYCHAT_RAIN_CANCEL_FLOW_NS
-// after creating the ManyChat template.
-
-const RAIN_CANCEL_PASS_URL_FIELD =
-  process.env.MANYCHAT_RAIN_CANCEL_PASS_URL_FIELD ?? "";
-const RAIN_CANCEL_FLOW_NS =
-  process.env.MANYCHAT_RAIN_CANCEL_FLOW_NS ?? "";
-
-type SendRainCancellationParams = {
-  to: string; // E.164 phone number
-  participantPassUrl: string;
-  subscriberId?: string | null;
-};
-
-export async function sendRainCancellationWhatsApp({
-  to,
-  participantPassUrl,
-  subscriberId: existingSubscriberId,
-}: SendRainCancellationParams): Promise<SendTermsResult> {
-  const apiKey = process.env.MANYCHAT_API_KEY;
-  if (!apiKey) {
-    console.error("[manychat] MANYCHAT_API_KEY is not set — cannot send rain cancellation WhatsApp");
-    return { success: false, subscriberId: null };
-  }
-
-  if (!RAIN_CANCEL_FLOW_NS) {
-    console.error("[manychat] MANYCHAT_RAIN_CANCEL_FLOW_NS is not set — cannot send rain cancellation WhatsApp");
-    return { success: false, subscriberId: null };
-  }
-
-  const headers = {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  };
-
-  // ── Step 1: Resolve subscriber ID ────────────────────────────────────────
-  let subscriberId: string | null = existingSubscriberId ?? null;
-
-  if (!subscriberId) {
-    console.log(`[manychat] No stored subscriber ID for ${to} — calling createSubscriber`);
-    try {
-      const createRes = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/createSubscriber`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          whatsapp_phone: to,
-          phone: stripPlus(to),
-          has_opt_in_whatsapp: true,
-          has_opt_in_sms: false,
-          has_opt_in_email: false,
-          consent_phrase: "User agreed to receive WhatsApp messages",
-        }),
-      });
-      const createData = await createRes.json();
-      console.log(`[manychat] createSubscriber HTTP ${createRes.status} for ${to}: ${JSON.stringify(createData)}`);
-
-      if (createRes.ok && createData?.data?.id) {
-        subscriberId = String(createData.data.id);
-      } else if (
-        createRes.status === 400 &&
-        typeof createData?.message === "string" &&
-        createData.message.toLowerCase().includes("already exists")
-      ) {
-        console.error(`[manychat] createSubscriber 400 "already exists" for ${to} — no stored ID, cannot send`);
-        return { success: false, subscriberId: null };
-      } else {
-        console.error(`[manychat] createSubscriber failed for ${to} — status=${createRes.status}`);
-        return { success: false, subscriberId: null };
-      }
-    } catch (err) {
-      console.error(`[manychat] Error during createSubscriber for ${to}:`, err);
-      return { success: false, subscriberId: null };
-    }
-  }
-
-  // ── Step 2: Set custom field (participant pass URL) ───────────────────────
-  if (RAIN_CANCEL_PASS_URL_FIELD) {
-    try {
-      const fieldId = Number(RAIN_CANCEL_PASS_URL_FIELD.replace("cuf_", ""));
-      const setFieldRes = await fetch(`${MANYCHAT_API_BASE}/fb/subscriber/setCustomFields`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          subscriber_id: Number(subscriberId),
-          fields: [{ field_id: fieldId, field_value: participantPassUrl }],
-        }),
-      });
-      const setFieldBody = await setFieldRes.text();
-      console.log(`[manychat] setCustomFields (rain cancel) status=${setFieldRes.status} body=${setFieldBody}`);
-      if (!setFieldRes.ok) {
-        console.error(`[manychat] setCustomFields failed for subscriber ${subscriberId}: ${setFieldBody}`);
-        // Preserve subscriberId so caller can still cache it for future sends
-        return { success: false, subscriberId };
-      }
-    } catch (err) {
-      console.error(`[manychat] Error setting custom field for subscriber ${subscriberId}:`, err);
-      return { success: false, subscriberId };
-    }
-  } else {
-    console.warn(`[manychat] MANYCHAT_RAIN_CANCEL_PASS_URL_FIELD not set — skipping setCustomFields`);
-  }
-
-  // ── Step 3: Send via sendFlow ─────────────────────────────────────────────
-  try {
-    const sendRes = await fetch(`${MANYCHAT_API_BASE}/fb/sending/sendFlow`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ subscriber_id: subscriberId, flow_ns: RAIN_CANCEL_FLOW_NS }),
-    });
-    const responseBody = await sendRes.text();
-    console.log(`[manychat] sendFlow (rain cancel) status=${sendRes.status} body=${responseBody}`);
-    if (!sendRes.ok) {
-      console.error(`[manychat] sendFlow (rain cancel) failed for subscriber ${subscriberId}: ${responseBody}`);
-      return { success: false, subscriberId: null };
-    }
-    return { success: true, subscriberId };
-  } catch (err) {
-    console.error(`[manychat] Error sending rain cancel flow to subscriber ${subscriberId}:`, err);
-    return { success: false, subscriberId: null };
-  }
-}
-
-// ── Order confirmation WhatsApp (new apply flow) ─────────────────────────────
-//
-// Sent once to the Customer when an Order is paid. The flow's template shows four
-// single-line custom fields. Set MANYCHAT_ORDER_FLOW_NS and the four field IDs (cuf_…):
-// MANYCHAT_ORDER_FIELD_CLASS, MANYCHAT_ORDER_FIELD_WHEN, MANYCHAT_ORDER_FIELD_VENUE and
-// MANYCHAT_ORDER_FIELD_LINK. Until all are set the send is skipped and logged.
-
-type SendOrderConfirmationParams = {
-  to: string; // E.164 phone number
-  fields: { booking_class: string; booking_when: string; booking_venue: string; booking_link: string };
-  subscriberId?: string | null;
-};
-
-export type SendOrderConfirmationResult = SendTermsResult & { skipped?: boolean };
-
-function orderFieldIds() {
-  const ids = {
-    booking_class: process.env.MANYCHAT_ORDER_FIELD_CLASS ?? "",
-    booking_when: process.env.MANYCHAT_ORDER_FIELD_WHEN ?? "",
-    booking_venue: process.env.MANYCHAT_ORDER_FIELD_VENUE ?? "",
-    booking_link: process.env.MANYCHAT_ORDER_FIELD_LINK ?? "",
-  };
-  return Object.values(ids).every(Boolean) ? ids : null;
-}
-
-export async function sendOrderConfirmationWhatsApp({
-  to,
-  fields,
-  subscriberId: existingSubscriberId,
-}: SendOrderConfirmationParams): Promise<SendOrderConfirmationResult> {
-  const apiKey = process.env.MANYCHAT_API_KEY;
-  const flowNs = process.env.MANYCHAT_ORDER_FLOW_NS ?? "";
-  const fieldIds = orderFieldIds();
-  if (!apiKey || !flowNs || !fieldIds) {
+  const flowNs = process.env[config.flowNsEnv] ?? "";
+  const names = Object.keys(config.fieldEnvs) as F[];
+  const fieldIds = Object.fromEntries(names.map((name) => [name, process.env[config.fieldEnvs[name]] ?? ""])) as Record<F, string>;
+  if (!apiKey || !flowNs || names.some((name) => !fieldIds[name])) {
     console.warn(
-      "[manychat] Order confirmation not configured (MANYCHAT_API_KEY / MANYCHAT_ORDER_FLOW_NS / MANYCHAT_ORDER_FIELD_*) — skipping WhatsApp"
+      `[manychat] ${config.label} not configured (MANYCHAT_API_KEY / ${config.flowNsEnv} / ${Object.values(config.fieldEnvs).join(" / ")}) — skipping WhatsApp`
     );
     return { success: false, subscriberId: null, skipped: true };
   }
 
   const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
-  let subscriberId: string | null = existingSubscriberId ?? null;
+  let subscriberId: string | null = params.subscriberId ?? null;
 
   try {
     if (!subscriberId) {
@@ -360,8 +52,8 @@ export async function sendOrderConfirmationWhatsApp({
         method: "POST",
         headers,
         body: JSON.stringify({
-          whatsapp_phone: to,
-          phone: stripPlus(to),
+          whatsapp_phone: params.to,
+          phone: stripPlus(params.to),
           has_opt_in_whatsapp: true,
           has_opt_in_sms: false,
           has_opt_in_email: false,
@@ -370,7 +62,9 @@ export async function sendOrderConfirmationWhatsApp({
       });
       const createData = await createRes.json();
       if (!createRes.ok || !createData?.data?.id) {
-        console.error(`[manychat] createSubscriber failed for ${to}: ${createRes.status} ${JSON.stringify(createData)}`);
+        console.error(
+          `[manychat] createSubscriber failed for ${params.to}: ${createRes.status} ${JSON.stringify(createData)}`
+        );
         return { success: false, subscriberId: null };
       }
       subscriberId = String(createData.data.id);
@@ -381,14 +75,14 @@ export async function sendOrderConfirmationWhatsApp({
       headers,
       body: JSON.stringify({
         subscriber_id: Number(subscriberId),
-        fields: (Object.keys(fieldIds) as Array<keyof typeof fieldIds>).map((name) => ({
+        fields: names.map((name) => ({
           field_id: Number(fieldIds[name].replace("cuf_", "")),
-          field_value: fields[name],
+          field_value: params.fields[name],
         })),
       }),
     });
     if (!setFieldRes.ok) {
-      console.error(`[manychat] setCustomFields (order) failed: ${setFieldRes.status} ${await setFieldRes.text()}`);
+      console.error(`[manychat] setCustomFields (${config.label}) failed: ${setFieldRes.status} ${await setFieldRes.text()}`);
       return { success: false, subscriberId };
     }
 
@@ -398,12 +92,70 @@ export async function sendOrderConfirmationWhatsApp({
       body: JSON.stringify({ subscriber_id: subscriberId, flow_ns: flowNs }),
     });
     if (!sendRes.ok) {
-      console.error(`[manychat] sendFlow (order) failed: ${sendRes.status} ${await sendRes.text()}`);
+      console.error(`[manychat] sendFlow (${config.label}) failed: ${sendRes.status} ${await sendRes.text()}`);
       return { success: false, subscriberId };
     }
     return { success: true, subscriberId };
   } catch (err) {
-    console.error(`[manychat] Order confirmation to ${to} failed:`, err);
+    console.error(`[manychat] ${config.label} to ${params.to} failed:`, err);
     return { success: false, subscriberId };
   }
+}
+
+// ── Booking confirmation: once to the Customer when an Order is paid ──────────
+
+export type OrderMessageFields = {
+  booking_class: string;
+  booking_when: string;
+  booking_venue: string;
+  booking_link: string;
+};
+
+export function sendOrderConfirmationWhatsApp(params: {
+  to: string;
+  fields: OrderMessageFields;
+  subscriberId?: string | null;
+}) {
+  return sendTemplateFlow<keyof OrderMessageFields>(
+    {
+      label: "Order confirmation",
+      flowNsEnv: "MANYCHAT_ORDER_FLOW_NS",
+      fieldEnvs: {
+        booking_class: "MANYCHAT_ORDER_FIELD_CLASS",
+        booking_when: "MANYCHAT_ORDER_FIELD_WHEN",
+        booking_venue: "MANYCHAT_ORDER_FIELD_VENUE",
+        booking_link: "MANYCHAT_ORDER_FIELD_LINK",
+      },
+    },
+    params
+  );
+}
+
+// ── Rain cancellation: to each Participant of a rain-cancelled Session ────────
+
+export type RainMessageFields = {
+  rain_class: string;
+  rain_when: string;
+  rain_venue: string;
+  rain_link: string;
+};
+
+export function sendRainCancellationWhatsApp(params: {
+  to: string;
+  fields: RainMessageFields;
+  subscriberId?: string | null;
+}) {
+  return sendTemplateFlow<keyof RainMessageFields>(
+    {
+      label: "Rain cancellation",
+      flowNsEnv: "MANYCHAT_RAIN_FLOW_NS",
+      fieldEnvs: {
+        rain_class: "MANYCHAT_RAIN_FIELD_CLASS",
+        rain_when: "MANYCHAT_RAIN_FIELD_WHEN",
+        rain_venue: "MANYCHAT_RAIN_FIELD_VENUE",
+        rain_link: "MANYCHAT_RAIN_FIELD_LINK",
+      },
+    },
+    params
+  );
 }

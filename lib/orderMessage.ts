@@ -11,13 +11,18 @@ export type OrderFieldsInput = {
   locationZh: string;
 };
 
-/** The ManyChat custom fields the booking confirmation template shows. */
-export type OrderFields = {
-  booking_class: string;
-  booking_when: string;
-  booking_venue: string;
-  booking_link: string;
-};
+import type { OrderMessageFields, RainMessageFields } from "./manychat";
+import { buildParticipantPassUrl } from "./appBaseUrl";
+
+export type OrderFields = OrderMessageFields;
+
+/** "10月24日（六） 14:00–15:00", from a Session's date and times. */
+function sessionWhen(date: string, time: string, endTime?: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  return `${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${ZH_WEEKDAYS[d.getUTCDay()]}） ${endTime ? `${time}–${endTime}` : time}`;
+}
+
+const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
 
 /**
  * What the Customer's WhatsApp confirmation shows, one value per template variable.
@@ -25,15 +30,32 @@ export type OrderFields = {
  * link opens the booking's page with every Participant's Attendance QR.
  */
 export function buildOrderFields(input: OrderFieldsInput): OrderFields {
-  const d = new Date(`${input.sessionDate}T00:00:00Z`);
-  const date = `${d.getUTCMonth() + 1}月${d.getUTCDate()}日（${ZH_WEEKDAYS[d.getUTCDay()]}）`;
-  const time = input.sessionEndTime ? `${input.sessionTime}–${input.sessionEndTime}` : input.sessionTime;
-  const oneLine = (text: string) => text.replace(/\s+/g, " ").trim();
   return {
     booking_class: oneLine(input.classNameZh),
-    booking_when: `${date} ${time}`,
+    booking_when: sessionWhen(input.sessionDate, input.sessionTime, input.sessionEndTime),
     booking_venue: oneLine(input.locationZh),
     booking_link: `${input.baseUrl}/apply/${encodeURIComponent(input.classId)}/done?hold=${encodeURIComponent(input.holdId)}`,
+  };
+}
+
+/**
+ * What a Participant's rain-cancellation WhatsApp shows: the cancelled Session, and their
+ * Participant Link, where they can move to another Session (the Change Cutoff is lifted).
+ */
+export function buildRainFields(input: {
+  baseUrl: string;
+  participantId: string;
+  classNameZh: string;
+  sessionDate: string;
+  sessionTime: string;
+  sessionEndTime?: string;
+  locationZh: string;
+}): RainMessageFields {
+  return {
+    rain_class: oneLine(input.classNameZh),
+    rain_when: sessionWhen(input.sessionDate, input.sessionTime, input.sessionEndTime),
+    rain_venue: oneLine(input.locationZh),
+    rain_link: buildParticipantPassUrl(input.baseUrl, input.participantId),
   };
 }
 

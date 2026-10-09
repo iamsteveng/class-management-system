@@ -1,24 +1,7 @@
-import { internalMutationGeneric, type GenericMutationCtx } from "convex/server";
+import type { GenericMutationCtx } from "convex/server";
 import { v, type ObjectType } from "convex/values";
 
 import type { DataModel } from "./_generated/dataModel";
-
-/**
- * Patch the manychat_subscriber_id on a purchase record for auditing.
- */
-export const updateManychatSubscriberId = internalMutationGeneric({
-  args: {
-    purchase_id: v.id("purchases"),
-    manychat_subscriber_id: v.string(),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.purchase_id, {
-      manychat_subscriber_id: args.manychat_subscriber_id,
-    });
-    return null;
-  },
-});
 
 /**
  * Shared mutation: creates a purchase record.
@@ -85,8 +68,3 @@ export async function insertPurchase(
     });
 }
 
-export const createPurchase = internalMutationGeneric({
-  args: purchaseArgs,
-  returns: v.id("purchases"),
-  handler: async (ctx, args) => insertPurchase(ctx, args),
-});

@@ -76,3 +76,13 @@ export const listPurchases = serverQuery({
     });
   },
 });
+
+/** The Token of a Legacy Ticket, so an admin can open (or send on) its terms page link. */
+export const getPurchaseToken = serverQuery({
+  args: { purchase_id: v.id("purchases") },
+  returns: v.union(v.null(), v.object({ token: v.string() })),
+  handler: async (ctx, args) => {
+    const purchase = await ctx.db.get(args.purchase_id);
+    return purchase ? { token: purchase.token } : null;
+  },
+});

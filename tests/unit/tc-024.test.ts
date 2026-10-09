@@ -19,7 +19,10 @@ vi.mock('convex/values', () => {
   return { v };
 });
 
-import { createPurchase } from '../../convex/purchases';
+import { insertPurchase } from '../../convex/purchases';
+
+// Purchases are created by checkout (and test helpers) through insertPurchase.
+const createPurchase = { handler: insertPurchase };
 
 describe('TC-024 source field stored correctly for S3 ingestion', () => {
   let handler: (ctx: any, args: any) => Promise<any>;
