@@ -46,8 +46,8 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: 'reschedule',
     question_zh: '如何調堂？',
     question_en: 'How do I reschedule?',
-    answer_zh: '如需調堂，必須於原定上課日期前不少於 48 小時提出申請。距離上課日期少於 48 小時，恕不接受調堂申請，亦不設退款。',
-    answer_en: 'Rescheduling requests must be made at least 48 hours before the scheduled class. Requests made within 48 hours will not be accepted, and no refund will be issued.',
+    answer_zh: '上課前兩日 00:00 之前（例如星期六嘅課堂，即星期四 00:00 前），可以喺學員連結自行改去同一課程其他有位嘅時段。之後恕不接受調堂申請，亦不設退款。因天氣取消嘅課堂不受此限。',
+    answer_en: 'You can move to another session of the same class with spaces from your participant link until 00:00 two days before your class (Thursday 00:00 for a Saturday class). After that, rescheduling is not accepted and no refund is issued. Classes cancelled for bad weather are not affected.',
   },
   {
     id: 'weather',

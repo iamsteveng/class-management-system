@@ -90,7 +90,8 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
     await changeSessionBtn.click();
 
     // Step 8: Verify modal is open and select the new session (session 2)
-    await expect(page.locator('text=A WhatsApp notification will be sent.')).toBeVisible({ timeout: 10_000 });
+    // (No WhatsApp goes out yet when an admin changes a Session; that is issue #32.)
+    await expect(page.getByText('Select a new session for this participant.')).toBeVisible({ timeout: 10_000 });
     const sessionRadio = page.locator(`input[type="radio"][value="${session2.session_id}"]`);
     await expect(sessionRadio).toBeVisible({ timeout: 10_000 });
     await sessionRadio.click();
