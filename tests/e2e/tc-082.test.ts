@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 
+import { fillTestCard } from './helpers/applyFixture';
+
 // TC-082: The cycling landing page. Filtering by Class and district narrows the session
 // list; picking a Session on a Class card and booking it in the side sheet seats a
 // Participant (paid by Airwallex demo card). Requires REVAMP_HOMEPAGE=on and the
 // catalogue seed on the deployment under test.
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const TEST_CARD = process.env.AIRWALLEX_TEST_CARD || '4035501000000008';
 
 test.describe('TC-082: cycling landing page', () => {
   test('TC-082 filter to 幼兒班 at 青衣 and book a Session from the sheet', async ({ page }) => {
@@ -50,12 +51,7 @@ test.describe('TC-082: cycling landing page', () => {
     await sheet.locator('input[name="p0_emergency_name"]').fill('陳太');
     await sheet.locator('input[name="p0_emergency_phone"]').fill('+85291082082');
     await sheet.locator('input[name="terms_accepted"]').check();
-
-    const card = page.frameLocator('#apply-card-container iframe');
-    await card.locator('input').first().waitFor({ timeout: 30_000 });
-    await card.locator('input').nth(0).fill(TEST_CARD);
-    await card.locator('input').nth(1).fill('12/30');
-    await card.locator('input').nth(2).fill('123');
+    await fillTestCard(page);
     await sheet.getByRole('button', { name: '確認並付款' }).click();
 
     await page.waitForURL(/\/done\?hold=/, { timeout: 60_000 });

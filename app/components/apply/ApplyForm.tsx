@@ -160,37 +160,48 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
           env: (process.env.NEXT_PUBLIC_AIRWALLEX_ENV as "demo" | "prod") ?? "demo",
           enabledElements: ["payments"],
         });
-        // 16px text stops iPhone Safari zooming in when the card field is tapped.
-        const card = await createElement("card", {
-          style: {
-            base: {
-              fontSize: "16px",
-              color: "#0E2433",
-            },
-          },
-        });
-        cardRef.current = card as unknown as typeof cardRef.current;
-        card.mount("apply-card-container");
-        card.on("ready", () => setCardReady(true));
-        // The card fields live in Airwallex's iframe, which iPhone Safari doesn't scroll
-        // into view properly when the keyboard opens; bring the card section to the top.
-        card.on("blur", () => setCardFocused(false));
-        card.on("focus", () => {
-          setCardFocused(true);
-          const reveal = () =>
-            document.getElementById("apply-card-section")?.scrollIntoView({ block: "start", behavior: "smooth" });
-          reveal();
-          const viewport = window.visualViewport;
-          if (viewport) {
-            const onResize = () => {
-              viewport.removeEventListener("resize", onResize);
-              reveal();
-            };
-            viewport.addEventListener("resize", onResize);
-            setTimeout(() => viewport.removeEventListener("resize", onResize), 1000);
-          }
-          setTimeout(reveal, 400);
-        });
+        // Three separate fields (number, expiry, CVC), each with room for 16px text: 16px
+        // stops iPhone Safari zooming in on tap, and a single combined field was too
+        // cramped on a phone to type into.
+        const style = { base: { fontSize: "16px", color: "#0E2433" } };
+        const [cardNumber, expiry, cvc] = await Promise.all([
+          createElement("cardNumber", { style, placeholder: "卡號 Card number" }),
+          createElement("expiry", { style, placeholder: "MM / YY" }),
+          createElement("cvc", { style, placeholder: "CVC" }),
+        ]);
+        // Confirming on the card number field collects the expiry and CVC fields too.
+        cardRef.current = cardNumber as unknown as typeof cardRef.current;
+        cardNumber.mount("apply-card-number");
+        expiry.mount("apply-card-expiry");
+        cvc.mount("apply-card-cvc");
+
+        const ready = new Set<string>();
+        const fields = { cardNumber, expiry, cvc } as const;
+        for (const [name, field] of Object.entries(fields)) {
+          field.on("ready", () => {
+            ready.add(name);
+            if (ready.size === 3) setCardReady(true);
+          });
+          // The fields live in Airwallex's iframes, which iPhone Safari doesn't scroll into
+          // view properly when the keyboard opens; bring the card section to the top.
+          field.on("blur", () => setCardFocused(false));
+          field.on("focus", () => {
+            setCardFocused(true);
+            const reveal = () =>
+              document.getElementById("apply-card-section")?.scrollIntoView({ block: "start", behavior: "smooth" });
+            reveal();
+            const viewport = window.visualViewport;
+            if (viewport) {
+              const onResize = () => {
+                viewport.removeEventListener("resize", onResize);
+                reveal();
+              };
+              viewport.addEventListener("resize", onResize);
+              setTimeout(() => viewport.removeEventListener("resize", onResize), 1000);
+            }
+            setTimeout(reveal, 400);
+          });
+        }
       } catch (err) {
         console.error("[apply] Airwallex init failed:", err);
       }
@@ -782,7 +793,13 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
               </div>
               <div id="apply-card-section" className={paymentMethod === "card" ? "scroll-mt-4 space-y-1" : "hidden"}>
                 <p className="text-sm text-zinc-700">{copy.cardLabel}</p>
-                <div id="apply-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
+                <div id="apply-card-container" className="space-y-2">
+                  <div id="apply-card-number" className="min-h-[48px] rounded-lg border border-zinc-300 bg-white px-3 py-3" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div id="apply-card-expiry" className="min-h-[48px] rounded-lg border border-zinc-300 bg-white px-3 py-3" />
+                    <div id="apply-card-cvc" className="min-h-[48px] rounded-lg border border-zinc-300 bg-white px-3 py-3" />
+                  </div>
+                </div>
               </div>
               {paymentMethod === "alipay" && alipayQr ? (
                 <div className="flex flex-col items-center gap-2">

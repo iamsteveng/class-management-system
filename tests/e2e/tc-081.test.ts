@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+
+import { fillTestCard } from './helpers/applyFixture';
 import { withServerSecret } from './helpers/serverSecret';
 
 // TC-081: Paid booking by card through the Airwallex demo environment. The Customer pays
@@ -7,8 +9,6 @@ import { withServerSecret } from './helpers/serverSecret';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-// Airwallex demo test card that succeeds without 3DS.
-const TEST_CARD = process.env.AIRWALLEX_TEST_CARD || '4035501000000008';
 
 async function convex(kind: 'mutation' | 'query', fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/${kind}`, {
@@ -48,13 +48,7 @@ test('TC-081 paid booking by card seats the Participant', async ({ page }) => {
     await page.locator('input[name="p0_emergency_name"]').fill('Contact');
     await page.locator('input[name="p0_emergency_phone"]').fill('+85298081081');
     await page.locator('input[name="terms_accepted"]').check();
-
-    const card = page.frameLocator('#apply-card-container iframe');
-    await card.locator('input').first().waitFor({ timeout: 30_000 });
-    const inputs = card.locator('input');
-    await inputs.nth(0).fill(TEST_CARD);
-    await inputs.nth(1).fill('12/30');
-    await inputs.nth(2).fill('123');
+    await fillTestCard(page);
 
     await page.getByRole('button', { name: '確認並付款' }).click();
     await page.waitForURL(/\/done\?hold=/, { timeout: 60_000 });
