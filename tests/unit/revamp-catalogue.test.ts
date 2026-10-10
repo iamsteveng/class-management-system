@@ -18,7 +18,7 @@ import { CLASSES, TIMETABLE, VENUES, seed } from '../../convex/revampCatalogue';
 import { handler, makeDb } from './helpers/fakeDb';
 
 const emptyWorld = () =>
-  makeDb({ classes: [], venues: [], timetable_entries: [], timetable_settings: [], sessions: [] });
+  makeDb({ classes: [], venues: [], timetable_entries: [], timetable_settings: [], sessions: [], terms_versions: [], audit_logs: [] });
 
 describe('revamp catalogue data', () => {
   it('has 40 Timetable entries per two-week cycle, Wednesday to Sunday', () => {

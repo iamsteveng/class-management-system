@@ -1,13 +1,15 @@
 import { internalMutationGeneric } from "convex/server";
 import { v } from "convex/values";
 
+import { CYCLING_WAIVER_TEXT, CYCLING_WAIVER_VERSION } from "./termsContent";
+import { publishTermsIfChanged } from "./termsPublish";
 import { hkDate, openTimetableSessions } from "./timetable";
 import { refreshUpcomingSessionLocations, type VenueFields } from "./venues";
 import { KIDS_CLASS_ID, REGULAR_CLASS_ID } from "../lib/catalogueIds";
 
 /**
- * The real cycling catalogue launched with the homepage revamp: its Classes, Venues and
- * Timetable. Venue addresses, hours, positions and map links follow
+ * The real cycling catalogue launched with the homepage revamp: its Classes, Venues,
+ * Timetable and the waiver Customers accept. Venue addresses, hours, positions and map links follow
  * https://marketing.loco.hk/locokiosk.html. Changing the Timetable means editing this file and running the seed again;
  * only Sessions not yet opened are affected.
  *
@@ -247,6 +249,7 @@ export const seed = internalMutationGeneric({
     venues: v.number(),
     timetable_entries: v.number(),
     sessions_opened: v.number(),
+    terms_published: v.boolean(),
   }),
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -313,11 +316,19 @@ export const seed = internalMutationGeneric({
 
     const sessionsOpened = await openTimetableSessions(ctx, now, args.today);
 
+    // The waiver Customers accept when booking (content/terms/cycling-waiver.md).
+    const termsPublished = await publishTermsIfChanged(
+      ctx,
+      { version: CYCLING_WAIVER_VERSION, content: CYCLING_WAIVER_TEXT },
+      now
+    );
+
     return {
       classes: CLASSES.length,
       venues: VENUES.length,
       timetable_entries: TIMETABLE.length,
       sessions_opened: sessionsOpened,
+      terms_published: termsPublished,
     };
   },
 });

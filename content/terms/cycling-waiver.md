@@ -1,3 +1,5 @@
+<!-- version: 2026-10-10 — change this whenever the text below changes; the seed publishes it as a new Terms Version. -->
+
 # 單車班 - 免責聲明書
 
 本聲明適用於由 Locolla 舉辦之「樂區單車亭單車班」（下稱「上述活動」）。
