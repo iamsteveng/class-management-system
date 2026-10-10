@@ -124,6 +124,12 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
   const [alipayQr, setAlipayQr] = useState<{ qrcode: string; startedAt: number } | null>(null);
   const [qrExpired, setQrExpired] = useState(false);
   const [cardReady, setCardReady] = useState(false);
+  // Airwallex's card fields, created once the SDK loads and mounted whenever the payment
+  // section is on screen (it isn't while the Customer is still picking a Session).
+  type CardField = { mount: (el: string) => unknown; unmount: () => void };
+  const cardFieldsRef = useRef<Record<"cardNumber" | "expiry" | "cvc", CardField> | null>(null);
+  const cardFieldsReadyRef = useRef(new Set<string>());
+  const [cardFieldsCreated, setCardFieldsCreated] = useState(false);
   // While a card field has focus, extra room below the form lets it scroll above the keyboard.
   const [cardFocused, setCardFocused] = useState(false);
   const cardRef = useRef<{ confirm: (args: { intent_id: string; client_secret: string }) => Promise<unknown> } | null>(null);
@@ -171,16 +177,12 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
         ]);
         // Confirming on the card number field collects the expiry and CVC fields too.
         cardRef.current = cardNumber as unknown as typeof cardRef.current;
-        cardNumber.mount("apply-card-number");
-        expiry.mount("apply-card-expiry");
-        cvc.mount("apply-card-cvc");
 
-        const ready = new Set<string>();
         const fields = { cardNumber, expiry, cvc } as const;
         for (const [name, field] of Object.entries(fields)) {
           field.on("ready", () => {
-            ready.add(name);
-            if (ready.size === 3) setCardReady(true);
+            cardFieldsReadyRef.current.add(name);
+            if (cardFieldsReadyRef.current.size === 3) setCardReady(true);
           });
           // The fields live in Airwallex's iframes, which iPhone Safari doesn't scroll into
           // view properly when the keyboard opens; bring the card section to the top.
@@ -202,11 +204,29 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
             setTimeout(reveal, 400);
           });
         }
+        cardFieldsRef.current = fields as unknown as Record<"cardNumber" | "expiry" | "cvc", CardField>;
+        setCardFieldsCreated(true);
       } catch (err) {
         console.error("[apply] Airwallex init failed:", err);
       }
     })();
   }, [cls.is_free]);
+
+  const showCardFields = !cls.is_free && !!session && !pickingSession;
+  useEffect(() => {
+    const fields = cardFieldsRef.current;
+    if (!cardFieldsCreated || !showCardFields || !fields) return;
+    cardFieldsReadyRef.current.clear();
+    fields.cardNumber.mount("apply-card-number");
+    fields.expiry.mount("apply-card-expiry");
+    fields.cvc.mount("apply-card-cvc");
+    return () => {
+      setCardReady(false);
+      fields.cardNumber.unmount();
+      fields.expiry.unmount();
+      fields.cvc.unmount();
+    };
+  }, [cardFieldsCreated, showCardFields]);
 
   useEffect(() => {
     if (!hold) return;
