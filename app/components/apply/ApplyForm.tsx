@@ -170,6 +170,23 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
         cardRef.current = card as unknown as typeof cardRef.current;
         card.mount("apply-card-container");
         card.on("ready", () => setCardReady(true));
+        // The card fields live in Airwallex's iframe, which iPhone Safari doesn't scroll
+        // into view properly when the keyboard opens; bring the card section to the top.
+        card.on("focus", () => {
+          const reveal = () =>
+            document.getElementById("apply-card-section")?.scrollIntoView({ block: "start", behavior: "smooth" });
+          reveal();
+          const viewport = window.visualViewport;
+          if (viewport) {
+            const onResize = () => {
+              viewport.removeEventListener("resize", onResize);
+              reveal();
+            };
+            viewport.addEventListener("resize", onResize);
+            setTimeout(() => viewport.removeEventListener("resize", onResize), 1000);
+          }
+          setTimeout(reveal, 400);
+        });
       } catch (err) {
         console.error("[apply] Airwallex init failed:", err);
       }
@@ -755,7 +772,7 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
                   </button>
                 ))}
               </div>
-              <div className={paymentMethod === "card" ? "space-y-1" : "hidden"}>
+              <div id="apply-card-section" className={paymentMethod === "card" ? "scroll-mt-4 space-y-1" : "hidden"}>
                 <p className="text-sm text-zinc-700">{copy.cardLabel}</p>
                 <div id="apply-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
               </div>
