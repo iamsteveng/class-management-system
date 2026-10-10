@@ -124,6 +124,8 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
   const [alipayQr, setAlipayQr] = useState<{ qrcode: string; startedAt: number } | null>(null);
   const [qrExpired, setQrExpired] = useState(false);
   const [cardReady, setCardReady] = useState(false);
+  // While a card field has focus, extra room below the form lets it scroll above the keyboard.
+  const [cardFocused, setCardFocused] = useState(false);
   const cardRef = useRef<{ confirm: (args: { intent_id: string; client_secret: string }) => Promise<unknown> } | null>(null);
   const sdkInitRef = useRef(false);
   const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -170,6 +172,25 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
         cardRef.current = card as unknown as typeof cardRef.current;
         card.mount("apply-card-container");
         card.on("ready", () => setCardReady(true));
+        // The card fields live in Airwallex's iframe, which iPhone Safari doesn't scroll
+        // into view properly when the keyboard opens; bring the card section to the top.
+        card.on("blur", () => setCardFocused(false));
+        card.on("focus", () => {
+          setCardFocused(true);
+          const reveal = () =>
+            document.getElementById("apply-card-section")?.scrollIntoView({ block: "start", behavior: "smooth" });
+          reveal();
+          const viewport = window.visualViewport;
+          if (viewport) {
+            const onResize = () => {
+              viewport.removeEventListener("resize", onResize);
+              reveal();
+            };
+            viewport.addEventListener("resize", onResize);
+            setTimeout(() => viewport.removeEventListener("resize", onResize), 1000);
+          }
+          setTimeout(reveal, 400);
+        });
       } catch (err) {
         console.error("[apply] Airwallex init failed:", err);
       }
@@ -400,7 +421,11 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
 
 
   return (
-    <div className="space-y-4" data-testid="apply-form">
+    <div
+      className="space-y-4"
+      data-testid="apply-form"
+      style={cardFocused ? { paddingBottom: "70vh" } : undefined}
+    >
       <ol className="flex gap-2 text-xs font-medium text-zinc-500" aria-label={copy.pageTitle}>
         <li className={session ? "text-[#0B6FB8]" : "text-zinc-900"}>1 {copy.stepSession}{session ? " ✓" : ""}</li>
         <li aria-hidden>›</li>
@@ -755,7 +780,7 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
                   </button>
                 ))}
               </div>
-              <div className={paymentMethod === "card" ? "space-y-1" : "hidden"}>
+              <div id="apply-card-section" className={paymentMethod === "card" ? "scroll-mt-4 space-y-1" : "hidden"}>
                 <p className="text-sm text-zinc-700">{copy.cardLabel}</p>
                 <div id="apply-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
               </div>
