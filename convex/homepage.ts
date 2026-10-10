@@ -64,6 +64,20 @@ function buildPurchaseUrl(classId: string): string | undefined {
 }
 
 /**
+ * A Class's image as a full URL, so callers outside this site can load it: a site path
+ * such as /images/revamp/class-kids.jpg is resolved against APP_BASE_URL (left as the
+ * path when APP_BASE_URL is not configured).
+ */
+function absoluteImageUrl(imageUrl: string | undefined): string | undefined {
+  if (!imageUrl?.startsWith("/")) return imageUrl;
+  try {
+    return `${resolveAppBaseUrl(process.env.APP_BASE_URL)}${imageUrl}`;
+  } catch {
+    return imageUrl;
+  }
+}
+
+/**
  * Classes currently on sale — active and sold on this site, via Airwallex or for free —
  * with everything a Class card shows, including its Purchase Link and upcoming Sessions.
  */
@@ -112,7 +126,7 @@ export const listClassesOnSale = queryGeneric({
           description_zh: cls.description_zh,
           description_en: cls.description_en,
           duration_minutes: cls.duration_minutes,
-          image_url: cls.image_url,
+          image_url: absoluteImageUrl(cls.image_url),
           purchase_url: buildPurchaseUrl(cls.class_id),
           airwallex_price: cls.airwallex_price,
           airwallex_currency: cls.airwallex_currency,
