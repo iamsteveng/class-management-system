@@ -53,8 +53,8 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: 'weather',
     question_zh: '惡劣天氣如何安排？',
     question_en: 'What happens in bad weather?',
-    answer_zh: '主辦機構會於課堂開始前 2 小時透過電郵通知。遇以下情況課堂將取消：3 號風球或以上、黃／紅／黑雨、場地出現明顯安全風險。因天氣取消的課堂，可安排退款或調至 1 個月內的課堂。',
-    answer_en: 'Organisers will notify participants by email 2 hours before class. Classes are generally cancelled when: Typhoon Signal No. 3 or above is in effect, Yellow/Red/Black rainstorm warnings are issued, or the venue poses safety risks. Cancelled classes due to weather may be refunded or rescheduled within 1 month.',
+    answer_zh: '主辦機構會於課堂開始前 2 小時根據天文台資訊評估並通知。遇以下情況課堂一般會取消：三號熱帶氣旋警告信號或以上、紅／黑色暴雨警告信號，或（幼兒班）空氣質素健康風險「甚高」或「嚴重」。因天氣取消的課堂，可選擇退款，或透過學員連結自行調至同一課程其他有名額的時段。',
+    answer_en: 'We assess the Observatory\'s latest information 2 hours before class and let you know. Classes are generally cancelled when Typhoon Signal No. 3 or above or a Red/Black Rainstorm Warning is in force, or (Kids Class) the Air Quality Health Index is at Very High or Serious risk. For a class cancelled by weather you can choose a refund, or move yourself to another session of the same class with spaces using your participant link.',
   },
   {
     id: 'illness',

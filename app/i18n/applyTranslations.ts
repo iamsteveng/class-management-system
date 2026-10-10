@@ -90,7 +90,7 @@ export const applyCopy = {
     perks: [
       "付款後即時 WhatsApp 確認",
       "單車、頭盔全包，自備運動服、包頭鞋同水",
-      "三號風球、紅/黑雨取消會補堂",
+      "三號風球、紅/黑雨取消，可退款或改期",
     ],
     errorFix: "請修正以上資料。",
     errorTerms: "請先同意條款。",
@@ -187,7 +187,7 @@ export const applyCopy = {
     perks: [
       "Instant WhatsApp confirmation after paying",
       "Bike and helmet provided; bring sportswear, closed shoes and water",
-      "Typhoon 3+ or red/black rain: class cancelled and made up",
+      "Typhoon 3+ or red/black rain: class cancelled, refund or rebook",
     ],
     errorFix: "Please fix the details above.",
     errorTerms: "Please accept the terms first.",
