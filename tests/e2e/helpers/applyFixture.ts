@@ -83,3 +83,12 @@ export async function mockCheckoutStart(page: Page) {
     })
   );
 }
+
+/** Fills Airwallex's three card fields with the demo test card (succeeds without 3DS). */
+export async function fillTestCard(page: Page, card = process.env.AIRWALLEX_TEST_CARD || '4035501000000008') {
+  const field = (id: string) => page.frameLocator(`#${id} iframe`).locator('input');
+  await field('apply-card-number').waitFor({ timeout: 30_000 });
+  await field('apply-card-number').fill(card);
+  await field('apply-card-expiry').fill('12/30');
+  await field('apply-card-cvc').fill('123');
+}

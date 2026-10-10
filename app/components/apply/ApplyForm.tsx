@@ -124,6 +124,12 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
   const [alipayQr, setAlipayQr] = useState<{ qrcode: string; startedAt: number } | null>(null);
   const [qrExpired, setQrExpired] = useState(false);
   const [cardReady, setCardReady] = useState(false);
+  // Airwallex's createElement, available once its SDK has loaded. The card fields are
+  // created each time the payment section appears (it isn't on screen while the Customer
+  // is still picking a Session) and destroyed when it goes away.
+  type CreateCardElement = (type: "cardNumber" | "expiry" | "cvc", options: object) => Promise<unknown>;
+  const createCardElementRef = useRef<CreateCardElement | null>(null);
+  const [cardSdkReady, setCardSdkReady] = useState(false);
   // While a card field has focus, extra room below the form lets it scroll above the keyboard.
   const [cardFocused, setCardFocused] = useState(false);
   const cardRef = useRef<{ confirm: (args: { intent_id: string; client_secret: string }) => Promise<unknown> } | null>(null);
@@ -160,22 +166,58 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
           env: (process.env.NEXT_PUBLIC_AIRWALLEX_ENV as "demo" | "prod") ?? "demo",
           enabledElements: ["payments"],
         });
-        // 16px text stops iPhone Safari zooming in when the card field is tapped.
-        const card = await createElement("card", {
-          style: {
-            base: {
-              fontSize: "16px",
-              color: "#0E2433",
-            },
-          },
+        createCardElementRef.current = createElement as unknown as CreateCardElement;
+        setCardSdkReady(true);
+      } catch (err) {
+        console.error("[apply] Airwallex init failed:", err);
+      }
+    })();
+  }, [cls.is_free]);
+
+  const showCardFields = !cls.is_free && !!session && !pickingSession;
+  useEffect(() => {
+    const createElement = createCardElementRef.current;
+    if (!cardSdkReady || !showCardFields || !createElement) return;
+    type Field = {
+      mount: (el: string) => unknown;
+      destroy: () => void;
+      on: (event: "ready" | "focus" | "blur", handler: () => void) => void;
+    };
+    let fields: Field[] = [];
+    let cancelled = false;
+    (async () => {
+      // Three separate fields (number, expiry, CVC), each with room for 16px text: 16px
+      // stops iPhone Safari zooming in on tap, and a single combined field was too
+      // cramped on a phone to type into.
+      const style = { base: { fontSize: "16px", color: "#0E2433" } };
+      const created = (await Promise.all([
+        createElement("cardNumber", { style, placeholder: "卡號 Card number" }),
+        createElement("expiry", { style, placeholder: "MM / YY" }),
+        createElement("cvc", { style, placeholder: "CVC" }),
+      ])) as Field[];
+      if (cancelled) {
+        created.forEach((f) => f.destroy());
+        return;
+      }
+      fields = created;
+      const [cardNumber, expiry, cvc] = created;
+      cardNumber.mount("apply-card-number");
+      expiry.mount("apply-card-expiry");
+      cvc.mount("apply-card-cvc");
+      // Confirming on the card number field collects the expiry and CVC fields too.
+      cardRef.current = cardNumber as unknown as typeof cardRef.current;
+
+      // Listeners go on after mounting, as Airwallex expects.
+      const ready = new Set<Field>();
+      for (const field of created) {
+        field.on("ready", () => {
+          ready.add(field);
+          if (ready.size === 3) setCardReady(true);
         });
-        cardRef.current = card as unknown as typeof cardRef.current;
-        card.mount("apply-card-container");
-        card.on("ready", () => setCardReady(true));
-        // The card fields live in Airwallex's iframe, which iPhone Safari doesn't scroll
-        // into view properly when the keyboard opens; bring the card section to the top.
-        card.on("blur", () => setCardFocused(false));
-        card.on("focus", () => {
+        // The fields live in Airwallex's iframes, which iPhone Safari doesn't scroll into
+        // view properly when the keyboard opens; bring the card section to the top.
+        field.on("blur", () => setCardFocused(false));
+        field.on("focus", () => {
           setCardFocused(true);
           const reveal = () =>
             document.getElementById("apply-card-section")?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -191,11 +233,15 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
           }
           setTimeout(reveal, 400);
         });
-      } catch (err) {
-        console.error("[apply] Airwallex init failed:", err);
       }
-    })();
-  }, [cls.is_free]);
+    })().catch((err) => console.error("[apply] card fields failed:", err));
+    return () => {
+      cancelled = true;
+      setCardReady(false);
+      cardRef.current = null;
+      fields.forEach((f) => f.destroy());
+    };
+  }, [cardSdkReady, showCardFields]);
 
   useEffect(() => {
     if (!hold) return;
@@ -782,7 +828,13 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
               </div>
               <div id="apply-card-section" className={paymentMethod === "card" ? "scroll-mt-4 space-y-1" : "hidden"}>
                 <p className="text-sm text-zinc-700">{copy.cardLabel}</p>
-                <div id="apply-card-container" className="min-h-[52px] rounded-lg border border-zinc-300 p-3" />
+                <div id="apply-card-container" className="space-y-2">
+                  <div id="apply-card-number" className="min-h-[48px] rounded-lg border border-zinc-300 bg-white px-3 py-3" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div id="apply-card-expiry" className="min-h-[48px] rounded-lg border border-zinc-300 bg-white px-3 py-3" />
+                    <div id="apply-card-cvc" className="min-h-[48px] rounded-lg border border-zinc-300 bg-white px-3 py-3" />
+                  </div>
+                </div>
               </div>
               {paymentMethod === "alipay" && alipayQr ? (
                 <div className="flex flex-col items-center gap-2">
