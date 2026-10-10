@@ -158,7 +158,15 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
           env: (process.env.NEXT_PUBLIC_AIRWALLEX_ENV as "demo" | "prod") ?? "demo",
           enabledElements: ["payments"],
         });
-        const card = await createElement("card", {});
+        // 16px text stops iPhone Safari zooming in when the card field is tapped.
+        const card = await createElement("card", {
+          style: {
+            base: {
+              fontSize: "16px",
+              color: "#0E2433",
+            },
+          },
+        });
         cardRef.current = card as unknown as typeof cardRef.current;
         card.mount("apply-card-container");
         card.on("ready", () => setCardReady(true));
