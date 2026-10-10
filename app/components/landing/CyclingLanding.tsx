@@ -597,7 +597,7 @@ export function CyclingLanding({ data }: { data: LandingData }) {
                         </a>
                       )}
                       <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-[#5B6B78]">
-                        <span>✓ 惡劣天氣取消會補堂</span>
+                        <span>✓ 惡劣天氣取消可退款或改期</span>
                         <span>✓ 上課前兩日前可自行改期</span>
                         <span>✓ 付款後即時 WhatsApp 確認</span>
                       </p>
@@ -622,7 +622,7 @@ export function CyclingLanding({ data }: { data: LandingData }) {
           <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
             {(
               [
-                [CloudRain, "天氣安排", "三號風球、紅/黑雨取消並補堂，上課前 2 小時通知 →", 0],
+                [CloudRain, "天氣安排", "三號風球、紅/黑雨取消，可退款或改期，上課前 2 小時通知 →", 0],
                 [RefreshCw, "改期 / 調堂", "上課前兩日 00:00 前，可喺學員連結自行改期 →", 1],
                 [ShieldCheck, "裝備全包", "12–24 吋單車按身高分配，頭盔及護具由單車亭提供 →", 2],
                 [Users, "小班教學", `一位教練，${sizesLine} →`, 4],
