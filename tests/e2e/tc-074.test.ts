@@ -1,96 +1,75 @@
 import { test, expect } from '@playwright/test';
 
-// TC-074: Webhook creates purchase for Alipay HK payment intent (API-level, uses Convex dev).
-const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+import { BASE_URL, convex, createApplyFixture } from './helpers/applyFixture';
 
-async function convexMutation(fnPath: string, args: Record<string, unknown>) {
-  const res = await fetch(`${CONVEX_URL}/api/mutation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
-  });
-  const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
-  if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);
-  return json.value;
-}
+// TC-074: The Airwallex webhook only seats an Order once Airwallex itself says the
+// payment succeeded. A forged "succeeded" event for an unpaid booking seats nobody, and
+// events without a Seat Hold are ignored.
 
-async function convexQuery(fnPath: string, args: Record<string, unknown>) {
-  const res = await fetch(`${CONVEX_URL}/api/query`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
-  });
-  const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
-  if (json.status !== 'success') throw new Error(`Query ${fnPath} failed: ${json.errorMessage}`);
-  return json.value;
-}
+const person = {
+  name: 'Webhook Tester',
+  age: 30,
+  height: 170,
+  riding_experience: 'never',
+  mobile: '+85291074074',
+  emergency_contact_name: 'Contact',
+  emergency_contact_phone: '+85298074074',
+  photo_consent: false,
+};
 
-test.describe('TC-074: Webhook creates purchase for Alipay HK payment intent', () => {
-  test('TC-074 webhook creates purchase for Alipay HK payment_intent.succeeded', async ({ page }) => {
-    const testId = Date.now();
-    const intentId = `test-intent-alipay-hk-${testId}`;
-    const mobile = '+85291234567';
+test('TC-074 webhook verifies the payment with Airwallex before seating', async ({ request }) => {
+  const fx = await createApplyFixture(`TC074 Class ${Date.now()}`, { airwallex_price: 10, airwallex_currency: 'HKD' });
+  const remaining = async () =>
+    (
+      (await convex('query', 'applyPage:getApplyPageData', { class_id: fx.classId })) as {
+        sessions: Array<{ session_id: string; remaining_quota: number }>;
+      }
+    ).sessions.find((s) => s.session_id === fx.sessionId)?.remaining_quota;
 
-    // 1. Create test class
-    // Note: adminClasses:createClass may not support airwallex_price — creating without it
-    const createdClass = await convexMutation('adminClasses:createClass', {
-      name_zh: `TC074 Alipay HK Class ${testId}`,
-      description_zh: 'TC-074 webhook test',
-      admin_username: 'admin',
-    }) as { class_id: string };
-    const classId = createdClass.class_id;
-    console.log('TC-074 created class:', classId);
-
-    // 2. POST to webhook with synthetic event
-    await page.goto(BASE_URL);
-    const webhookRes = await page.evaluate(async ({ intentId, classId, mobile }: { intentId: string; classId: string; mobile: string }) => {
-      const body = {
-        name: 'payment_intent.succeeded',
+  try {
+    const hold = await (
+      await request.post(`${BASE_URL}/api/checkout/start`, {
         data: {
-          object: {
-            id: intentId,
-            amount: 500,
-            currency: 'HKD',
-            metadata: { class_id: classId, mobile, quantity: '1' },
-          },
+          request_id: crypto.randomUUID(),
+          class_id: fx.classId,
+          session_id: fx.sessionId,
+          customer_mobile: '+85291074074',
+          participants: [person],
+          terms_accepted: true,
         },
-      };
-      const res = await fetch('/api/payment/webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      return { status: res.status, data: await res.json() };
-    }, { intentId, classId, mobile });
+      })
+    ).json();
+    expect(hold.kind).toBe('held');
 
-    // 3. Assert HTTP 200 and { ok: true }
-    expect(webhookRes.status).toBe(200);
-    expect(webhookRes.data.ok).toBe(true);
-    console.log('TC-074 webhook response:', webhookRes);
-
-    // 4. Wait briefly for async Convex action, then query purchases
-    await page.waitForTimeout(3000);
-    const purchases = await convexQuery('adminPurchases:listPurchases', {}) as Array<{
-      order_id: string;
-      source: string;
+    // A forged event claiming the (unpaid) intent succeeded
+    const forged = await request.post(`${BASE_URL}/api/payment/webhook`, {
+      data: {
+        name: 'payment_intent.succeeded',
+        id: 'evt_forged',
+        data: { object: { id: hold.intent_id, amount: 10, currency: 'HKD', metadata: { hold_id: hold.hold_id } } },
+      },
+    });
+    expect(forged.status()).toBe(200);
+    const result = (await convex('query', 'checkout:getCheckoutResult', { hold_id: hold.hold_id })) as {
       status: string;
-    }>;
-    const matching = purchases.filter(p => p.order_id === intentId);
+      participants: unknown[];
+    };
+    expect(result.status).toBe('held');
+    expect(result.participants).toEqual([]);
 
-    // 5. Assert exactly one purchase with source=airwallex, status=pending_terms
-    expect(matching.length, `Expected at least 1 purchase for intent ${intentId}`).toBeGreaterThanOrEqual(1);
-    const purchase = matching[0];
-    expect(purchase.source).toBe('airwallex');
-    // Status advances to 'confirmation_sent' immediately after WhatsApp is sent in the same action
-    expect(['pending_terms', 'confirmation_sent']).toContain(purchase.status);
+    // An event with no Seat Hold is ignored
+    const noHold = await request.post(`${BASE_URL}/api/payment/webhook`, {
+      data: {
+        name: 'payment_intent.succeeded',
+        id: 'evt_old',
+        data: { object: { id: 'int_old', amount: 10, currency: 'HKD', metadata: { class_id: fx.classId, mobile: '+85291074074' } } },
+      },
+    });
+    expect(noHold.status()).toBe(200);
 
-    console.log('TC-074 evidence:', JSON.stringify({
-      intentId,
-      classId,
-      purchase_count: matching.length,
-      source: purchase.source,
-      status: purchase.status,
-    }));
-  });
+    await request.post(`${BASE_URL}/api/checkout/release`, { data: { hold_id: hold.hold_id } });
+    expect(await remaining()).toBe(5);
+  } finally {
+    await fx.cleanup();
+  }
 });

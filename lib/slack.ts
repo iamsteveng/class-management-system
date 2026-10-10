@@ -68,3 +68,77 @@ export async function sendTermsAcceptanceSlack(
     return { success: false };
   }
 }
+
+export type SlackLatePaymentRefundParams = {
+  refunded: boolean;
+  customerMobile: string;
+  sessionDate: string;
+  sessionTime: string;
+  sessionLocationZh: string;
+  quantity: number;
+  amount: number;
+  currency: string;
+  intentId: string;
+  error?: string;
+};
+
+/**
+ * Tells staff a payment arrived after its Seat Hold lapsed and the Session had no room
+ * left, so the Order was refunded instead of seated (or the refund failed).
+ */
+export async function sendLatePaymentRefundSlack(
+  params: SlackLatePaymentRefundParams
+): Promise<{ success: boolean }> {
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.error("[slack] SLACK_WEBHOOK_URL is not set — cannot send Slack notification");
+    return { success: false };
+  }
+
+  const prefix = process.env.APP_ENV === "prod" ? "" : "[TEST] ";
+  const headerText = params.refunded
+    ? `${prefix}↩️ Late payment refunded — session was full`
+    : `${prefix}⚠️ Late payment refund FAILED — refund manually`;
+
+  const fields = [
+    { type: "mrkdwn", text: `*Customer:*\n${esc(params.customerMobile)}` },
+    {
+      type: "mrkdwn",
+      text: `*Session:*\n${esc(params.sessionDate)} ${esc(params.sessionTime)} ${esc(params.sessionLocationZh)}`,
+    },
+    { type: "mrkdwn", text: `*People:*\n${params.quantity}` },
+    { type: "mrkdwn", text: `*Amount:*\n${esc(params.currency)} ${params.amount}` },
+    { type: "mrkdwn", text: `*Payment intent:*\n${esc(params.intentId)}` },
+  ];
+  if (params.error) fields.push({ type: "mrkdwn", text: `*Error:*\n${esc(params.error)}` });
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        blocks: [
+          { type: "header", text: { type: "plain_text", text: headerText } },
+          { type: "section", fields },
+          {
+            type: "context",
+            elements: [
+              {
+                type: "mrkdwn",
+                text: "Please WhatsApp the Customer to explain and offer another Session.",
+              },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      console.error(`[slack] Webhook returned ${res.status}: ${await res.text()}`);
+      return { success: false };
+    }
+    return { success: true };
+  } catch (err) {
+    console.error("[slack] Failed to send notification:", err);
+    return { success: false };
+  }
+}

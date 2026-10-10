@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { withServerSecret } from './helpers/serverSecret';
 
 // TC-048: Terms form mobile input is pre-filled with "+852" and shows country code hint
 // Targets: feat/rain-cancellation-change-session branch (localhost:3000)
@@ -9,7 +10,7 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);

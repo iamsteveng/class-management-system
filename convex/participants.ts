@@ -1,12 +1,10 @@
-import {
-  makeFunctionReference,
-  mutationGeneric,
-  queryGeneric,
-  type GenericMutationCtx,
-} from "convex/server";
+import { makeFunctionReference, mutationGeneric, queryGeneric, type GenericMutationCtx, internalQueryGeneric } from "convex/server";
 
 import type { DataModel, Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+
+import { canSelfChange, OVERRIDE_REASON_MIN, sessionStartsAt } from "./changeCutoff";
+import { remainingQuota, remainingQuotaBySession } from "./remainingQuota";
 
 export const getParticipantPageData = queryGeneric({
   args: {
@@ -81,21 +79,21 @@ export const getParticipantPageData = queryGeneric({
     }
 
     const isRainCancelled = session.cancellation_reason === "rain";
-    const canChangeSession = isMoreThanTwoDaysAway(session.date, session.time) || isRainCancelled;
+    const canChangeSession = canSelfChange(session, Date.now()) || isRainCancelled;
 
     const now = new Date();
+    const classSessions = canChangeSession
+      ? await ctx.db
+          .query("sessions")
+          .withIndex("by_class_id", (q) => q.eq("class_id", session.class_id))
+          .collect()
+      : [];
+    const remaining = await remainingQuotaBySession(ctx.db, classSessions);
     const availableOptions = canChangeSession
-      ? (
-          await ctx.db
-            .query("sessions")
-            .withIndex("by_class_id", (q) => q.eq("class_id", session.class_id))
-            .collect()
-        )
+      ? classSessions
           .filter((candidateSession) => {
-            const availableQuota =
-              candidateSession.quota_defined - candidateSession.quota_used;
-            const isFutureSession =
-              new Date(`${candidateSession.date}T${candidateSession.time}`) > now;
+            const availableQuota = remaining.get(candidateSession.session_id) ?? 0;
+            const isFutureSession = sessionStartsAt(candidateSession) > now.getTime();
             return (
               candidateSession.status === "scheduled" &&
               candidateSession.hidden !== true &&
@@ -111,8 +109,7 @@ export const getParticipantPageData = queryGeneric({
             end_time: candidateSession.end_time,
             date: candidateSession.date,
             time: candidateSession.time,
-            available_quota:
-              candidateSession.quota_defined - candidateSession.quota_used,
+            available_quota: remaining.get(candidateSession.session_id) ?? 0,
           }))
           .sort((left, right) =>
             `${left.date}T${left.time}`.localeCompare(`${right.date}T${right.time}`)
@@ -173,12 +170,20 @@ export const changeParticipantSession = mutationGeneric({
 
 /**
  * Moves a Participant to another Session of the same Class. Shared by the self-service
- * change and the admin move; only an admin move may target a Hidden Session.
+ * change and the admin move. Participants are held to the Change Cutoff; a Super Admin
+ * may move someone past it (even after their Session, scanned or not) but must give a
+ * reason. Only an admin move may target a Hidden Session. Nobody is moved into a Session
+ * that has started, is not scheduled, or has no Remaining Quota.
  */
 export async function applyParticipantSessionChange(
   ctx: GenericMutationCtx<DataModel>,
   args: { participant_id: string; session_id: string },
-  options: { allowHiddenSession: boolean; adminId?: Id<"admins"> }
+  options: {
+    allowHiddenSession: boolean;
+    adminId?: Id<"admins">;
+    /** Set for a Super Admin move: may pass the Change Cutoff, with a reason. */
+    superAdminOverride?: { reason?: string };
+  }
 ): Promise<{ success: boolean; error_message?: string }> {
   const participant = await ctx.db
     .query("participants")
@@ -204,15 +209,23 @@ export async function applyParticipantSessionChange(
     };
   }
 
-  if (
-    !isMoreThanTwoDaysAway(currentSession.date, currentSession.time) &&
-    currentSession.cancellation_reason !== "rain"
-  ) {
-    return {
-      success: false,
-      error_message:
-        "Session changes are only allowed more than 2 days before the class date.",
-    };
+  const now = Date.now();
+  const pastCutoff = !canSelfChange(currentSession, now);
+  const reason = options.superAdminOverride?.reason?.trim() ?? "";
+  if (pastCutoff) {
+    if (!options.superAdminOverride) {
+      return {
+        success: false,
+        error_message:
+          "Session changes are only allowed until 00:00 two days before the class date.",
+      };
+    }
+    if (reason.length < OVERRIDE_REASON_MIN) {
+      return {
+        success: false,
+        error_message: "This participant is past the Change Cutoff. Please give a reason for the move.",
+      };
+    }
   }
 
   const newSession = await ctx.db
@@ -223,6 +236,7 @@ export async function applyParticipantSessionChange(
   if (
     !newSession ||
     newSession.status !== "scheduled" ||
+    sessionStartsAt(newSession) <= now ||
     (newSession.hidden === true && !options.allowHiddenSession)
   ) {
     return {
@@ -242,7 +256,7 @@ export async function applyParticipantSessionChange(
     return { success: true };
   }
 
-  const newSessionAvailable = newSession.quota_defined - newSession.quota_used;
+  const newSessionAvailable = await remainingQuota(ctx.db, newSession);
   if (newSessionAvailable < 1) {
     return {
       success: false,
@@ -250,7 +264,7 @@ export async function applyParticipantSessionChange(
     };
   }
 
-  const changedAt = Date.now();
+  const changedAt = now;
 
   await ctx.db.patch(participant._id, {
     session_id: newSession.session_id,
@@ -273,60 +287,54 @@ export async function applyParticipantSessionChange(
       previous_session_id: currentSession.session_id,
       next_session_id: newSession.session_id,
       changed_at: changedAt,
+      past_cutoff: pastCutoff,
+      ...(pastCutoff ? { override_reason: reason } : {}),
     },
     created_at: changedAt,
   });
 
-  // Look up customer mobile from purchase and schedule WhatsApp notification
-  const purchase = await ctx.db.get(participant.purchase_id);
-  const customerMobile = purchase?.customer_mobile ?? participant.mobile;
-  if (customerMobile) {
-    await ctx.scheduler.runAfter(
-      0,
-      makeFunctionReference<"action">("participantLinks:sendParticipantLinks"),
-      {
-        customer_mobile: customerMobile,
-        participant_ids: [participant.participant_id],
-      }
-    );
-    await ctx.db.insert("audit_logs", {
-      action: "whatsapp_notification_sent",
-      entity_type: "participant",
-      entity_id: participant.participant_id,
-      metadata: {
-        customer_mobile: customerMobile,
-        notification_type: "session_changed",
-        session_id: newSession.session_id,
-      },
-      created_at: changedAt + 1,
-    });
-  }
-
   return { success: true };
 }
 
-export const getParticipantMobileById = queryGeneric({
+/** What a Participant's rain-cancellation WhatsApp needs; internal only. */
+export const getRainNoticeDetails = internalQueryGeneric({
   args: {
     participant_id: v.string(),
   },
   returns: v.union(
     v.null(),
-    v.object({ mobile: v.union(v.string(), v.null()) })
+    v.object({
+      mobile: v.union(v.string(), v.null()),
+      class_name_zh: v.string(),
+      session_date: v.string(),
+      session_time: v.string(),
+      session_end_time: v.optional(v.string()),
+      session_location_zh: v.string(),
+    })
   ),
   handler: async (ctx, args) => {
-    const record = await ctx.db
+    const participant = await ctx.db
       .query("participants")
-      .withIndex("by_participant_id", (q) =>
-        q.eq("participant_id", args.participant_id)
-      )
+      .withIndex("by_participant_id", (q) => q.eq("participant_id", args.participant_id))
       .first();
-    if (!record) return null;
-    return { mobile: record.mobile ?? null };
+    if (!participant) return null;
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_session_id", (q) => q.eq("session_id", participant.session_id))
+      .first();
+    const cls = session
+      ? await ctx.db
+          .query("classes")
+          .withIndex("by_class_id", (q) => q.eq("class_id", session.class_id))
+          .first()
+      : null;
+    return {
+      mobile: participant.mobile ?? null,
+      class_name_zh: cls?.name_zh ?? "",
+      session_date: session?.date ?? "",
+      session_time: session?.time ?? "",
+      session_end_time: session?.end_time,
+      session_location_zh: session?.location_zh ?? "",
+    };
   },
 });
-
-function isMoreThanTwoDaysAway(date: string, time: string): boolean {
-  const sessionStartsAt = Date.parse(`${date}T${time}:00`);
-  const twoDaysInMs = 2 * 24 * 60 * 60 * 1000;
-  return Number.isFinite(sessionStartsAt) && sessionStartsAt - Date.now() > twoDaysInMs;
-}

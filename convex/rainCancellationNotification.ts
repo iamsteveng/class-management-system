@@ -1,13 +1,15 @@
 "use node";
 
-import { actionGeneric, makeFunctionReference } from "convex/server";
+import { internalActionGeneric, makeFunctionReference } from "convex/server";
 import { v } from "convex/values";
 
+import { resolveAppBaseUrl } from "../lib/appBaseUrl";
 import { sendRainCancellationWhatsApp } from "../lib/manychat";
-import { buildParticipantPassUrl, resolveAppBaseUrl } from "../lib/appBaseUrl";
+import { buildRainFields } from "../lib/orderMessage";
 import { normalizeToE164 } from "../lib/phone";
 
-export const sendRainCancellationNotification = actionGeneric({
+/** WhatsApps one Participant that their Session was rained off, with their link to rebook. */
+export const sendRainCancellationNotification = internalActionGeneric({
   args: {
     participant_id: v.string(),
   },
@@ -15,58 +17,55 @@ export const sendRainCancellationNotification = actionGeneric({
     success: v.boolean(),
   }),
   handler: async (ctx, args) => {
-    // Fetch participant.mobile — use participant record, NOT purchase mobile
-    const participant = await ctx.runQuery(
-      makeFunctionReference<"query">("participants:getParticipantMobileById"),
-      { participant_id: args.participant_id }
-    );
+    const details = (await ctx.runQuery(makeFunctionReference<"query">("participants:getRainNoticeDetails"), {
+      participant_id: args.participant_id,
+    })) as {
+      mobile: string | null;
+      class_name_zh: string;
+      session_date: string;
+      session_time: string;
+      session_end_time?: string;
+      session_location_zh: string;
+    } | null;
 
-    if (!participant) {
+    if (!details) {
       console.error(`[rainCancel] Participant not found: ${args.participant_id}`);
       return { success: false };
     }
-
-    if (!participant.mobile) {
+    if (!details.mobile) {
       console.warn(`[rainCancel] Participant ${args.participant_id} has no mobile — skipping`);
       return { success: false };
     }
 
-    // Safety-net: normalize to E.164 for existing records stored without country code
-    const normalizedMobile = normalizeToE164(participant.mobile) ?? participant.mobile;
-
-    // Look up stored ManyChat subscriber ID (avoids createSubscriber on repeat sends)
-    const storedSubscriberId = await ctx.runQuery(
-      makeFunctionReference<"query">("manychatSubscribers:getByPhone"),
-      { whatsapp_phone: normalizedMobile }
-    );
-
-    const baseUrl = resolveAppBaseUrl(process.env.APP_BASE_URL);
-    const participantPassUrl = buildParticipantPassUrl(baseUrl, args.participant_id);
-
-    console.log(
-      `[rainCancel] Sending WhatsApp to=${normalizedMobile} passUrl=${participantPassUrl} participant_id=${args.participant_id} storedSubscriberId=${storedSubscriberId ?? "none"}`
-    );
+    // The Participant's own mobile: they receive every message about their Session.
+    const to = normalizeToE164(details.mobile) ?? details.mobile;
+    const storedSubscriberId = (await ctx.runQuery(makeFunctionReference<"query">("manychatSubscribers:getByPhone"), {
+      whatsapp_phone: to,
+    })) as string | null;
 
     const result = await sendRainCancellationWhatsApp({
-      to: normalizedMobile,
-      participantPassUrl,
+      to,
       subscriberId: storedSubscriberId,
+      fields: buildRainFields({
+        baseUrl: resolveAppBaseUrl(process.env.APP_BASE_URL),
+        participantId: args.participant_id,
+        classNameZh: details.class_name_zh,
+        sessionDate: details.session_date,
+        sessionTime: details.session_time,
+        sessionEndTime: details.session_end_time,
+        locationZh: details.session_location_zh,
+      }),
     });
 
-    console.log(
-      `[rainCancel] Result: success=${result.success} subscriberId=${result.subscriberId ?? "null"}`
-    );
-
-    if (result.success && result.subscriberId) {
-      await ctx.runMutation(
-        makeFunctionReference<"mutation">("manychatSubscribers:upsertSubscriber"),
-        {
-          whatsapp_phone: normalizedMobile,
-          subscriber_id: result.subscriberId,
-        }
-      );
+    if (result.subscriberId && result.subscriberId !== storedSubscriberId) {
+      await ctx.runMutation(makeFunctionReference<"mutation">("manychatSubscribers:upsertSubscriber"), {
+        whatsapp_phone: to,
+        subscriber_id: result.subscriberId,
+      });
     }
-
+    console.log(
+      `[rainCancel] participant=${args.participant_id} success=${result.success} skipped=${result.skipped ?? false}`
+    );
     return { success: result.success };
   },
 });

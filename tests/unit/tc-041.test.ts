@@ -3,6 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock convex/server so mutationGeneric returns its definition object,
 // allowing us to access .handler directly in tests.
 vi.mock('convex/server', () => ({
+  actionGeneric: (def: any) => def,
+  internalQueryGeneric: (def: any) => def,
+  internalMutationGeneric: (def: any) => def,
+  internalActionGeneric: (def: any) => def,
   mutationGeneric: (def: any) => def,
   queryGeneric: (def: any) => def,
   makeFunctionReference: (name: string) => name,
@@ -92,6 +96,7 @@ describe('TC-041 US-012 height is stored as a number in participants table', () 
     ctx.db.query.mockImplementation((table: string) => ({
       withIndex: () => ({
         first: async () => docsByTable[table] ?? null,
+        collect: async () => [],
       }),
     }));
 

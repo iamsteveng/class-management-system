@@ -1,59 +1,51 @@
 import { test, expect } from '@playwright/test';
 
-// TC-067: /api/payment/alipay-hk/start returns redirect URL for mobile (API-level test).
-// Use a class that exists in dev Convex and has airwallex_price set
-const KNOWN_CLASS_ID = process.env.TC067_CLASS_ID || 'class_cycling_fundamentals';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+import { BASE_URL, createApplyFixture } from './helpers/applyFixture';
 
-test.describe('TC-067: alipay-hk/start returns redirect URL for mobile', () => {
-  test('TC-067 POST /api/payment/alipay-hk/start with is_mobile=true returns redirect type', async ({ page }) => {
-    await page.goto(BASE_URL);
+// TC-067: For a held booking, /api/payment/alipay-hk/start returns what the mobile apply page
+// needs (Airwallex demo). Skips if the demo account doesn't offer Alipay HK.
 
-    // Step 1: Create payment intent
-    const intentResult = await page.evaluate(async (classId: string) => {
-      const res = await fetch('/api/payment/create-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ class_id: classId, mobile: '+85291234567' }),
-      });
-      return { status: res.status, data: await res.json() };
-    }, KNOWN_CLASS_ID);
+test('TC-067 Alipay HK start on mobile', async ({ request }) => {
+  const fx = await createApplyFixture(`TC067 Class ${Date.now()}`, { airwallex_price: 10, airwallex_currency: 'HKD' });
+  try {
+    const hold = await (
+      await request.post(`${BASE_URL}/api/checkout/start`, {
+        data: {
+          request_id: crypto.randomUUID(),
+          class_id: fx.classId,
+          session_id: fx.sessionId,
+          customer_mobile: '+85291234567',
+          participants: [
+            {
+              name: 'Alipay Tester',
+              age: 30,
+              height: 170,
+              riding_experience: 'never',
+              mobile: '+85291234567',
+              emergency_contact_name: 'Contact',
+              emergency_contact_phone: '+85298765432',
+              photo_consent: false,
+            },
+          ],
+          terms_accepted: true,
+        },
+      })
+    ).json();
+    expect(hold.kind).toBe('held');
 
-    console.log('TC-067 create-intent response:', JSON.stringify(intentResult));
-
-    if (intentResult.status !== 200) {
-      console.log('TC-067: create-intent failed (Airwallex not configured in test env), skipping');
+    const res = await request.post(`${BASE_URL}/api/payment/alipay-hk/start`, {
+      data: { intent_id: hold.intent_id, is_mobile: true, os_type: 'ios', return_url: `${BASE_URL}/apply/${fx.classId}/alipay-return?intent_id=${hold.intent_id}&hold_id=${hold.hold_id}` },
+    });
+    if (res.status() !== 200) {
+      console.log('TC-067: alipay-hk/start returned', res.status(), '— Airwallex demo may not offer Alipay HK');
       return;
     }
+    const start = await res.json();
+    expect(start.type).toBe('redirect');
+    expect(start.url).toMatch(/^https?:\/\//);
 
-    const intentId = intentResult.data.intent_id;
-    expect(intentId).toBeTruthy();
-
-    // Step 2: Call alipay-hk/start with is_mobile: true
-    const startResult = await page.evaluate(async (id: string) => {
-      const res = await fetch('/api/payment/alipay-hk/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intent_id: id, is_mobile: true, os_type: 'android', return_url: 'https://example.com/return' }),
-      });
-      return { status: res.status, data: await res.json() };
-    }, intentId);
-
-    console.log('TC-067 alipay-hk/start response:', JSON.stringify(startResult));
-
-    if (startResult.status !== 200) {
-      console.log('TC-067: alipay-hk/start returned', startResult.status, '— Airwallex demo may not support Alipay HK');
-      return;
-    }
-
-    expect(startResult.data.type).toBe('redirect');
-    expect(startResult.data.url).toBeTruthy();
-    expect(startResult.data.url).toMatch(/^https:\/\//);
-
-    console.log('TC-067 evidence:', JSON.stringify({
-      intent_id: intentId,
-      type: startResult.data.type,
-      url_starts_with_https: startResult.data.url?.startsWith('https://'),
-    }));
-  });
+    await request.post(`${BASE_URL}/api/checkout/release`, { data: { hold_id: hold.hold_id } });
+  } finally {
+    await fx.cleanup();
+  }
 });

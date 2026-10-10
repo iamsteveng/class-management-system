@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { VenueSelect, type VenueOption } from "./venue-select";
+
 type EditSessionModalProps = {
   sessionId: string;
   initialLocation: string;
@@ -12,6 +14,8 @@ type EditSessionModalProps = {
   initialTime: string;
   initialQuotaDefined: number;
   initialGoogleMapsUrl?: string;
+  initialVenueId?: string;
+  venues?: VenueOption[];
   submitAction: (formData: FormData) => void | Promise<void>;
 };
 
@@ -24,6 +28,8 @@ export function EditSessionModal({
   initialTime,
   initialQuotaDefined,
   initialGoogleMapsUrl,
+  initialVenueId,
+  venues = [],
   submitAction,
 }: EditSessionModalProps) {
   const [open, setOpen] = useState(false);
@@ -67,6 +73,7 @@ export function EditSessionModal({
 
             <form action={submitAction} className="mt-4 space-y-4">
               <input type="hidden" name="session_id" value={sessionId} />
+              <VenueSelect id={`edit-venue-${fieldId}`} venues={venues} defaultValue={initialVenueId} />
 
               <div className="space-y-2">
                 <label
@@ -79,7 +86,7 @@ export function EditSessionModal({
                   id={`edit-location-zh-${fieldId}`}
                   name="location_zh"
                   type="text"
-                  required
+                  required={venues.length === 0}
                   defaultValue={initialLocation}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900"
                 />

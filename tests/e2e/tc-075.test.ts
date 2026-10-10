@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { withServerSecret } from './helpers/serverSecret';
 
 // TC-075: Cancel & Refund button visible for Alipay HK purchases, not for s3 purchases.
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
@@ -9,7 +10,7 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);
@@ -27,7 +28,7 @@ test.describe('TC-075: Cancel & Refund button visibility by purchase source', ()
     }) as { class_id: string };
 
     // Create airwallex purchase
-    await convexMutation('purchases:createPurchase', {
+    await convexMutation('testPurchase:createPurchase', {
       order_id: `tc075-airwallex-${testId}`,
       customer_mobile: '+85291234567',
       participant_count: 1,
@@ -41,7 +42,7 @@ test.describe('TC-075: Cancel & Refund button visibility by purchase source', ()
     });
 
     // Create s3 purchase
-    await convexMutation('purchases:createPurchase', {
+    await convexMutation('testPurchase:createPurchase', {
       order_id: `tc075-s3-${testId}`,
       customer_mobile: '+85299999999',
       participant_count: 1,

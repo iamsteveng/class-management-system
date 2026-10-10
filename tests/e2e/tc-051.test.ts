@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+
+import { convex } from './helpers/applyFixture';
 import path from 'path';
 
 // TC-051: Homepage shows "Apply" link (not "Buy Ticket") for a class with airwallex_price.
@@ -8,6 +10,9 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('TC-051: Homepage shows Apply button for Airwallex-priced class', () => {
   test('TC-051 homepage renders Apply link to /apply/[class_id] when airwallex_price is set, not Buy Ticket', async ({ page }) => {
+    // Covers the old homepage, shown until the launch switch turns the cycling landing page on.
+    const { live } = (await convex('query', 'landing:getLandingData', {})) as { live: boolean };
+    test.skip(live, 'The cycling landing page is live on this deployment');
     const testId = Date.now();
     const className = `TC051 Airwallex Class ${testId}`;
 

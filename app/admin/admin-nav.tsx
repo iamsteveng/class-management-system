@@ -29,6 +29,16 @@ const navItems: NavItem[] = [
         !pathname.includes("/participants")),
   },
   {
+    label: "Venues",
+    href: "/admin/venues",
+    isActive: (pathname) => pathname.startsWith("/admin/venues"),
+  },
+  {
+    label: "Timetable",
+    href: "/admin/timetable",
+    isActive: (pathname) => pathname.startsWith("/admin/timetable"),
+  },
+  {
     label: "Participants",
     href: "/admin/participants",
     isActive: (pathname) =>
@@ -48,11 +58,6 @@ const navItems: NavItem[] = [
     label: "Purchases",
     href: "/admin/purchases",
     isActive: (pathname) => pathname.startsWith("/admin/purchases"),
-  },
-  {
-    label: "WhatsApp Resend",
-    href: "/admin/ingestion",
-    isActive: (pathname) => pathname.startsWith("/admin/ingestion"),
   },
 ];
 

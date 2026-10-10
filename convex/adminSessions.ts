@@ -1,7 +1,40 @@
-import { makeFunctionReference, mutationGeneric, queryGeneric } from "convex/server";
+import {
+  makeFunctionReference,
+  type GenericDatabaseReader,
+} from "convex/server";
 import { v } from "convex/values";
+import { serverMutation, serverQuery } from "./serverOnly";
 
-export const getSessionManagementPageData = queryGeneric({
+import type { DataModel } from "./_generated/dataModel";
+
+import { remainingQuotaBySession } from "./remainingQuota";
+import { sessionLocationFromVenue, toVenueFields } from "./venues";
+
+/**
+ * Where a Session created or edited by an admin is held: a Venue when one is picked (its
+ * name and map position then win over any typed location), otherwise the typed location.
+ */
+async function resolveSessionLocation(
+  db: GenericDatabaseReader<DataModel>,
+  args: { venue_id?: string; location_zh: string; location_en?: string; google_maps_url?: string }
+) {
+  if (args.venue_id) {
+    const venue = await db
+      .query("venues")
+      .withIndex("by_venue_id", (q) => q.eq("venue_id", args.venue_id!))
+      .first();
+    if (!venue) throw new Error("Venue not found.");
+    return sessionLocationFromVenue(toVenueFields(venue));
+  }
+  return {
+    venue_id: undefined,
+    location_zh: args.location_zh.trim(),
+    location_en: args.location_en?.trim() || undefined,
+    google_maps_url: args.google_maps_url,
+  };
+}
+
+export const getSessionManagementPageData = serverQuery({
   args: {
     class_id: v.string(),
   },
@@ -29,8 +62,11 @@ export const getSessionManagementPageData = queryGeneric({
           google_maps_url: v.optional(v.string()),
           cancellation_reason: v.optional(v.literal("rain")),
           hidden: v.boolean(),
+          venue_id: v.optional(v.string()),
         })
       ),
+      class_size: v.optional(v.number()),
+      venues: v.array(v.object({ venue_id: v.string(), name_zh: v.string() })),
     })
   ),
   handler: async (ctx, args) => {
@@ -48,6 +84,8 @@ export const getSessionManagementPageData = queryGeneric({
       .withIndex("by_class_id", (q) => q.eq("class_id", args.class_id))
       .collect();
 
+    const remaining = await remainingQuotaBySession(ctx.db, sessions);
+
     const sessionRows = sessions.map((s) => ({
       session_id: s.session_id,
       location_zh: s.location_zh ?? "",
@@ -57,11 +95,12 @@ export const getSessionManagementPageData = queryGeneric({
       time: s.time,
       quota_defined: s.quota_defined,
       quota_used: s.quota_used,
-      quota_available: Math.max(0, s.quota_defined - s.quota_used),
+      quota_available: remaining.get(s.session_id) ?? 0,
       status: s.status,
       google_maps_url: s.google_maps_url,
       cancellation_reason: s.cancellation_reason,
       hidden: s.hidden === true,
+      venue_id: s.venue_id,
     }));
 
     sessionRows.sort((a, b) => {
@@ -70,15 +109,21 @@ export const getSessionManagementPageData = queryGeneric({
       return bDateTime.localeCompare(aDateTime);
     });
 
+    const venues = (await ctx.db.query("venues").collect())
+      .sort((x, y) => x.created_at - y.created_at)
+      .map((venue) => ({ venue_id: venue.venue_id, name_zh: venue.name_zh }));
+
     return {
       class_id: classRecord.class_id,
       class_name: classRecord.name_zh ?? "",
       sessions: sessionRows,
+      class_size: classRecord.class_size,
+      venues,
     };
   },
 });
 
-export const createSession = mutationGeneric({
+export const createSession = serverMutation({
   args: {
     class_id: v.string(),
     location_zh: v.string(),
@@ -89,6 +134,7 @@ export const createSession = mutationGeneric({
     quota_defined: v.number(),
     admin_username: v.string(),
     google_maps_url: v.optional(v.string()),
+    venue_id: v.optional(v.string()),
   },
   returns: v.object({
     session_id: v.string(),
@@ -102,18 +148,21 @@ export const createSession = mutationGeneric({
       .withIndex("by_username", (q) => q.eq("username", args.admin_username))
       .first();
 
+    const location = await resolveSessionLocation(ctx.db, args);
+    if (!location.location_zh) {
+      throw new Error("A Venue or a location is required.");
+    }
+
     await ctx.db.insert("sessions", {
       session_id: sessionId,
       class_id: args.class_id,
-      location_zh: args.location_zh.trim(),
-      location_en: args.location_en?.trim() || undefined,
+      ...location,
       end_time: args.end_time?.trim() || undefined,
       date: args.date.trim(),
       time: args.time.trim(),
       quota_defined: args.quota_defined,
       quota_used: 0,
       status: "scheduled",
-      google_maps_url: args.google_maps_url,
       created_at: now,
     });
 
@@ -124,7 +173,8 @@ export const createSession = mutationGeneric({
       entity_id: sessionId,
       metadata: {
         class_id: args.class_id,
-        location_zh: args.location_zh.trim(),
+        location_zh: location.location_zh,
+        venue_id: location.venue_id,
         date: args.date.trim(),
         time: args.time.trim(),
         quota_defined: args.quota_defined,
@@ -136,7 +186,7 @@ export const createSession = mutationGeneric({
   },
 });
 
-export const updateSession = mutationGeneric({
+export const updateSession = serverMutation({
   args: {
     session_id: v.string(),
     location_zh: v.string(),
@@ -147,6 +197,8 @@ export const updateSession = mutationGeneric({
     quota_defined: v.number(),
     admin_username: v.string(),
     google_maps_url: v.optional(v.string()),
+    // "" means the Session no longer has a Venue; leaving it out keeps the current one.
+    venue_id: v.optional(v.string()),
   },
   returns: v.object({
     session_id: v.string(),
@@ -170,8 +222,11 @@ export const updateSession = mutationGeneric({
       throw new Error("Only super admins can edit sessions.");
     }
 
-    const nextLocationZh = args.location_zh.trim();
-    const nextLocationEn = args.location_en?.trim() || undefined;
+    const location =
+      args.venue_id === undefined && sessionRecord.venue_id
+        ? await resolveSessionLocation(ctx.db, { ...args, venue_id: sessionRecord.venue_id })
+        : await resolveSessionLocation(ctx.db, { ...args, venue_id: args.venue_id || undefined });
+    const nextLocationZh = location.location_zh;
     const nextEndTime = args.end_time?.trim() || undefined;
     const nextDate = args.date.trim();
     const nextTime = args.time.trim();
@@ -183,13 +238,11 @@ export const updateSession = mutationGeneric({
 
     const now = Date.now();
     await ctx.db.patch(sessionRecord._id, {
-      location_zh: nextLocationZh,
-      location_en: nextLocationEn,
+      ...location,
       end_time: nextEndTime,
       date: nextDate,
       time: nextTime,
       quota_defined: nextQuotaDefined,
-      google_maps_url: args.google_maps_url,
     });
 
     await ctx.db.insert("audit_logs", {
@@ -218,7 +271,7 @@ export const updateSession = mutationGeneric({
  * Hide or show a scheduled Session. Hiding only controls whether Customers and
  * Participants can see and pick it; Participants already in it are untouched.
  */
-export const setSessionHidden = mutationGeneric({
+export const setSessionHidden = serverMutation({
   args: {
     session_id: v.string(),
     hidden: v.boolean(),
@@ -273,7 +326,7 @@ export const setSessionHidden = mutationGeneric({
   },
 });
 
-export const cancelSession = mutationGeneric({
+export const cancelSession = serverMutation({
   args: {
     session_id: v.string(),
     admin_username: v.string(),
@@ -336,7 +389,7 @@ export const cancelSession = mutationGeneric({
   },
 });
 
-export const markSessionRainCancelled = mutationGeneric({
+export const markSessionRainCancelled = serverMutation({
   args: {
     session_id: v.string(),
     admin_username: v.string(),
@@ -408,7 +461,7 @@ export const markSessionRainCancelled = mutationGeneric({
   },
 });
 
-export const getSessionParticipantsPageData = queryGeneric({
+export const getSessionParticipantsPageData = serverQuery({
   args: {
     session_id: v.string(),
   },
@@ -427,7 +480,12 @@ export const getSessionParticipantsPageData = queryGeneric({
           mobile: v.string(),
           email: v.optional(v.string()),
           height: v.optional(v.number()),
+          age: v.optional(v.number()),
+          riding_experience: v.optional(v.string()),
+          health_notes: v.optional(v.string()),
+          photo_consent: v.optional(v.boolean()),
           terms_accepted: v.boolean(),
+          terms_accepted_by: v.optional(v.string()),
           terms_version: v.optional(v.string()),
           attendance_status: v.string(),
         })
@@ -503,7 +561,12 @@ export const getSessionParticipantsPageData = queryGeneric({
           mobile,
           email: participant.email?.trim() || undefined,
           height: participant.height,
+          age: participant.age,
+          riding_experience: participant.riding_experience,
+          health_notes: participant.health_notes,
+          photo_consent: participant.photo_consent,
           terms_accepted: termsAccepted,
+          terms_accepted_by: participant.terms_accepted_by,
           terms_version: termsVersion,
           attendance_status: attendance
             ? `Attended at ${new Date(attendance.marked_at).toISOString()}`
@@ -531,7 +594,7 @@ export const getSessionParticipantsPageData = queryGeneric({
   },
 });
 
-export const getSessionAttendance = queryGeneric({
+export const getSessionAttendance = serverQuery({
   args: {
     session_id: v.string(),
   },
@@ -571,7 +634,7 @@ export const getSessionAttendance = queryGeneric({
   },
 });
 
-export const markAttendanceFromScan = mutationGeneric({
+export const markAttendanceFromScan = serverMutation({
   args: {
     session_id: v.string(),
     participant_id: v.string(),

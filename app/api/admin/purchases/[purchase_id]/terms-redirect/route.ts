@@ -18,7 +18,7 @@ export async function GET(
 
   const client = createConvexHttpClient();
   const purchase = await client.query(
-    makeFunctionReference<"query">("purchaseQueries:getPurchaseForConfirmation"),
+    makeFunctionReference<"query">("adminPurchases:getPurchaseToken"),
     { purchase_id: purchase_id as never }
   );
 

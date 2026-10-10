@@ -1,7 +1,8 @@
-import { queryGeneric } from "convex/server";
-import { v } from "convex/values";
 
-export const listPurchases = queryGeneric({
+import { v } from "convex/values";
+import { serverQuery } from "./serverOnly";
+
+export const listPurchases = serverQuery({
   args: {},
   returns: v.array(
     v.object({
@@ -73,5 +74,15 @@ export const listPurchases = queryGeneric({
         status: p.status,
       };
     });
+  },
+});
+
+/** The Token of a Legacy Ticket, so an admin can open (or send on) its terms page link. */
+export const getPurchaseToken = serverQuery({
+  args: { purchase_id: v.id("purchases") },
+  returns: v.union(v.null(), v.object({ token: v.string() })),
+  handler: async (ctx, args) => {
+    const purchase = await ctx.db.get(args.purchase_id);
+    return purchase ? { token: purchase.token } : null;
   },
 });

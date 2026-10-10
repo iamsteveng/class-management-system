@@ -24,12 +24,15 @@ type SessionRow = {
   google_maps_url?: string;
   cancellation_reason?: "rain";
   hidden: boolean;
+  venue_id?: string;
 };
 
 type PageData = {
   class_id: string;
   class_name: string;
   sessions: SessionRow[];
+  class_size?: number;
+  venues: Array<{ venue_id: string; name_zh: string }>;
 } | null;
 
 type AdminSessionsPageProps = {
@@ -87,8 +90,9 @@ export default async function AdminClassSessionsPage({
     const quotaRaw = formData.get("quota_defined") as string | null;
     const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
     const googleMapsUrl = (formData.get("google_maps_url") as string | null)?.trim() || undefined;
+    const venueId = (formData.get("venue_id") as string | null)?.trim() || undefined;
 
-    if (!locationZh || !date || !time || isNaN(quotaDefined) || quotaDefined < 1) {
+    if ((!locationZh && !venueId) || !date || !time || isNaN(quotaDefined) || quotaDefined < 1) {
       redirect(
         `/admin/classes/${classId}/sessions?error=${encodeURIComponent(
           "All fields are required and quota must be at least 1."
@@ -110,6 +114,7 @@ export default async function AdminClassSessionsPage({
           quota_defined: quotaDefined,
           admin_username: adminUsername,
           google_maps_url: googleMapsUrl,
+          venue_id: venueId,
         }
       );
     } catch {
@@ -135,10 +140,13 @@ export default async function AdminClassSessionsPage({
     const quotaRaw = formData.get("quota_defined") as string | null;
     const quotaDefined = quotaRaw ? parseInt(quotaRaw, 10) : NaN;
     const googleMapsUrl = (formData.get("google_maps_url") as string | null)?.trim() || undefined;
+    // "" (no Venue picked) is passed on so the Session stops using its old Venue.
+    const venueIdRaw = formData.get("venue_id") as string | null;
+    const venueId = venueIdRaw === null ? undefined : venueIdRaw.trim();
 
     if (
       !sessionId ||
-      !locationZh ||
+      (!locationZh && !venueId) ||
       !date ||
       !time ||
       isNaN(quotaDefined) ||
@@ -165,6 +173,7 @@ export default async function AdminClassSessionsPage({
           quota_defined: quotaDefined,
           admin_username: adminUsername,
           google_maps_url: googleMapsUrl,
+          venue_id: venueId,
         }
       );
     } catch {
@@ -294,6 +303,8 @@ export default async function AdminClassSessionsPage({
 
         {isSuperAdmin ? (
           <AddSessionModal
+            venues={pageData.venues}
+            defaultQuota={pageData.class_size}
             submitAction={addSessionAction}
             errorMessage={errorMessage}
             success={sessionCreated}
@@ -420,6 +431,8 @@ export default async function AdminClassSessionsPage({
                           initialTime={s.time}
                           initialQuotaDefined={s.quota_defined}
                           initialGoogleMapsUrl={s.google_maps_url}
+                          initialVenueId={s.venue_id}
+                          venues={pageData.venues}
                           submitAction={editSessionAction}
                         />
                         <CancelSessionButton

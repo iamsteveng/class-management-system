@@ -50,6 +50,13 @@ export default defineSchema({
     emergency_contact_name: v.optional(v.string()),
     emergency_contact_phone: v.optional(v.string()),
     email: v.optional(v.string()),
+    riding_experience: v.optional(
+      v.union(v.literal("never"), v.literal("training_wheels"), v.literal("short_distance"))
+    ),
+    health_notes: v.optional(v.string()),
+    photo_consent: v.optional(v.boolean()),
+    // Who gave the Terms Acceptance: the Participant (Legacy Tickets) or the Customer on their behalf.
+    terms_accepted_by: v.optional(v.union(v.literal("participant"), v.literal("customer"))),
     created_at: v.number(),
   })
     .index("by_participant_id", ["participant_id"])
@@ -69,8 +76,37 @@ export default defineSchema({
     airwallex_group_price: v.optional(v.number()),
     airwallex_group_min_qty: v.optional(v.number()),
     is_free: v.optional(v.boolean()),
+    age_min: v.optional(v.number()),
+    age_max: v.optional(v.number()),
+    class_size: v.optional(v.number()),
     created_at: v.number(),
   }).index("by_class_id", ["class_id"]),
+
+  venues: defineTable({
+    venue_id: v.string(),
+    name_zh: v.string(),
+    name_en: v.optional(v.string()),
+    district_zh: v.string(),
+    district_en: v.optional(v.string()),
+    address_zh: v.string(),
+    address_en: v.optional(v.string()),
+    opening_hours: v.optional(v.string()),
+    latitude: v.number(),
+    longitude: v.number(),
+    // The kiosk's own Google Maps place link; without one, a link is built from the coordinates.
+    maps_url: v.optional(v.string()),
+    mtr_station_zh: v.optional(v.string()),
+    mtr_station_en: v.optional(v.string()),
+    mtr_line_zh: v.optional(v.string()),
+    mtr_line_en: v.optional(v.string()),
+    mtr_latitude: v.optional(v.number()),
+    mtr_longitude: v.optional(v.number()),
+    walk_minutes: v.optional(v.number()),
+    directions_zh: v.optional(v.string()),
+    directions_en: v.optional(v.string()),
+    created_at: v.number(),
+    updated_at: v.optional(v.number()),
+  }).index("by_venue_id", ["venue_id"]),
 
   sessions: defineTable({
     session_id: v.string(),
@@ -91,10 +127,91 @@ export default defineSchema({
     cancellation_reason: v.optional(v.literal("rain")),
     // A Hidden Session is not shown to or selectable by Customers and Participants.
     hidden: v.optional(v.boolean()),
+    // New Sessions are held at a Venue; older ones only have the free-text location above.
+    venue_id: v.optional(v.string()),
+    // Set when the Session was opened from the Timetable; after that it stands on its own.
+    timetable_entry_id: v.optional(v.string()),
     created_at: v.number(),
   })
     .index("by_session_id", ["session_id"])
-    .index("by_class_id", ["class_id"]),
+    .index("by_class_id", ["class_id"])
+    .index("by_venue_id", ["venue_id"])
+    .index("by_timetable_entry_date", ["timetable_entry_id", "date"]),
+
+  // A Seat Hold: a Customer's chosen seats in one Session, kept while they pay, with the
+  // details of everyone being booked so the Order can be created as soon as payment succeeds.
+  seat_holds: defineTable({
+    hold_id: v.string(),
+    request_id: v.string(),
+    class_id: v.string(),
+    session_id: v.string(),
+    quantity: v.number(),
+    customer_mobile: v.string(),
+    participants: v.array(
+      v.object({
+        name: v.string(),
+        age: v.number(),
+        height: v.number(),
+        riding_experience: v.union(
+          v.literal("never"),
+          v.literal("training_wheels"),
+          v.literal("short_distance")
+        ),
+        mobile: v.string(),
+        emergency_contact_name: v.string(),
+        emergency_contact_phone: v.string(),
+        health_notes: v.optional(v.string()),
+        photo_consent: v.boolean(),
+      })
+    ),
+    terms_version_id: v.id("terms_versions"),
+    unit_price: v.number(),
+    total_price: v.number(),
+    currency: v.string(),
+    is_free: v.boolean(),
+    status: v.union(
+      v.literal("held"), // seats held while the Customer pays
+      v.literal("released"), // given up before paying
+      v.literal("completed"), // paid; the Order's Tickets and Participants exist
+      v.literal("refund_pending"), // paid after lapsing with no room left; refund under way
+      v.literal("refunded"),
+      v.literal("refund_failed")
+    ),
+    expires_at: v.number(),
+    intent_id: v.optional(v.string()),
+    order_id: v.optional(v.string()),
+    participant_ids: v.optional(v.array(v.string())),
+    refund_id: v.optional(v.string()),
+    created_at: v.number(),
+    completed_at: v.optional(v.number()),
+  })
+    .index("by_hold_id", ["hold_id"])
+    .index("by_request_id", ["request_id"])
+    .index("by_session_status", ["session_id", "status"])
+    .index("by_intent_id", ["intent_id"]),
+
+  // One repeating slot of the Timetable: a Class at a Venue, on a weekday of one week of the cycle.
+  timetable_entries: defineTable({
+    entry_id: v.string(),
+    class_id: v.string(),
+    venue_id: v.string(),
+    cycle_week: v.number(),
+    weekday: v.number(), // 0 = Monday … 6 = Sunday
+    start_time: v.string(),
+    end_time: v.string(),
+    paused: v.optional(v.boolean()),
+    created_at: v.number(),
+  }).index("by_entry_id", ["entry_id"]),
+
+  timetable_settings: defineTable({
+    key: v.literal("default"),
+    cycle_anchor: v.string(), // the Monday that starts week 1 of the cycle
+    first_date: v.optional(v.string()), // no Session is opened before this date (the first class)
+    cycle_weeks: v.number(),
+    window_days: v.number(),
+    paused: v.optional(v.boolean()),
+    updated_at: v.number(),
+  }).index("by_key", ["key"]),
 
   terms_versions: defineTable({
     version: v.string(),

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { withServerSecret } from '../e2e/helpers/serverSecret';
 
 const CONVEX_URL = 'https://graceful-mole-393.convex.cloud';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
@@ -8,7 +9,7 @@ async function convexMutation(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/mutation`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Mutation ${fnPath} failed: ${json.errorMessage}`);
@@ -19,15 +20,15 @@ async function convexQuery(fnPath: string, args: Record<string, unknown>) {
   const res = await fetch(`${CONVEX_URL}/api/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path: fnPath, args, format: 'json' }),
+    body: JSON.stringify({ path: fnPath, args: withServerSecret(fnPath, args), format: 'json' }),
   });
   const json = await res.json() as { status: string; value?: unknown; errorMessage?: string };
   if (json.status !== 'success') throw new Error(`Query ${fnPath} failed: ${json.errorMessage}`);
   return json.value;
 }
 
-test.describe('TC-019: Change Session sends WhatsApp notification', () => {
-  test('TC-019 changing a participant session triggers WhatsApp notification and audit log', async ({ page }) => {
+test.describe('TC-019: Super Admin changes a participant\'s Session', () => {
+  test('TC-019 changing a participant session is recorded in the audit log', async ({ page }) => {
     const testId = Date.now();
     const screenshotDir = path.join(process.cwd(), 'test-results');
 
@@ -89,7 +90,8 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
     await changeSessionBtn.click();
 
     // Step 8: Verify modal is open and select the new session (session 2)
-    await expect(page.locator('text=A WhatsApp notification will be sent.')).toBeVisible({ timeout: 10_000 });
+    // (No WhatsApp goes out yet when an admin changes a Session; that is issue #32.)
+    await expect(page.getByText('Select a new session for this participant.')).toBeVisible({ timeout: 10_000 });
     const sessionRadio = page.locator(`input[type="radio"][value="${session2.session_id}"]`);
     await expect(sessionRadio).toBeVisible({ timeout: 10_000 });
     await sessionRadio.click();
@@ -123,28 +125,14 @@ test.describe('TC-019: Change Session sends WhatsApp notification', () => {
     const sessionChangedEntry = auditLogs.find(e => e.action === 'participant_session_changed');
     expect(sessionChangedEntry).not.toBeUndefined();
 
-    // Pass criterion 2: Audit log records a WhatsApp notification event
-    const whatsappNotificationEntry = auditLogs.find(
-      e => e.action === 'whatsapp_notification_sent' || e.action === 'participant_session_changed_notification_sent'
-    );
-    const whatsappNotificationRecorded = whatsappNotificationEntry !== undefined;
-
     console.log('TC-019 evidence:', JSON.stringify({
       participant_id: participant.participant_id,
       session_1_id: session1.session_id,
       session_2_id: session2.session_id,
       audit_log_actions: auditLogs.map(e => e.action),
       session_change_recorded: sessionChangedEntry !== undefined,
-      whatsapp_notification_recorded: whatsappNotificationRecorded,
       ui_success_banner_shown: true,
     }, null, 2));
-
-    // This assertion tests whether WhatsApp notification is actually recorded
-    expect(
-      whatsappNotificationRecorded,
-      'Expected a WhatsApp notification event in audit log after session change, but none was recorded. ' +
-      `The UI states "A WhatsApp notification will be sent." but the backend changeParticipantSession ` +
-      `mutation only records: ${auditLogs.map(e => e.action).join(', ')} — no WhatsApp notification is sent.`
-    ).toBe(true);
+    // Telling the Participant about the change is issue #32; nothing is sent yet.
   });
 });
