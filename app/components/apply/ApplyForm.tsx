@@ -124,12 +124,12 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
   const [alipayQr, setAlipayQr] = useState<{ qrcode: string; startedAt: number } | null>(null);
   const [qrExpired, setQrExpired] = useState(false);
   const [cardReady, setCardReady] = useState(false);
-  // Airwallex's card fields, created once the SDK loads and mounted whenever the payment
-  // section is on screen (it isn't while the Customer is still picking a Session).
-  type CardField = { mount: (el: string) => unknown; unmount: () => void };
-  const cardFieldsRef = useRef<Record<"cardNumber" | "expiry" | "cvc", CardField> | null>(null);
-  const cardFieldsReadyRef = useRef(new Set<string>());
-  const [cardFieldsCreated, setCardFieldsCreated] = useState(false);
+  // Airwallex's createElement, available once its SDK has loaded. The card fields are
+  // created each time the payment section appears (it isn't on screen while the Customer
+  // is still picking a Session) and destroyed when it goes away.
+  type CreateCardElement = (type: "cardNumber" | "expiry" | "cvc", options: object) => Promise<unknown>;
+  const createCardElementRef = useRef<CreateCardElement | null>(null);
+  const [cardSdkReady, setCardSdkReady] = useState(false);
   // While a card field has focus, extra room below the form lets it scroll above the keyboard.
   const [cardFocused, setCardFocused] = useState(false);
   const cardRef = useRef<{ confirm: (args: { intent_id: string; client_secret: string }) => Promise<unknown> } | null>(null);
@@ -166,46 +166,8 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
           env: (process.env.NEXT_PUBLIC_AIRWALLEX_ENV as "demo" | "prod") ?? "demo",
           enabledElements: ["payments"],
         });
-        // Three separate fields (number, expiry, CVC), each with room for 16px text: 16px
-        // stops iPhone Safari zooming in on tap, and a single combined field was too
-        // cramped on a phone to type into.
-        const style = { base: { fontSize: "16px", color: "#0E2433" } };
-        const [cardNumber, expiry, cvc] = await Promise.all([
-          createElement("cardNumber", { style, placeholder: "卡號 Card number" }),
-          createElement("expiry", { style, placeholder: "MM / YY" }),
-          createElement("cvc", { style, placeholder: "CVC" }),
-        ]);
-        // Confirming on the card number field collects the expiry and CVC fields too.
-        cardRef.current = cardNumber as unknown as typeof cardRef.current;
-
-        const fields = { cardNumber, expiry, cvc } as const;
-        for (const [name, field] of Object.entries(fields)) {
-          field.on("ready", () => {
-            cardFieldsReadyRef.current.add(name);
-            if (cardFieldsReadyRef.current.size === 3) setCardReady(true);
-          });
-          // The fields live in Airwallex's iframes, which iPhone Safari doesn't scroll into
-          // view properly when the keyboard opens; bring the card section to the top.
-          field.on("blur", () => setCardFocused(false));
-          field.on("focus", () => {
-            setCardFocused(true);
-            const reveal = () =>
-              document.getElementById("apply-card-section")?.scrollIntoView({ block: "start", behavior: "smooth" });
-            reveal();
-            const viewport = window.visualViewport;
-            if (viewport) {
-              const onResize = () => {
-                viewport.removeEventListener("resize", onResize);
-                reveal();
-              };
-              viewport.addEventListener("resize", onResize);
-              setTimeout(() => viewport.removeEventListener("resize", onResize), 1000);
-            }
-            setTimeout(reveal, 400);
-          });
-        }
-        cardFieldsRef.current = fields as unknown as Record<"cardNumber" | "expiry" | "cvc", CardField>;
-        setCardFieldsCreated(true);
+        createCardElementRef.current = createElement as unknown as CreateCardElement;
+        setCardSdkReady(true);
       } catch (err) {
         console.error("[apply] Airwallex init failed:", err);
       }
@@ -214,19 +176,72 @@ export function ApplyForm({ data, lang, initialSessionId, onChangeSession }: App
 
   const showCardFields = !cls.is_free && !!session && !pickingSession;
   useEffect(() => {
-    const fields = cardFieldsRef.current;
-    if (!cardFieldsCreated || !showCardFields || !fields) return;
-    cardFieldsReadyRef.current.clear();
-    fields.cardNumber.mount("apply-card-number");
-    fields.expiry.mount("apply-card-expiry");
-    fields.cvc.mount("apply-card-cvc");
-    return () => {
-      setCardReady(false);
-      fields.cardNumber.unmount();
-      fields.expiry.unmount();
-      fields.cvc.unmount();
+    const createElement = createCardElementRef.current;
+    if (!cardSdkReady || !showCardFields || !createElement) return;
+    type Field = {
+      mount: (el: string) => unknown;
+      destroy: () => void;
+      on: (event: "ready" | "focus" | "blur", handler: () => void) => void;
     };
-  }, [cardFieldsCreated, showCardFields]);
+    let fields: Field[] = [];
+    let cancelled = false;
+    (async () => {
+      // Three separate fields (number, expiry, CVC), each with room for 16px text: 16px
+      // stops iPhone Safari zooming in on tap, and a single combined field was too
+      // cramped on a phone to type into.
+      const style = { base: { fontSize: "16px", color: "#0E2433" } };
+      const created = (await Promise.all([
+        createElement("cardNumber", { style, placeholder: "卡號 Card number" }),
+        createElement("expiry", { style, placeholder: "MM / YY" }),
+        createElement("cvc", { style, placeholder: "CVC" }),
+      ])) as Field[];
+      if (cancelled) {
+        created.forEach((f) => f.destroy());
+        return;
+      }
+      fields = created;
+      const [cardNumber, expiry, cvc] = created;
+      cardNumber.mount("apply-card-number");
+      expiry.mount("apply-card-expiry");
+      cvc.mount("apply-card-cvc");
+      // Confirming on the card number field collects the expiry and CVC fields too.
+      cardRef.current = cardNumber as unknown as typeof cardRef.current;
+
+      // Listeners go on after mounting, as Airwallex expects.
+      const ready = new Set<Field>();
+      for (const field of created) {
+        field.on("ready", () => {
+          ready.add(field);
+          if (ready.size === 3) setCardReady(true);
+        });
+        // The fields live in Airwallex's iframes, which iPhone Safari doesn't scroll into
+        // view properly when the keyboard opens; bring the card section to the top.
+        field.on("blur", () => setCardFocused(false));
+        field.on("focus", () => {
+          setCardFocused(true);
+          const reveal = () =>
+            document.getElementById("apply-card-section")?.scrollIntoView({ block: "start", behavior: "smooth" });
+          reveal();
+          const viewport = window.visualViewport;
+          if (viewport) {
+            const onResize = () => {
+              viewport.removeEventListener("resize", onResize);
+              reveal();
+            };
+            viewport.addEventListener("resize", onResize);
+            setTimeout(() => viewport.removeEventListener("resize", onResize), 1000);
+          }
+          setTimeout(reveal, 400);
+        });
+      }
+    })().catch((err) => console.error("[apply] card fields failed:", err));
+    return () => {
+      cancelled = true;
+      setCardReady(false);
+      cardRef.current = null;
+      fields.forEach((f) => f.destroy());
+    };
+  }, [cardSdkReady, showCardFields]);
 
   useEffect(() => {
     if (!hold) return;
